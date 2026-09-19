@@ -1,15 +1,21 @@
-# Fix Listed — prototype hosting rules.
+# Fix Listed — pre-launch holding page.
 
 RewriteEngine On
 
-# Let's Encrypt validates and renews over plain HTTP by fetching a file from
-# /.well-known/acme-challenge/. Never redirect or rewrite that path.
+# ACME challenges must never be redirected or rewritten, or certificate
+# renewal breaks the moment the certificate lapses.
 RewriteRule ^\.well-known/ - [L]
+
+# The waitlist endpoint is a real script and must run, not be rewritten away.
+RewriteRule ^signup\.php$ - [L]
 
 RewriteCond %{HTTPS} !=on
 RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
+# Every other path shows the holding page. A 200, not a 503: this link gets
+# shared to recruit tradespeople, and a 503 breaks link previews and stops
+# people reaching a page that is working exactly as intended.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.html [L]

@@ -1,0 +1,290 @@
+<title>Fix Listed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Hanken+Grotesk:wght@300..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ink:#0E1513; --ink-2:#18221F; --ink-3:#2B3A35;
+  --paper:#EDEFE9; --paper-2:#F7F8F3; --paper-3:#FFFFFF;
+  --text:#16201D; --text-2:#4E5C57; --text-3:#78857F;
+  --line:#D6DACF; --line-2:#C2C9BB;
+  --brass:#8A6115; --brass-2:#C79A3E; --brass-3:#DCB25C; --brass-wash:#F3EAD6;
+  --jade:#2C6E5D; --jade-wash:#DFEBE5;
+  --clay:#A8412A;
+  --on-ink:#E9EEE9; --on-ink-2:#9AA8A2; --on-ink-line:#2C3B36;
+  --sans:"Hanken Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --serif:"Marcellus",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#0D1412; --paper-2:#141E1B; --paper-3:#1A2522;
+  --text:#E4EAE5; --text-2:#A2AFA9; --text-3:#7A8882;
+  --line:#25322E; --line-2:#334440;
+  --brass:#D9B060; --brass-wash:#2A2417;
+  --jade:#6BB39D; --jade-wash:#162B26; --clay:#D97D64;
+}}
+:root[data-theme="dark"]{
+  --paper:#0D1412; --paper-2:#141E1B; --paper-3:#1A2522;
+  --text:#E4EAE5; --text-2:#A2AFA9; --text-3:#7A8882;
+  --line:#25322E; --line-2:#334440;
+  --brass:#D9B060; --brass-wash:#2A2417;
+  --jade:#6BB39D; --jade-wash:#162B26; --clay:#D97D64;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--on-ink);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--serif);font-weight:400;margin:0;line-height:1.1;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--brass-2);outline-offset:2px;border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+.wrap{width:100%;max-width:1060px;margin:0 auto;padding-inline:20px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.small{font-size:13.5px}
+.tiny{font-size:12px}
+
+.top{border-bottom:1px solid var(--on-ink-line)}
+.top-in{display:flex;align-items:center;gap:14px;height:64px;flex-wrap:wrap}
+.logo{font-family:var(--serif);font-size:21px;display:flex;gap:8px;letter-spacing:.02em}
+.logo i{font-style:normal;color:var(--brass-2)}
+.status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--on-ink-2)}
+.dot{width:7px;height:7px;border-radius:99px;background:var(--brass-2);box-shadow:0 0 0 4px rgba(199,154,62,.16)}
+
+.hero{position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(110% 80% at 78% 0%,rgba(199,154,62,.18),transparent 58%);pointer-events:none}
+.hero-in{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:52px;padding-block:64px 72px;align-items:start}
+h1{font-size:clamp(34px,5vw,54px)}
+h1 em{font-style:italic;color:var(--brass-3)}
+.lede{color:var(--on-ink-2);font-size:17.5px;margin-top:18px;max-width:46ch}
+.points{list-style:none;margin:28px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+.points li{display:flex;gap:11px;align-items:flex-start;font-size:15px}
+.points svg{color:var(--brass-2);flex:none;margin-top:4px}
+.points b{font-weight:600}
+.counties{margin-top:34px;padding-top:22px;border-top:1px solid var(--on-ink-line)}
+.counties .eyebrow{color:var(--on-ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.chips span{border:1px solid var(--on-ink-line);border-radius:99px;padding:5px 12px;font-size:13px;color:var(--on-ink-2)}
+
+/* ---- card ---- */
+.card{background:var(--paper-3);color:var(--text);border-radius:5px;box-shadow:0 2px 4px rgba(0,0,0,.2),0 28px 56px -20px rgba(0,0,0,.55);overflow:hidden}
+.card-h{padding:20px 22px 0}
+.card-h h2{font-size:22px;margin-top:4px}
+.card-h .eyebrow{color:var(--brass)}
+.card-b{padding:18px 22px 22px}
+.toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--paper-2);border:1px solid var(--line);border-radius:4px;padding:4px;margin-bottom:18px}
+.toggle button{border:0;background:transparent;border-radius:3px;padding:10px 8px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text-2);font-family:inherit}
+.toggle button[aria-pressed="true"]{background:var(--ink);color:var(--on-ink)}
+label.f{display:block;margin-bottom:13px}
+label.f > span{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line-2);border-radius:3px;background:var(--paper-2);font:inherit;color:inherit}
+textarea{min-height:74px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.cov{display:flex;flex-wrap:wrap;gap:7px}
+.cov label{display:flex;align-items:center;gap:7px;border:1px solid var(--line-2);background:var(--paper-2);border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer}
+.cov input{width:auto;padding:0;margin:0}
+.cov label:has(input:checked){background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.btn{width:100%;border:0;border-radius:3px;padding:15px 20px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--brass-2);color:#0E1513;box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 8px 20px -10px rgba(138,97,21,.9);transition:background .16s}
+.btn:hover{background:var(--brass-3)}
+.btn:disabled{opacity:.6;cursor:progress}
+.fine{display:flex;gap:9px;align-items:flex-start;margin-top:13px;font-size:12.5px;color:var(--text-2)}
+.fine svg{color:var(--jade);flex:none;margin-top:1px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.msg{border-radius:3px;padding:13px 15px;font-size:14px;margin-bottom:16px}
+.msg-err{background:#F4E1DB;color:#8A3220;border:1px solid #E0B6AA}
+.done{text-align:center;padding:14px 4px 6px}
+.done .tick{width:58px;height:58px;border-radius:99px;background:var(--jade-wash);color:var(--jade);display:grid;place-items:center;margin:0 auto 16px}
+.done h2{font-size:24px}
+.done p{color:var(--text-2);margin-top:10px;font-size:14.5px}
+
+.foot{border-top:1px solid var(--on-ink-line);padding-block:26px 34px;color:var(--on-ink-2);font-size:13px}
+.foot-in{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
+.foot a{color:var(--brass-2);text-decoration:none}
+.foot a:hover{text-decoration:underline}
+
+@media (max-width:860px){
+  .hero-in{grid-template-columns:1fr;gap:38px;padding-block:44px 52px}
+  .grid2{grid-template-columns:1fr}
+}
+</style>
+
+<div class="top"><div class="wrap top-in">
+  <span class="logo"><b>Fix</b> <i>Listed</i></span>
+  <span class="status"><span class="dot"></span> Opening in Northwest Illinois</span>
+</div></div>
+
+<section class="hero"><div class="wrap hero-in">
+  <div>
+    <div class="eyebrow" style="color:var(--brass-2)">Stephenson &middot; Winnebago &middot; Ogle &middot; Boone &middot; Carroll &middot; Jo Daviess</div>
+    <h1 style="margin-top:14px">Hire a handyman without <em>losing a cut of the job</em>.</h1>
+    <p class="lede">Fix Listed is a trades directory for Northwest Illinois. Homeowners post what needs fixing for a flat $10. Local pros quote it for free and deal with you directly.</p>
+    <ul class="points">
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg><span><b>No commission, ever.</b> Whatever you agree with your pro is what you pay. We take nothing from it.</span></li>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg><span><b>We don't resell your details.</b> Your job goes to local pros, not to four call centres.</span></li>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg><span><b>Free for tradespeople.</b> Listing and quoting cost nothing. They always will.</span></li>
+    </ul>
+    <div class="counties">
+      <div class="eyebrow">Launching across six counties</div>
+      <div class="chips">
+        <span>Rockford</span><span>Freeport</span><span>Belvidere</span><span>Loves Park</span>
+        <span>Machesney Park</span><span>Rochelle</span><span>Byron</span><span>Oregon</span>
+        <span>Galena</span><span>Savanna</span><span>Roscoe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <form id="form" novalidate>
+      <div class="card-h">
+        <div class="eyebrow">Be here on day one</div>
+        <h2 id="card-title">Claim your free listing</h2>
+      </div>
+      <div class="card-b">
+        <div class="toggle" role="group" aria-label="Who are you?">
+          <button type="button" id="t-pro" aria-pressed="true">I'm a tradesperson</button>
+          <button type="button" id="t-home" aria-pressed="false">I need work done</button>
+        </div>
+
+        <div id="err" class="msg msg-err" hidden role="alert"></div>
+
+        <div class="grid2">
+          <label class="f"><span>Name</span><input id="name" name="name" autocomplete="name" required></label>
+          <label class="f"><span>Phone <span style="text-transform:none;letter-spacing:0">(optional)</span></span><input id="phone" name="phone" type="tel" autocomplete="tel"></label>
+        </div>
+        <label class="f"><span>Email</span><input id="email" name="email" type="email" autocomplete="email" required></label>
+
+        <div id="pro-fields">
+          <label class="f"><span>Your trade</span>
+            <select id="trade" name="trade">
+              <option>Plumbing</option><option>Electrical</option><option>Carpentry</option>
+              <option>Drywall &amp; Paint</option><option>Appliance Repair</option>
+              <option>Heating &amp; Cooling</option><option>Roofing &amp; Gutters</option>
+              <option>Fencing &amp; Decks</option><option>Landscaping &amp; Snow</option>
+              <option>Handyman &mdash; General</option>
+            </select></label>
+          <label class="f"><span>Counties you'll drive to</span>
+            <div class="cov">
+              <label><input type="checkbox" name="counties" value="Winnebago" checked> Winnebago</label>
+              <label><input type="checkbox" name="counties" value="Stephenson"> Stephenson</label>
+              <label><input type="checkbox" name="counties" value="Boone"> Boone</label>
+              <label><input type="checkbox" name="counties" value="Ogle"> Ogle</label>
+              <label><input type="checkbox" name="counties" value="Carroll"> Carroll</label>
+              <label><input type="checkbox" name="counties" value="Jo Daviess"> Jo Daviess</label>
+            </div></label>
+        </div>
+
+        <div id="home-fields" hidden>
+          <label class="f"><span>Your town</span>
+            <select id="town" name="town">
+              <option>Rockford</option><option>Freeport</option><option>Belvidere</option>
+              <option>Loves Park</option><option>Machesney Park</option><option>Roscoe</option>
+              <option>Rochelle</option><option>Byron</option><option>Oregon</option>
+              <option>Galena</option><option>Savanna</option><option>Somewhere else nearby</option>
+            </select></label>
+          <label class="f"><span>What needs doing? <span style="text-transform:none;letter-spacing:0">(optional)</span></span>
+            <textarea id="note" name="note" placeholder="Sump pump is humming but not moving water&hellip;"></textarea></label>
+        </div>
+
+        <div class="hp"><label>Leave this empty<input id="website" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+        <button class="btn" id="submit" type="submit">Claim my free listing</button>
+        <div class="fine" id="fine">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          <span><b>Founding listings are free and stay free.</b> We'll email you once when we open, and never sell your details to anyone.</span>
+        </div>
+      </div>
+    </form>
+
+    <div id="thanks" class="card-b done" hidden>
+      <div class="tick"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <h2 id="thanks-title">You're on the list</h2>
+      <p id="thanks-body">We'll be in touch before we open.</p>
+    </div>
+  </div>
+</div></section>
+
+<footer class="foot"><div class="wrap foot-in">
+  <span>&copy; 2026 Fix Listed &middot; Northwest Illinois</span>
+  <span>Questions? <a href="mailto:hello@fixlisted.com">hello@fixlisted.com</a></span>
+</div></footer>
+
+<script>
+(function(){
+  var form=document.getElementById('form'), err=document.getElementById('err');
+  var tPro=document.getElementById('t-pro'), tHome=document.getElementById('t-home');
+  var proF=document.getElementById('pro-fields'), homeF=document.getElementById('home-fields');
+  var submit=document.getElementById('submit'), title=document.getElementById('card-title');
+  var fine=document.getElementById('fine').querySelector('b');
+  var role='pro', started=Date.now();
+
+  function setRole(next){
+    role=next;
+    tPro.setAttribute('aria-pressed', String(role==='pro'));
+    tHome.setAttribute('aria-pressed', String(role==='homeowner'));
+    proF.hidden  = role!=='pro';
+    homeF.hidden = role!=='homeowner';
+    title.textContent = role==='pro' ? 'Claim your free listing' : 'Tell me when it opens';
+    submit.textContent = role==='pro' ? 'Claim my free listing' : 'Let me know when it opens';
+    fine.textContent = role==='pro'
+      ? 'Founding listings are free and stay free.'
+      : 'One email when we open. That is all.';
+  }
+  tPro.addEventListener('click', function(){ setRole('pro'); });
+  tHome.addEventListener('click', function(){ setRole('homeowner'); });
+
+  function fail(message){
+    err.hidden=false;
+    err.innerHTML = message + ' Or email <a href="mailto:hello@fixlisted.com" style="color:inherit"><b>hello@fixlisted.com</b></a> and we will add you by hand.';
+    submit.disabled=false;
+    submit.textContent = role==='pro' ? 'Claim my free listing' : 'Let me know when it opens';
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    err.hidden=true;
+
+    var name=document.getElementById('name').value.trim();
+    var email=document.getElementById('email').value.trim();
+    if(name.length<2){ return fail('Please tell us your name.'); }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ return fail('That email address does not look right.'); }
+
+    var counties=[].slice.call(document.querySelectorAll('input[name=counties]:checked')).map(function(c){return c.value;});
+    if(role==='pro' && counties.length===0){ return fail('Pick at least one county you will drive to.'); }
+
+    var payload={
+      role: role,
+      name: name,
+      email: email,
+      phone: document.getElementById('phone').value.trim(),
+      trade: role==='pro' ? document.getElementById('trade').value : '',
+      counties: counties.join(', '),
+      town: role==='homeowner' ? document.getElementById('town').value : '',
+      note: role==='homeowner' ? document.getElementById('note').value.trim() : '',
+      website: document.getElementById('website').value,
+      elapsed: Math.round((Date.now()-started)/1000)
+    };
+
+    submit.disabled=true; submit.textContent='Sending…';
+
+    fetch('signup.php', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok, body:j}; }); })
+      .then(function(res){
+        if(!res.ok || !res.body.ok){ return fail(res.body && res.body.error ? res.body.error : 'We could not save that just now.'); }
+        document.getElementById('thanks-title').textContent =
+          role==='pro' ? 'You are on the founding list' : 'You are on the list';
+        document.getElementById('thanks-body').textContent =
+          role==='pro'
+            ? 'We will call before we open so your profile is live on day one. Nothing to pay, now or later, to be listed.'
+            : 'We will email you the day Fix Listed opens in Northwest Illinois.';
+        form.hidden=true;
+        document.getElementById('thanks').hidden=false;
+      })
+      .catch(function(){ fail('We could not reach the server.'); });
+  });
+
+  setRole('pro');
+})();
+</script>

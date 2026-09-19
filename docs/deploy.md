@@ -82,18 +82,68 @@ Everything below can be done while DNS propagates, except issuing SSL.
 
 ## Phase 2 — Connect over SSH
 
-A2 shared hosting uses **port 7822**, not the default 22. Confirm yours in
-cPanel → **SSH Access**.
+A2 shared hosting uses **port 7822**, not the default 22, and requires key-based auth.
+
+### Generate the key on your machine, not on the server
+
+cPanel's **SSH Access → Generate a Public Key** form creates the private key *on the
+server*, so it exists somewhere you don't control and has to be downloaded back to you.
+That form also only offers RSA and DSA — DSA is obsolete and should never be used.
+
+Generate locally instead. `ssh-keygen` ships with macOS, Linux and Windows 10/11:
 
 ```bash
-ssh -p 7822 YOURCPANELUSER@fixlisted.com
-# before DNS propagates, use the server hostname from your A2 welcome email:
-ssh -p 7822 YOURCPANELUSER@a2ss123.a2hosting.com
+ssh-keygen -t ed25519 -C "fixlisted-a2" -f ~/.ssh/fixlisted_a2
 ```
 
-If it refuses the connection, enable SSH in the A2 customer portal first — on some
-plans it's off by default, and on others you must upload a public key through
-cPanel → SSH Access → Manage SSH Keys.
+Set a passphrase when prompted. That produces two files — `fixlisted_a2` (private, never
+leaves your machine, never goes in git) and `fixlisted_a2.pub` (public, safe to paste
+anywhere).
+
+### Install the public key
+
+```bash
+cat ~/.ssh/fixlisted_a2.pub
+# Windows PowerShell:  type $env:USERPROFILE\.ssh\fixlisted_a2.pub
+```
+
+cPanel → **SSH Access** → **Manage SSH Keys** → **Import Key**. Paste into the **public
+key** box, leave the private key box empty, name it `fixlisted_a2`.
+
+**Then click Authorize.** Importing a key does not authorize it, and an unauthorized key
+is refused with the same "Permission denied (publickey)" as a wrong key — this is the
+single most common reason A2 SSH appears broken.
+
+### Connect
+
+```bash
+ssh -p 7822 -i ~/.ssh/fixlisted_a2 YOURCPANELUSER@fixlisted.com
+```
+
+Worth setting up once, in `~/.ssh/config`, so every later deploy is just `ssh fixlisted`:
+
+```
+Host fixlisted
+    HostName fixlisted.com
+    User YOURCPANELUSER
+    Port 7822
+    IdentityFile ~/.ssh/fixlisted_a2
+```
+
+### If it still refuses
+
+- SSH is off by default on some A2 plans — enable it in the **A2 customer portal**
+  (not cPanel).
+- The key was imported but never **Authorized**.
+- Before DNS propagates, connect to the server hostname from your A2 welcome email
+  instead: `ssh -p 7822 YOURCPANELUSER@a2ss123.a2hosting.com`.
+- `ssh -vvv` prints which key it actually offered, which usually ends the argument.
+
+### If you use the cPanel generator anyway
+
+It does work. Set **Key Type: RSA** (never DSA) and **Key Size: 4096**, set a real Key
+Password, then Go Back → **Manage SSH Keys** → **Authorize** the public key →
+**Download** the private key into `~/.ssh/` and `chmod 600` it.
 
 ---
 

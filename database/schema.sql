@@ -122,6 +122,86 @@ CREATE TABLE trades (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ===========================================================================
+-- GEOGRAPHY  (global reference data, shared by every market)
+--
+-- Three layers, each doing a different job:
+--
+--   market  — the tenant. A named region, e.g. "Northwest Illinois".
+--   county  — the service-area unit. Pros choose which counties they cover.
+--             Counties are finite and permanent (Illinois has 102 and always
+--             will), unlike "places", which number in the thousands and blur
+--             into townships and unincorporated areas.
+--   city    — what homeowners actually type, and what they search for. Cities
+--             are SEO landing pages inside a market, never markets themselves.
+--
+-- A county belongs to exactly one market here. That is a simplifying choice,
+-- not a law of nature: if two markets ever need to share a county, this
+-- becomes a join table with a primary flag.
+-- ===========================================================================
+
+CREATE TABLE counties (
+  id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  fips        CHAR(5)      NOT NULL,              -- '17177' — the stable federal id
+  name        VARCHAR(80)  NOT NULL,              -- 'Stephenson County'
+  short_name  VARCHAR(80)  NOT NULL,              -- 'Stephenson'
+  slug        VARCHAR(80)  NOT NULL,              -- 'stephenson-il'
+  state       CHAR(2)      NOT NULL,
+  population  INT UNSIGNED NULL,                  -- optional; refresh from Census
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_counties_fips (fips),
+  UNIQUE KEY uq_counties_slug (slug),
+  KEY ix_counties_state (state, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE market_counties (
+  market_id INT UNSIGNED NOT NULL,
+  county_id INT UNSIGNED NOT NULL,
+  PRIMARY KEY (market_id, county_id),
+  UNIQUE KEY uq_county_one_market (county_id),    -- one market per county, for now
+  CONSTRAINT fk_mc_market FOREIGN KEY (market_id) REFERENCES markets (id)  ON DELETE CASCADE,
+  CONSTRAINT fk_mc_county FOREIGN KEY (county_id) REFERENCES counties (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE cities (
+  id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  county_id  INT UNSIGNED NOT NULL,
+  market_id  INT UNSIGNED NOT NULL,               -- denormalised: every city
+                                                  -- lookup is market-scoped, and
+                                                  -- this keeps that one index away
+  name       VARCHAR(80)  NOT NULL,               -- 'Rockford'
+  slug       VARCHAR(80)  NOT NULL,               -- 'rockford'
+  state      CHAR(2)      NOT NULL,
+  population INT UNSIGNED NULL,
+  -- Cities with a landing page get /{market}/{city} and are indexed. The long
+  -- tail of villages is selectable when posting a job but has no page, because
+  -- 40 near-empty pages reads as a content farm to a search engine.
+  has_page   TINYINT(1)   NOT NULL DEFAULT 0,
+  sort_order SMALLINT     NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_cities_market_slug (market_id, slug),
+  KEY ix_cities_county (county_id, name),
+  KEY ix_cities_pages (market_id, has_page, sort_order),
+  CONSTRAINT fk_cities_county FOREIGN KEY (county_id) REFERENCES counties (id) ON DELETE CASCADE,
+  CONSTRAINT fk_cities_market FOREIGN KEY (market_id) REFERENCES markets (id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ZIP to county, for radius search and for routing a typed ZIP to a market.
+-- Deliberately EMPTY in the seed: this must be imported from an authoritative
+-- source (Census ZCTA-to-county relationship file), never hand-typed, because
+-- a wrong ZIP silently routes a paid job post to the wrong market. Until it is
+-- loaded, homeowners choose their city from a list instead, which needs no ZIP
+-- data at all. See bin/import_zips.php.
+CREATE TABLE zip_counties (
+  zip        VARCHAR(10)  NOT NULL,
+  county_id  INT UNSIGNED NOT NULL,
+  is_primary TINYINT(1)   NOT NULL DEFAULT 1,     -- a ZIP can straddle counties
+  PRIMARY KEY (zip, county_id),
+  KEY ix_zip_county (county_id),
+  CONSTRAINT fk_zc_county FOREIGN KEY (county_id) REFERENCES counties (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ===========================================================================
 -- PROS
 -- ===========================================================================
 
@@ -137,6 +217,8 @@ CREATE TABLE pro_profiles (
   min_hours            DECIMAL(3,1) NOT NULL DEFAULT 2.0,
   years_experience     SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   service_radius_miles SMALLINT UNSIGNED NOT NULL DEFAULT 25,
+  home_county_id       INT UNSIGNED NULL,
+  home_city_id         INT UNSIGNED NULL,
   base_zip             VARCHAR(12)  NOT NULL DEFAULT '',
 
   -- Credentials. The *_verified_at timestamps are set by an admin, never by
@@ -189,15 +271,23 @@ CREATE TABLE pro_skills (
   CONSTRAINT fk_skills_pro FOREIGN KEY (pro_id) REFERENCES pro_profiles (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- A pro can serve more than their home market once they grow. The directory
--- reads this table, not pro_profiles.market_id, when listing a market.
-CREATE TABLE pro_service_areas (
+-- Where a pro actually works, county by county. This is the table the
+-- directory reads — not pro_profiles.market_id — so a pro who covers three
+-- counties appears in all three, and a Rockford pro who will not drive to
+-- Galena does not appear there.
+--
+-- market_id is denormalised from the county so the directory query stays a
+-- single market-scoped index lookup instead of joining up through
+-- market_counties on every page load.
+CREATE TABLE pro_county_areas (
   pro_id    BIGINT UNSIGNED NOT NULL,
+  county_id INT UNSIGNED NOT NULL,
   market_id INT UNSIGNED NOT NULL,
-  PRIMARY KEY (pro_id, market_id),
-  KEY ix_psa_market (market_id),
-  CONSTRAINT fk_psa_pro    FOREIGN KEY (pro_id)    REFERENCES pro_profiles (id) ON DELETE CASCADE,
-  CONSTRAINT fk_psa_market FOREIGN KEY (market_id) REFERENCES markets (id)      ON DELETE CASCADE
+  PRIMARY KEY (pro_id, county_id),
+  KEY ix_pca_market (market_id, county_id),
+  CONSTRAINT fk_pca_pro    FOREIGN KEY (pro_id)    REFERENCES pro_profiles (id) ON DELETE CASCADE,
+  CONSTRAINT fk_pca_county FOREIGN KEY (county_id) REFERENCES counties (id)     ON DELETE CASCADE,
+  CONSTRAINT fk_pca_market FOREIGN KEY (market_id) REFERENCES markets (id)      ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE pro_photos (
@@ -228,7 +318,9 @@ CREATE TABLE jobs (
   market_id         INT UNSIGNED NOT NULL,
   user_id           BIGINT UNSIGNED NOT NULL,            -- homeowner
   trade_id          SMALLINT UNSIGNED NOT NULL,
-  reference         CHAR(10)     NOT NULL,               -- "ATX-4K2P9M", shown to users
+  county_id         INT UNSIGNED NULL,                   -- resolved at post time
+  city_id           INT UNSIGNED NULL,                   -- chosen by the homeowner
+  reference         CHAR(10)     NOT NULL,               -- "NWI-4K2P9M", shown to users
   title             VARCHAR(160) NOT NULL,
   description       TEXT         NOT NULL,
   zip               VARCHAR(12)  NOT NULL,
@@ -255,10 +347,14 @@ CREATE TABLE jobs (
   KEY ix_jobs_trade (market_id, trade_id, status),
   KEY ix_jobs_owner (user_id, status),
   KEY ix_jobs_expiry (status, expires_at),               -- cron: expire + refund sweep
+  KEY ix_jobs_city (city_id, status, published_at),      -- the city landing pages
+  KEY ix_jobs_county (county_id, status),
   CONSTRAINT fk_jobs_market FOREIGN KEY (market_id) REFERENCES markets (id)      ON DELETE CASCADE,
   CONSTRAINT fk_jobs_user   FOREIGN KEY (user_id)   REFERENCES users (id)        ON DELETE CASCADE,
   CONSTRAINT fk_jobs_trade  FOREIGN KEY (trade_id)  REFERENCES trades (id),
-  CONSTRAINT fk_jobs_hired  FOREIGN KEY (hired_pro_id) REFERENCES pro_profiles (id) ON DELETE SET NULL
+  CONSTRAINT fk_jobs_hired  FOREIGN KEY (hired_pro_id) REFERENCES pro_profiles (id) ON DELETE SET NULL,
+  CONSTRAINT fk_jobs_county FOREIGN KEY (county_id) REFERENCES counties (id) ON DELETE SET NULL,
+  CONSTRAINT fk_jobs_city   FOREIGN KEY (city_id)   REFERENCES cities (id)   ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE job_photos (
@@ -611,6 +707,8 @@ CREATE TABLE migrations (
 
 -- pro_profiles.hero_photo_id references pro_photos, which is created after it.
 ALTER TABLE pro_profiles
+  ADD CONSTRAINT fk_pro_county FOREIGN KEY (home_county_id) REFERENCES counties (id) ON DELETE SET NULL,
+  ADD CONSTRAINT fk_pro_city   FOREIGN KEY (home_city_id)   REFERENCES cities (id)   ON DELETE SET NULL,
   ADD CONSTRAINT fk_pro_hero FOREIGN KEY (hero_photo_id) REFERENCES pro_photos (id) ON DELETE SET NULL,
   ADD CONSTRAINT fk_pro_verifier FOREIGN KEY (license_verified_by) REFERENCES users (id) ON DELETE SET NULL;
 

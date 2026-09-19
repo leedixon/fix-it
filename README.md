@@ -1,6 +1,6 @@
 # Fix Listed
 
-Local trades directory for fixlisted.com — homeowners post jobs for a flat $10, handymen
+Local trades directory for fixlisted.com, serving Northwest Illinois — homeowners post jobs for a flat $10, handymen
 create profiles and quote for free, and revenue comes from listing fees plus advertising.
 
 **Current state:** the prototype is live at https://fixlisted.com on A2 Hosting with
@@ -12,7 +12,7 @@ production. The PHP application has not been written yet.
 | Design prototype | Live at fixlisted.com (noindex, placeholder content) |
 | Hosting, DNS, SSL | Done — A record at registrar, Let's Encrypt issued |
 | Database schema | Written, verified on MariaDB 10.11, not yet imported to A2 |
-| PHP application | Foundation built and tested (22 checks); pages not yet written |
+| PHP application | Foundation built and tested (30 checks); pages not yet written |
 | Stripe | Not started |
 
 Deployment specifics for this account: cPanel user `leedixon`, document root
@@ -101,7 +101,7 @@ See [docs/architecture.md](docs/architecture.md) for the decisions behind the sc
 ## Application
 
 ```
-php bin/smoke.php        # 22 checks against a real database
+php bin/smoke.php        # 30 checks against a real database
 ```
 
 `bin/smoke.php` is the regression test for the tenant boundary. Run it after touching

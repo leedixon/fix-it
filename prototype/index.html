@@ -327,7 +327,7 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
     <div class="chrome-r">
       <div class="mkt">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 1114 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-        <select id="market" aria-label="Choose your market"></select>
+        <select id="market" aria-label="Choose a county"></select>
       </div>
       <a class="btn btn-primary btn-sm" href="#/post">Post a job &mdash; $10</a>
       <button class="burger" id="burger" aria-label="Menu"><svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
@@ -363,87 +363,128 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 <script>
 /* ============================ seed data ============================ */
+/* Mirrors database/seed.sql — Northwest Illinois, six counties. */
+
+const MARKET = {name:"Northwest Illinois", code:"NWI", anchor:"Rockford", fee:10};
+
+/* The header selector picks a county inside the market. Counties are the unit
+   pros choose for coverage; cities are what homeowners search. */
+const AREAS = [
+  {id:"all",        name:"All of Northwest Illinois", code:"NWI", short:"Northwest Illinois"},
+  {id:"winnebago",  name:"Winnebago County",  code:"WIN", short:"Winnebago",  seat:"Rockford"},
+  {id:"stephenson", name:"Stephenson County", code:"STE", short:"Stephenson", seat:"Freeport"},
+  {id:"boone",      name:"Boone County",      code:"BOO", short:"Boone",      seat:"Belvidere"},
+  {id:"ogle",       name:"Ogle County",       code:"OGL", short:"Ogle",       seat:"Rochelle"},
+  {id:"carroll",    name:"Carroll County",    code:"CAR", short:"Carroll",    seat:"Savanna"},
+  {id:"jodaviess",  name:"Jo Daviess County", code:"JOD", short:"Jo Daviess", seat:"Galena"}
+];
+
+/* Tenants, for the superadmin panel. One live, two staged. */
 const MARKETS = [
-  {id:"austin",    name:"Austin, TX",     code:"ATX", pros:214, jobs:38, live:true,  admin:"Dana Whitfield", rev:8420,  since:"Jan 2026"},
-  {id:"roundrock", name:"Round Rock, TX", code:"RRK", pros:63,  jobs:11, live:true,  admin:"Marcus Bell",    rev:2190,  since:"Apr 2026"},
-  {id:"sanmarcos", name:"San Marcos, TX", code:"SMT", pros:29,  jobs:6,  live:true,  admin:"Unassigned",     rev:740,   since:"Aug 2026"},
-  {id:"waco",      name:"Waco, TX",       code:"WCO", pros:0,   jobs:0,  live:false, admin:"Unassigned",     rev:0,     since:"—"}
+  {id:"nwi", name:"Northwest Illinois", code:"NWI", counties:6, pros:214, jobs:9,  live:true,  admin:"Dana Whitfield", rev:8420, since:"Sep 2026"},
+  {id:"qca", name:"Quad Cities",        code:"QCA", counties:4, pros:0,   jobs:0,  live:false, admin:"Unassigned",     rev:0,    since:"—"},
+  {id:"swi", name:"Southern Wisconsin", code:"SWI", counties:3, pros:0,   jobs:0,  live:false, admin:"Unassigned",     rev:0,    since:"—"}
 ];
+
+const CITIES = ["Rockford","Freeport","Belvidere","Loves Park","Machesney Park","Rochelle","Byron","Oregon","Galena","Savanna","Roscoe"];
+
 const CATS = [
-  {n:"Plumbing",     c:41, i:"M8 4v6a4 4 0 008 0V7"},
-  {n:"Electrical",   c:33, i:"M13 2L4 14h7l-1 8 9-12h-7l1-8z"},
-  {n:"Carpentry",    c:56, i:"M3 21l6-6m-1-9l4-4 7 7-4 4z"},
-  {n:"Drywall &amp; Paint", c:48, i:"M4 20h16M6 16V6h12v10"},
-  {n:"Appliance",    c:22, i:"M5 3h14v18H5zM9 7h6"},
-  {n:"HVAC",         c:19, i:"M12 3v18M3 12h18M6 6l12 12M18 6L6 18"},
-  {n:"Fencing &amp; Decks", c:27, i:"M4 20V8l4-4 4 4 4-4 4 4v12"},
-  {n:"Odd Jobs",     c:88, i:"M12 2l2.4 6.5L21 11l-6.6 2.5L12 20l-2.4-6.5L3 11l6.6-2.5z"}
+  {n:"Plumbing",           c:38, i:"M8 4v6a4 4 0 008 0V7"},
+  {n:"Electrical",         c:31, i:"M13 2L4 14h7l-1 8 9-12h-7l1-8z"},
+  {n:"Carpentry",          c:47, i:"M3 21l6-6m-1-9l4-4 7 7-4 4z"},
+  {n:"Drywall &amp; Paint",    c:44, i:"M4 20h16M6 16V6h12v10"},
+  {n:"Appliance Repair",   c:19, i:"M5 3h14v18H5zM9 7h6"},
+  {n:"Heating &amp; Cooling",  c:26, i:"M12 3v18M3 12h18M6 6l12 12M18 6L6 18"},
+  {n:"Roofing &amp; Gutters",  c:22, i:"M3 12l9-7 9 7M5 12v8h14v-8"},
+  {n:"Fencing &amp; Decks",    c:24, i:"M4 20V8l4-4 4 4 4-4 4 4v12"},
+  {n:"Landscaping &amp; Snow", c:29, i:"M12 2l2.4 6.5L21 11l-6.6 2.5L12 20l-2.4-6.5L3 11l6.6-2.5z"},
+  {n:"Odd Jobs",           c:81, i:"M12 2l2.4 6.5L21 11l-6.6 2.5L12 20l-2.4-6.5L3 11l6.6-2.5z"}
 ];
+
+/* `co` is every county this pro will actually drive to. A Galena furnace tech
+   does not appear in Belvidere, and the directory reflects that. */
 const PROS = [
-  {id:"p1",n:"Ray Okafor",     t:"Master Plumber",          m:"austin",    r:4.9,rc:187,h:95, y:18,j:412,v:1,ins:1,bg:1,ad:"spotlight",resp:"~12 min",hue:38,
-   tags:["Repipe","Water heaters","Slab leaks","Emergency"],b:"Licensed master plumber (TX M-41182). I do the diagnosis before the quote, in writing, and I don't leave a job without pressure-testing it."},
-  {id:"p2",n:"Teresa Vance",   t:"Finish Carpenter",        m:"austin",    r:5.0,rc:96, h:78, y:12,j:238,v:1,ins:1,bg:1,ad:"spotlight",resp:"~40 min",hue:12,
-   tags:["Built-ins","Trim &amp; crown","Cabinet refacing","Stairs"],b:"Custom built-ins and trim carpentry. Twelve years, mostly referral work in Tarrytown and Hyde Park. I show up with a shop drawing, not a guess."},
-  {id:"p3",n:"Dmitri Sokolov", t:"Handyman &mdash; General", m:"austin",   r:4.8,rc:143,h:62, y:9, j:520,v:1,ins:1,bg:1,ad:"boost",resp:"~25 min",hue:152,
-   tags:["TV mounting","Drywall patch","Faucets","Furniture"],b:"The everything-list guy. If your honey-do list has nine unrelated items on it, that's a normal Tuesday for me. Two-hour minimum."},
-  {id:"p4",n:"Alma Reyes",     t:"Painter &amp; Drywall",   m:"austin",    r:4.9,rc:74, h:55, y:15,j:301,v:1,ins:1,bg:0,ad:"",resp:"~1 hr",hue:196,
+  {id:"p1",n:"Marcus Ojo",     t:"Master Plumber",           city:"Rockford",       co:["winnebago","boone","ogle","stephenson"],  r:4.9,rc:187,h:95,y:18,j:412,v:1,ins:1,bg:1,ad:"spotlight",resp:"~12 min",hue:38,
+   tags:["Sump pumps","Frozen pipes","Water heaters","Sewer scoping"],b:"Licensed master plumber (IL 058-123456). Sump pumps, frozen lines and water heaters are most of my winter. I diagnose before I quote, in writing, and I don't leave a job without pressure-testing it."},
+  {id:"p2",n:"Karin Halvorsen",t:"Finish Carpenter",         city:"Freeport",       co:["stephenson","jodaviess","carroll","winnebago"], r:5.0,rc:96,h:78,y:12,j:238,v:1,ins:1,bg:1,ad:"spotlight",resp:"~40 min",hue:12,
+   tags:["Built-ins","Trim &amp; crown","Stair rebuilds","Cabinet refacing"],b:"Custom built-ins and trim carpentry. Twelve years, mostly referral work through Freeport and Galena. I show up with a shop drawing, not a guess."},
+  {id:"p3",n:"Dmitri Pryor",   t:"Handyman &mdash; General", city:"Loves Park",     co:["winnebago","boone"],                      r:4.8,rc:143,h:62,y:9,j:520,v:1,ins:1,bg:1,ad:"boost",resp:"~25 min",hue:152,
+   tags:["TV mounting","Drywall patch","Faucets","Furniture"],b:"The everything-list guy. If your honey-do list has nine unrelated items on it, that's a normal Tuesday. Two-hour minimum."},
+  {id:"p4",n:"Curtis Nwosu",   t:"Deck &amp; Fence Builder", city:"Byron",          co:["ogle","winnebago","carroll"],             r:4.9,rc:62,h:72,y:11,j:148,v:1,ins:1,bg:1,ad:"boost",resp:"~30 min",hue:88,
+   tags:["Cedar fences","Deck rebuilds","Pergolas","Gates"],b:"Cedar fences and deck rebuilds across Ogle and Winnebago. Post holes dug below the frost line, concrete every post, no exceptions."},
+  {id:"p5",n:"Wes Kuipers",    t:"Roofing &amp; Gutters",    city:"Freeport",       co:["stephenson","jodaviess","carroll","winnebago"], r:4.8,rc:53,h:80,y:16,j:276,v:1,ins:1,bg:1,ad:"",resp:"~1.5 hr",hue:210,
+   tags:["Ice dams","Gutter guards","Tear-offs","Soffit &amp; fascia"],b:"Ice dams, gutter runs and tear-offs. If your gutters came down in February you're not the only one &mdash; that's half my spring."},
+  {id:"p6",n:"Alma Reyes",     t:"Painter &amp; Drywall",    city:"Rockford",       co:["winnebago","ogle"],                       r:4.9,rc:74,h:55,y:15,j:301,v:1,ins:1,bg:0,ad:"",resp:"~1 hr",hue:196,
    tags:["Interior repaint","Texture match","Popcorn removal","Cabinets"],b:"Interior repaints and texture matching. I match orange peel and knockdown so you can't find the patch afterward."},
-  {id:"p5",n:"Jonah Pike",     t:"Electrician",             m:"austin",    r:4.7,rc:58, h:88, y:7, j:164,v:1,ins:1,bg:1,ad:"",resp:"~2 hr",hue:268,
-   tags:["Panel upgrades","EV chargers","Ceiling fans","Recessed lighting"],b:"Journeyman electrician. Panel upgrades and EV charger installs are most of my week &mdash; I pull the permit, you don't chase the city."},
-  {id:"p6",n:"Beatrice Lund",  t:"Appliance Repair",        m:"austin",    r:4.6,rc:41, h:70, y:22,j:890,v:0,ins:1,bg:0,ad:"",resp:"~3 hr",hue:330,
+  {id:"p7",n:"Nolan Pike",     t:"Electrician",              city:"Belvidere",      co:["boone","winnebago"],                      r:4.7,rc:58,h:88,y:7,j:164,v:1,ins:1,bg:1,ad:"",resp:"~2 hr",hue:268,
+   tags:["Panel upgrades","Generator hookups","EV chargers","Recessed lighting"],b:"Journeyman electrician. Panel upgrades, standby generator hookups and EV chargers are most of my week &mdash; I pull the permit, you don't chase the county."},
+  {id:"p8",n:"Hal Brenner",    t:"Heating &amp; Cooling",    city:"Galena",         co:["jodaviess","carroll","stephenson"],       r:4.7,rc:24,h:92,y:14,j:311,v:1,ins:1,bg:1,ad:"",resp:"~1 hr",hue:20,
+   tags:["Furnaces","Boilers","AC tune-ups","Duct sealing"],b:"EPA-certified, covering Jo Daviess and Carroll. Furnaces and boilers through the winter, and I hold emergency slots open every day from November."},
+  {id:"p9",n:"Beatrice Lund",  t:"Appliance Repair",         city:"Machesney Park", co:["winnebago","boone","stephenson"],         r:4.6,rc:41,h:70,y:22,j:890,v:0,ins:1,bg:0,ad:"",resp:"~3 hr",hue:330,
    tags:["Washers","Refrigeration","Ovens","Dishwashers"],b:"Twenty-two years on appliances. I carry common parts on the truck, so most repairs are one visit, not three."},
-  {id:"p7",n:"Curtis Nwosu",   t:"Deck &amp; Fence Builder",m:"roundrock", r:4.9,rc:62, h:72, y:11,j:148,v:1,ins:1,bg:1,ad:"boost",resp:"~30 min",hue:88,
-   tags:["Cedar fences","Deck rebuilds","Pergolas","Gates"],b:"Cedar fences and deck rebuilds across Williamson County. Post holes dug to depth, concrete every post, no exceptions."},
-  {id:"p8",n:"Priya Raman",    t:"Handyman &mdash; General",m:"roundrock", r:4.8,rc:37, h:58, y:6, j:203,v:1,ins:0,bg:1,ad:"",resp:"~45 min",hue:20,
-   tags:["Shelving","Door hardware","Caulking","Smart home"],b:"Small-job specialist. Door adjustments, shelving, smart locks and thermostats. Flat-rate on anything under an hour."},
-  {id:"p9",n:"Hal Brenner",    t:"HVAC Technician",         m:"sanmarcos", r:4.7,rc:24, h:92, y:14,j:311,v:1,ins:1,bg:1,ad:"",resp:"~1 hr",hue:210,
-   tags:["AC tune-ups","Condenser repair","Duct sealing","Mini-splits"],b:"EPA-certified HVAC tech covering Hays County. Summer emergency slots held open daily until 6pm."}
+  {id:"p10",n:"Priya Raman",   t:"Handyman &mdash; General", city:"Rochelle",       co:["ogle"],                                   r:4.8,rc:37,h:58,y:6,j:203,v:1,ins:0,bg:1,ad:"",resp:"~45 min",hue:120,
+   tags:["Shelving","Door hardware","Caulking","Smart home"],b:"Small-job specialist. Door adjustments, shelving, smart locks and thermostats. Flat rate on anything under an hour."}
 ];
+
 const JOBS = [
-  {id:"j1",t:"Kitchen faucet leaking at the base",m:"austin",c:"Plumbing",bud:"$120–$250",when:"This week",p:"2 hours ago",bids:7,st:"live",who:"Marissa K.",zip:"78704",
-   d:"Pull-down faucet drips from the base whenever the sprayer is used. Cabinet below is getting damp. Happy to buy the replacement faucet myself if that's cheaper."},
-  {id:"j2",t:"Mount 65\" TV + hide cables in drywall",m:"austin",c:"Odd Jobs",bud:"$150–$300",when:"Flexible",p:"5 hours ago",bids:12,st:"live",who:"Ben T.",zip:"78745",
-   d:"Standard drywall, no brick. Want the cables run inside the wall to an outlet behind the console. I have the mount already."},
-  {id:"j3",t:"Repaint two bedrooms, walls and trim",m:"austin",c:"Drywall &amp; Paint",bud:"$800–$1,400",when:"Next 2 weeks",p:"Yesterday",bids:5,st:"live",who:"The Ashbys",zip:"78731",
-   d:"Two 12x13 bedrooms, 9ft ceilings. Walls plus baseboards and door casings. Paint not purchased yet, would like a recommendation."},
-  {id:"j4",t:"Replace rotted deck boards (approx 40 sq ft)",m:"austin",c:"Carpentry",bud:"$400–$900",when:"This month",p:"2 days ago",bids:9,st:"live",who:"Grady P.",zip:"78702",
-   d:"Back corner of the deck has about eight soft boards. Frame underneath looks solid. Cedar preferred to match, pressure-treated fine if cheaper."},
-  {id:"j5",t:"Install EV charger in attached garage",m:"austin",c:"Electrical",bud:"$600–$1,200",when:"Next 2 weeks",p:"3 days ago",bids:4,st:"live",who:"Simone A.",zip:"78703",
+  {id:"j1",t:"Sump pump failed, water in the basement",co:"winnebago",city:"Rockford",c:"Plumbing",bud:"$300–$900",when:"ASAP",p:"2 hours ago",bids:7,st:"live",who:"Marissa K.",zip:"61103",
+   d:"Woke up to two inches at the bottom of the stairs. Pump hums but does not move water. Need it dealt with today, and I'd like a battery backup quoted at the same time."},
+  {id:"j2",t:"Furnace short-cycling, kicks off after two minutes",co:"boone",city:"Belvidere",c:"Heating &amp; Cooling",bud:"$150–$600",when:"ASAP",p:"5 hours ago",bids:5,st:"live",who:"Ben T.",zip:"61008",
+   d:"Runs about two minutes, shuts down, starts again ten minutes later. Filter is new. House isn't holding temperature overnight."},
+  {id:"j3",t:"Ice dam pulled down a gutter run",co:"stephenson",city:"Freeport",c:"Roofing &amp; Gutters",bud:"$800–$2,000",when:"This week",p:"Yesterday",bids:4,st:"live",who:"The Ashbys",zip:"61032",
+   d:"About 30 feet along the north side came away with the thaw, taking some fascia with it. Want it replaced properly before next winter, not patched."},
+  {id:"j4",t:"Replace rotted deck boards (approx 40 sq ft)",co:"ogle",city:"Byron",c:"Carpentry",bud:"$400–$900",when:"This month",p:"2 days ago",bids:9,st:"live",who:"Grady P.",zip:"61010",
+   d:"Back corner has about eight soft boards. Frame underneath looks solid. Cedar preferred to match, pressure-treated fine if cheaper."},
+  {id:"j5",t:"Install EV charger in attached garage",co:"winnebago",city:"Loves Park",c:"Electrical",bud:"$600–$1,200",when:"This month",p:"3 days ago",bids:4,st:"live",who:"Simone A.",zip:"61111",
    d:"Level 2, 240V. Panel is in the garage about 15 feet from where the charger goes. Need the permit handled."},
-  {id:"j6",t:"Build 8ft cedar privacy fence, back line only",m:"roundrock",c:"Fencing &amp; Decks",bud:"$2,000–$3,500",when:"This month",p:"6 hours ago",bids:3,st:"live",who:"Devon L.",zip:"78665",
-   d:"About 92 linear feet along the back property line. Old fence needs hauling off. HOA requires cap and trim."},
-  {id:"j7",t:"Dishwasher won't drain, standing water",m:"roundrock",c:"Appliance",bud:"$90–$200",when:"ASAP",p:"1 hour ago",bids:2,st:"live",who:"Nora F.",zip:"78681",
+  {id:"j6",t:"Build 6ft cedar privacy fence, back line only",co:"winnebago",city:"Roscoe",c:"Fencing &amp; Decks",bud:"$2,000–$3,500",when:"This month",p:"6 hours ago",bids:3,st:"live",who:"Devon L.",zip:"61073",
+   d:"About 92 linear feet along the back property line. Old chain link needs hauling off. Subdivision requires cap and trim."},
+  {id:"j7",t:"Dishwasher will not drain, standing water",co:"winnebago",city:"Machesney Park",c:"Appliance Repair",bud:"$90–$200",when:"ASAP",p:"1 hour ago",bids:2,st:"live",who:"Nora F.",zip:"61115",
    d:"Bosch, about six years old. Ran the disposal, cleaned the filter, still holding water at the bottom after every cycle."},
-  {id:"j8",t:"AC blowing warm in the afternoons",m:"sanmarcos",c:"HVAC",bud:"$150–$500",when:"ASAP",p:"4 hours ago",bids:1,st:"live",who:"Rick M.",zip:"78666",
-   d:"Cools fine in the morning, gives up around 3pm when it gets hot. Unit is nine years old, filter is new."},
-  {id:"j9",t:"Hang 14 pictures and two mirrors",m:"austin",c:"Odd Jobs",bud:"$100–$180",when:"Flexible",p:"Just now",bids:0,st:"pending",who:"You (draft)",zip:"78704",
+  {id:"j8",t:"Repaint two bedrooms, walls and trim",co:"winnebago",city:"Rockford",c:"Drywall &amp; Paint",bud:"$800–$1,400",when:"This month",p:"4 hours ago",bids:5,st:"live",who:"Rick M.",zip:"61107",
+   d:"Two 12x13 bedrooms, 9ft ceilings. Walls plus baseboards and door casings. Paint not purchased yet, would like a recommendation."},
+  {id:"j9",t:"Gutter guards on a single-storey ranch",co:"jodaviess",city:"Galena",c:"Roofing &amp; Gutters",bud:"$900–$1,800",when:"Flexible",p:"2 days ago",bids:2,st:"live",who:"Marissa K.",zip:"61036",
+   d:"Roughly 140 feet of gutter. Oaks overhang the back. Would like something that doesn't need me on a ladder twice a year."},
+  {id:"j10",t:"Hang 14 pictures and two mirrors",co:"stephenson",city:"Freeport",c:"Odd Jobs",bud:"$100–$180",when:"Flexible",p:"Just now",bids:0,st:"pending",who:"You (draft)",zip:"61032",
    d:"Moving in. Everything is stacked against the wall in the living room. Mirrors are heavy and need anchors."}
 ];
+
 const REVIEWS = [
-  {q:"He found the slab leak in twenty minutes after another company spent a day and quoted me a re-pipe. The bill was a third of what I expected.",n:"Marissa K.",j:"Slab leak repair &middot; $640",m:"austin",pro:"Ray Okafor"},
-  {q:"Teresa sent a drawing before she cut a single board. The built-ins look like they came with the house.",n:"Paul & Ivy R.",j:"Living room built-ins &middot; $3,900",m:"austin",pro:"Teresa Vance"},
-  {q:"Posted my list at 9pm for ten dollars. Four quotes by lunch, and I hired the one who actually read the list.",n:"Ben T.",j:"Nine-item punch list &middot; $415",m:"austin",pro:"Dmitri Sokolov"}
+  {q:"He found the split line in twenty minutes after another company spent a day and quoted me a whole re-pipe. The bill was a third of what I expected.",n:"Marissa K.",j:"Frozen line repair &middot; $640",pro:"Marcus Ojo"},
+  {q:"Karin sent a drawing before she cut a single board. The built-ins look like they came with the house.",n:"Paul & Ivy R.",j:"Living room built-ins &middot; $3,900",pro:"Karin Halvorsen"},
+  {q:"Came out in February when the gutter was hanging off the house, tarped it, and came back in April to do it properly. Never tried to sell me a new roof.",n:"Claire A.",j:"Gutter and fascia &middot; $1,640",pro:"Wes Kuipers"}
 ];
+
 const LEADS = [
-  {t:"Kitchen faucet leaking at the base",who:"Marissa K.",zip:"78704",bud:"$120–$250",age:"2h",st:"New"},
-  {t:"Replace rotted deck boards",who:"Grady P.",zip:"78702",bud:"$400–$900",age:"2d",st:"Quoted"},
-  {t:"Water heater making popping noise",who:"Alicia D.",zip:"78745",bud:"$200–$600",age:"3d",st:"Won"},
-  {t:"Shower valve replacement",who:"Tom H.",zip:"78751",bud:"$300–$700",age:"5d",st:"Lost"}
+  {t:"Sump pump failed, water in the basement",who:"Marissa K.",zip:"61103",bud:"$300–$900",age:"2h",st:"New"},
+  {t:"Water heater making popping noise",who:"Alicia D.",zip:"61107",bud:"$200–$600",age:"3d",st:"Won"},
+  {t:"Shower valve replacement",who:"Tom H.",zip:"61008",bud:"$300–$700",age:"5d",st:"Quoted"},
+  {t:"Frozen line in a crawlspace",who:"Ruth B.",zip:"61032",bud:"$250–$800",age:"6d",st:"Lost"}
 ];
+
 const MODQ = [
-  {t:"Free roof inspection — call now!!!",m:"austin",who:"roofpro_tx",why:"Advertising in a job post",age:"11 min"},
-  {t:"Handyman profile — no license on file",m:"roundrock",who:"J. Alvarez",why:"Claims electrical work, unverified",age:"1 hr"},
-  {t:"Duplicate job post (3rd today)",m:"austin",who:"Ben T.",why:"Possible payment retry",age:"3 hr"}
+  {t:"Hang 14 pictures and two mirrors",who:"Ben T.",why:"Possible duplicate — second post today",age:"11 min"},
+  {t:"Handyman profile — no licence on file",who:"P. Raman",why:"Lists smart-home electrical, unverified",age:"1 hr"},
+  {t:"Ad headline — licence claim",who:"Marcus Ojo",why:"Headline needs a licence-claim check",age:"3 hr"}
 ];
 
 /* ============================ helpers ============================ */
 const $ = s => document.querySelector(s);
-const state = {market:"austin", role:"guest", step:1, cat:"Plumbing", tier:"boost"};
+const state = {area:"all", role:"guest", step:1, cat:"Plumbing", tier:"boost"};
 const money = n => "$" + n.toLocaleString("en-US");
-const mkt = id => MARKETS.find(m => m.id === id) || MARKETS[0];
-const proSort = a => [...a].sort((x,y) => (y.ad==="spotlight") - (x.ad==="spotlight") || (y.ad?1:0)-(x.ad?1:0) || y.r-x.r);
-const prosIn = id => proSort(PROS.filter(p => p.m === id));
-const jobsIn = id => JOBS.filter(j => j.m === id && j.st === "live");
+
+const areaById = id => AREAS.find(a => a.id === id) || AREAS[0];
+const proSort  = a => [...a].sort((x,y) => (y.ad==="spotlight") - (x.ad==="spotlight") || (y.ad?1:0)-(x.ad?1:0) || y.r-x.r);
+/* A pro appears in every county they cover — the join table, not a home address. */
+const prosIn = id => proSort(id === "all" ? PROS : PROS.filter(p => p.co.includes(id)));
+const jobsIn = id => JOBS.filter(j => j.st === "live" && (id === "all" || j.co === id));
+
+/* The current view: a county, or the whole market, with live counts. */
+function mkt(){
+  const a = areaById(state.area);
+  return Object.assign({}, a, {pros: prosIn(a.id).length, jobs: jobsIn(a.id).length});
+}
+
 const avatar = p => '<div class="av" style="background:hsl('+p.hue+' 42% 68%)">'+p.n.split(" ").map(w=>w[0]).join("")+'</div>';
 const starRow = (r,c) => '<div class="stars"><span class="s">'+"★".repeat(Math.round(r))+'</span><b class="mono">'+r.toFixed(1)+'</b><span class="muted tiny">('+c+' reviews)</span></div>';
 const ICON = {
@@ -478,7 +519,7 @@ function jobCard(j){
   return `<article class="job">
     <div style="flex:1;min-width:220px">
       <h3>${j.t}</h3>
-      <div class="meta"><span class="mono">${j.c}</span><span>ZIP ${j.zip}</span><span>${j.when}</span><span>Posted ${j.p}</span><span>${j.bids} quotes</span></div>
+      <div class="meta"><span class="mono">${j.c}</span><span>${j.city}</span><span>${j.when}</span><span>Posted ${j.p}</span><span>${j.bids} quotes</span></div>
     </div>
     <div class="budget"><div class="v">${j.bud}</div><div class="tiny muted">Homeowner budget</div></div>
     <a class="btn btn-ghost btn-sm" href="#/jobs">Send quote</a>
@@ -492,14 +533,14 @@ function statTile(k,v,d,down){
 const views = {};
 
 views.home = () => {
-  const m = mkt(state.market), ps = prosIn(m.id), js = jobsIn(m.id);
+  const m = mkt(), ps = prosIn(m.id), js = jobsIn(m.id);
   const revs = REVIEWS;
   return `
   <section class="hero"><div class="wrap hero-in">
     <div>
-      <div class="eyebrow eyebrow-brass">Now serving ${m.name}</div>
+      <div class="eyebrow eyebrow-brass">Now serving ${MARKET.name}</div>
       <h1 style="margin-top:14px">The trades directory<br>that doesn't take <em>a cut of your job</em>.</h1>
-      <p class="lede">Post what needs fixing for a flat $10. Every licensed pro in ${m.code} sees it, quotes it, and deals with you directly. No commission, no lead resale, no 20% skim off the top.</p>
+      <p class="lede">Post what needs fixing for a flat $10. Every licensed pro in ${m.short || m.name} sees it, quotes it, and deals with you directly. No commission, no lead resale, no 20% skim off the top.</p>
       <div class="hero-cta">
         <a class="btn btn-primary btn-lg" href="#/post">Post a job &mdash; $10 flat</a>
         <a class="btn btn-onink btn-lg" href="#/browse">Browse ${m.pros} pros</a>
@@ -524,7 +565,7 @@ views.home = () => {
         <label class="field"><span>Trade</span>
           <select id="hero-trade">${CATS.map(c=>`<option>${c.n}</option>`).join("")}</select></label>
         <label class="field"><span>Describe the job</span>
-          <textarea id="hero-desc" placeholder="Kitchen faucet drips at the base whenever the sprayer runs…"></textarea></label>
+          <textarea id="hero-desc" placeholder="Sump pump is humming but not moving any water…"></textarea></label>
         <label class="field" style="margin-bottom:16px"><span>When</span>
           <div class="chipset">${["ASAP","This week","This month","Flexible"].map((c,i)=>`<button class="chip ${i===1?"on":""}" data-chip>${c}</button>`).join("")}</div></label>
         <a class="btn btn-primary btn-block btn-lg" href="#/post">Get quotes &mdash; $10</a>
@@ -565,14 +606,14 @@ views.home = () => {
   <section class="sect-tight"><div class="wrap">${adslot("Advertisement","728 &times; 90 leaderboard","adslot-lead")}</div></section>
 
   <section class="sect" style="background:var(--paper-2);border-block:1px solid var(--line)"><div class="wrap">
-    <div class="head"><div><div class="eyebrow eyebrow-brass">Featured this week &middot; sponsored</div><h2 style="margin-top:10px">Top-rated pros in ${m.code}</h2>
+    <div class="head"><div><div class="eyebrow eyebrow-brass">Featured this week &middot; sponsored</div><h2 style="margin-top:10px">Top-rated pros in ${m.short || m.name}</h2>
       <p>Featured placement is a paid ad slot. Ratings, licences and review counts are not &mdash; those are earned.</p></div>
       <a class="btn btn-ghost" href="#/browse">See all ${m.pros}</a></div>
     <div class="grid g3">${ps.slice(0,3).map(proCard).join("") || '<p class="muted">No pros in this market yet.</p>'}</div>
   </div></section>
 
   <section class="sect"><div class="wrap">
-    <div class="head"><div><div class="eyebrow">Open jobs</div><h2 style="margin-top:10px">What ${m.code} is fixing right now</h2>
+    <div class="head"><div><div class="eyebrow">Open jobs</div><h2 style="margin-top:10px">What ${m.short || m.name} is fixing right now</h2>
       <p>Pros browse and quote these for free. Homeowners paid $10 each to put them here.</p></div>
       <a class="btn btn-ghost" href="#/jobs">Open the board</a></div>
     <div class="grid" style="gap:12px">${js.slice(0,4).map(jobCard).join("") || '<p class="muted">No open jobs in this market yet.</p>'}</div>
@@ -592,13 +633,13 @@ views.home = () => {
       <div>
         <div class="eyebrow eyebrow-brass">For pros</div>
         <h2 style="font-size:clamp(28px,3.8vw,42px);margin-top:12px">Quoting is free. Being the first name they see isn't.</h2>
-        <p class="muted" style="margin-top:14px;max-width:52ch">Claim your profile for nothing and quote every job in ${m.code}. When you're ready for more work than that, Boost and Spotlight put you at the top of the directory and inside the category pages.</p>
+        <p class="muted" style="margin-top:14px;max-width:52ch">Claim your profile for nothing and quote every job in ${MARKET.name}. When you're ready for more work than that, Boost and Spotlight put you at the top of the directory and inside the category pages.</p>
         <div class="hero-cta"><a class="btn btn-primary btn-lg" href="#/advertise">See ad packages</a><a class="btn btn-onink btn-lg" href="#/dashboard">Claim free profile</a></div>
       </div>
       <div class="native-ad" style="color:var(--text)">
         <span class="badge b-featured" style="align-self:flex-start">Spotlight &middot; ad preview</span>
         <div style="display:flex;gap:12px;align-items:center">${avatar(PROS[0])}
-          <div><div style="font-family:var(--serif);font-size:19px">Ray Okafor</div><div class="tiny muted">Master Plumber &middot; ${mkt("austin").code}</div></div></div>
+          <div><div style="font-family:var(--serif);font-size:19px">Marcus Ojo</div><div class="tiny muted">Master Plumber &middot; ${MARKET.code}</div></div></div>
         <p class="small">"Licensed master plumber. Diagnosis before quote, in writing, every time."</p>
         <a class="btn btn-dark btn-sm" href="#/pro/p1" style="align-self:flex-start">This is what a Spotlight ad looks like</a>
       </div>
@@ -607,11 +648,11 @@ views.home = () => {
 };
 
 views.browse = () => {
-  const m = mkt(state.market), ps = prosIn(m.id);
+  const m = mkt(), ps = prosIn(m.id);
   return `<section class="sect-tight"><div class="wrap">
     <div class="head"><div>
       <div class="eyebrow">Directory &middot; ${m.name}</div>
-      <h2 style="margin-top:10px">${m.pros} vetted pros in ${m.code}</h2>
+      <h2 style="margin-top:10px">${m.pros} vetted pros in ${m.short || m.name}</h2>
       <p>Sorted by placement, then rating. Paid placements are labelled every single time.</p>
     </div><a class="btn btn-primary" href="#/post">Post a job &mdash; $10</a></div>
 
@@ -630,7 +671,7 @@ views.browse = () => {
         <div class="native-ad">
           <span class="badge b-featured" style="align-self:flex-start">Sponsored</span>
           <div style="font-family:var(--serif);font-size:20px">Want this spot?</div>
-          <p class="small muted">Spotlight puts your profile at the top of every ${m.code} search and inside your two best categories.</p>
+          <p class="small muted">Spotlight puts your profile at the top of every ${MARKET.name} search and inside your two best categories.</p>
           <a class="btn btn-dark btn-sm" href="#/advertise">From $49/mo</a>
         </div>
         ${adslot("Advertisement","300 &times; 600 half-page","adslot-rail")}
@@ -648,7 +689,7 @@ views.pro = (id) => {
     {q:"Not the cheapest quote I got. Was the only one who explained why the cheap fix would fail in a year.",n:"Priya S.",j:"Water heater replacement",d:"4 months ago"}
   ];
   return `<section class="sect-tight"><div class="wrap">
-    <a class="small muted" href="#/browse">&larr; All pros in ${m.code}</a>
+    <a class="small muted" href="#/browse">&larr; All pros in ${MARKET.name}</a>
     <div class="profile-hd" style="margin-top:20px">
       <div>
         <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
@@ -670,7 +711,7 @@ views.pro = (id) => {
         <div class="tags">${p.tags.map(t=>`<span class="tag" style="font-size:13px;padding:6px 11px">${t}</span>`).join("")}</div>
 
         <h3 style="font-size:21px;margin-top:38px;margin-bottom:14px">Recent work</h3>
-        <div class="gallery">${["Repipe &mdash; 78704","Water heater swap","Slab leak, located","Shower valve rebuild","Gas line for range","Under-sink rebuild"].map(s=>`<div class="shot" style="background:hsl(${p.hue} 28% 88%)">${s}</div>`).join("")}</div>
+        <div class="gallery">${["Sump pit &mdash; Rockford","Water heater swap","Split line, crawlspace","Shower valve rebuild","Gas line for range","Backup pump install"].map(s=>`<div class="shot" style="background:hsl(${p.hue} 28% 88%)">${s}</div>`).join("")}</div>
 
         <h3 style="font-size:21px;margin-top:38px;margin-bottom:14px">Reviews from paid jobs</h3>
         <div class="grid" style="gap:12px">${revs.map(r=>`<div class="rev" style="padding:20px">
@@ -707,11 +748,11 @@ views.pro = (id) => {
 };
 
 views.jobs = () => {
-  const m = mkt(state.market), js = jobsIn(m.id);
+  const m = mkt(), js = jobsIn(m.id);
   return `<section class="sect-tight"><div class="wrap">
     <div class="head"><div>
       <div class="eyebrow">Jobs board &middot; ${m.name}</div>
-      <h2 style="margin-top:10px">${js.length} open jobs in ${m.code}</h2>
+      <h2 style="margin-top:10px">${js.length} open jobs in ${m.short || m.name}</h2>
       <p>Free to browse and free to quote. Every post here was paid for, so the people behind them are ready to hire.</p>
     </div><a class="btn btn-primary" href="#/post">Post a job &mdash; $10</a></div>
     <div class="filters" style="margin-bottom:18px">
@@ -729,15 +770,15 @@ views.jobs = () => {
 };
 
 views.post = () => {
-  const m = mkt(state.market), s = state.step;
+  const m = mkt(), s = state.step;
   const bar = `<div class="progress">${[1,2,3,4].map(i=>`<i class="${i<=s?"on":""}"></i>`).join("")}</div>
     <div class="eyebrow" style="margin-bottom:8px">Step ${Math.min(s,4)} of 4 &middot; ${["Describe the job","Timing &amp; budget","Your details","Pay &amp; publish"][Math.min(s,4)-1]}</div>`;
   let body = "";
   if(s === 1) body = `<h2 style="font-size:30px">What needs doing?</h2>
     <p class="muted" style="margin-top:8px;margin-bottom:24px">Be specific &mdash; posts with a clear description get roughly three times the quotes.</p>
     <label class="field"><span>Trade</span><select id="w-trade">${CATS.map(c=>`<option ${c.n===state.cat?"selected":""}>${c.n}</option>`).join("")}</select></label>
-    <label class="field"><span>Job title</span><input id="w-title" value="Kitchen faucet leaking at the base"></label>
-    <label class="field"><span>Description</span><textarea id="w-desc" style="min-height:130px">Pull-down faucet drips from the base whenever the sprayer is used. The cabinet below is getting damp. Happy to buy the replacement faucet myself if that works out cheaper.</textarea></label>
+    <label class="field"><span>Job title</span><input id="w-title" value="Sump pump failed, water in the basement"></label>
+    <label class="field"><span>Description</span><textarea id="w-desc" style="min-height:130px">Woke up to two inches at the bottom of the stairs. Pump hums but does not move water. Need it dealt with today, and I'd like a battery backup quoted at the same time.</textarea></label>
     <label class="field"><span>Photos &mdash; optional, but they double your quote count</span>
       <div class="gallery" style="grid-template-columns:repeat(4,1fr)">
         <div class="shot" style="background:var(--paper-2)">IMG_4471.jpg</div>
@@ -748,8 +789,8 @@ views.post = () => {
     <p class="muted" style="margin-top:8px;margin-bottom:24px">A budget range is optional, but pros skip posts without one. It is not a commitment.</p>
     <label class="field"><span>How soon</span><div class="chipset">${["ASAP","This week","This month","Flexible"].map((c,i)=>`<button class="chip ${i===1?"on":""}" data-chip>${c}</button>`).join("")}</div></label>
     <label class="field" style="margin-top:20px"><span>Budget range</span><div class="chipset">${["Under $250","$250–$600","$600–$1,500","$1,500+","Not sure yet"].map((c,i)=>`<button class="chip ${i===0?"on":""}" data-chip>${c}</button>`).join("")}</div></label>
-    <label class="field" style="margin-top:20px"><span>Property ZIP</span><input id="w-zip" value="78704" inputmode="numeric" style="max-width:180px"></label>
-    <div class="seal" style="border:1px solid var(--line);border-radius:4px;margin-top:8px">${ICON.bolt}<span><b>7 plumbers</b> in ${m.code} match this job and are quoting today.</span></div>`;
+    <label class="field" style="margin-top:20px"><span>Property ZIP</span><input id="w-zip" value="61103" inputmode="numeric" style="max-width:180px"></label>
+    <div class="seal" style="border:1px solid var(--line);border-radius:4px;margin-top:8px">${ICON.bolt}<span><b>7 plumbers</b> in ${m.short || m.name} match this job and are quoting today.</span></div>`;
   if(s === 3) body = `<h2 style="font-size:30px">Where do the quotes go?</h2>
     <p class="muted" style="margin-top:8px;margin-bottom:24px">We create your account from this &mdash; no separate sign-up step.</p>
     <div class="grid g2" style="gap:0 16px"><label class="field"><span>First name</span><input value="Marissa"></label>
@@ -772,11 +813,11 @@ views.post = () => {
   if(s === 5) return `<section class="sect"><div class="wrap" style="max-width:640px">
     <div class="wizcard paid">
       <div class="tick"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5"/></svg></div>
-      <h2 style="font-size:32px">Your job is live in ${m.code}</h2>
+      <h2 style="font-size:32px">Your job is live in ${MARKET.name}</h2>
       <p class="muted" style="margin-top:12px;max-width:44ch;margin-inline:auto">Seven matching plumbers were notified. Most homeowners have their first quote within the hour &mdash; we'll text you as they arrive.</p>
       <div class="grid g3" style="margin-top:28px;text-align:left">
         ${statTile("Receipt","$10.00","Charge ID ch_3Qk8dF2eZv")}
-        ${statTile("Notified","7 pros","Plumbing &middot; 78704")}
+        ${statTile("Notified","7 pros","Plumbing &middot; 61103")}
         ${statTile("Live until","16 Oct","30 days, then archived")}
       </div>
       <div style="display:flex;gap:10px;margin-top:26px;justify-content:center;flex-wrap:wrap">
@@ -801,8 +842,8 @@ views.post = () => {
       <aside class="summary">
         <div style="padding:18px 20px;border-bottom:1px solid var(--line)">
           <div class="eyebrow">Your post</div>
-          <div style="font-family:var(--serif);font-size:19px;margin-top:4px">Kitchen faucet leaking at the base</div>
-          <div class="tiny muted" style="margin-top:4px">Plumbing &middot; ${m.name} &middot; 78704</div>
+          <div style="font-family:var(--serif);font-size:19px;margin-top:4px">Sump pump failed, water in the basement</div>
+          <div class="tiny muted" style="margin-top:4px">Plumbing &middot; ${m.name} &middot; Rockford</div>
         </div>
         <div class="sum-row"><span class="k">Job listing fee</span><span class="mono">$10.00</span></div>
         <div class="sum-row"><span class="k">Pro commission</span><span class="mono" style="color:var(--jade)">$0.00</span></div>
@@ -815,7 +856,7 @@ views.post = () => {
 };
 
 views.advertise = () => {
-  const m = mkt(state.market);
+  const m = mkt();
   const tiers = [
     {id:"claim",n:"Claimed Profile",p:"Free",sub:"forever",best:0,
      f:["Listed in the ${CODE} directory","Quote every open job, unlimited","Reviews from completed jobs","Licence &amp; insurance badges"],cta:"Claim your profile"},
@@ -828,7 +869,7 @@ views.advertise = () => {
     <div style="max-width:60ch">
       <div class="eyebrow eyebrow-brass">Advertising on Fix Listed</div>
       <h1 style="font-size:clamp(32px,4.6vw,50px);margin-top:12px">Quoting is free. Getting seen first is the product.</h1>
-      <p class="lede">We don't sell leads and we don't take a cut of your invoice. The only thing we sell is placement &mdash; and it's the same price for everyone in ${m.code}.</p>
+      <p class="lede">We don't sell leads and we don't take a cut of your invoice. The only thing we sell is placement &mdash; and it's the same price for everyone in ${MARKET.name}.</p>
     </div>
   </div></section>
 
@@ -838,7 +879,7 @@ views.advertise = () => {
         ${t.best?'<span class="ribbon">Most pros pick this</span>':""}
         <div><div class="eyebrow">${t.n}</div>
           <div class="price" style="margin-top:8px">${t.p}<small>${t.sub}</small></div></div>
-        <ul>${t.f.map(f=>`<li>${ICON.check}<span>${f.replace("${CODE}",m.code)}</span></li>`).join("")}</ul>
+        <ul>${t.f.map(f=>`<li>${ICON.check}<span>${f.replace('${CODE}', MARKET.name)}</span></li>`).join("")}</ul>
         <a class="btn ${t.best?"btn-primary":"btn-ghost"} btn-block" style="margin-top:auto" href="#/dashboard">${t.cta}</a>
       </div>`).join("")}</div>
     <p class="small muted" style="margin-top:18px;text-align:center">Month to month. Cancel from your dashboard, no call required. Placement inventory is capped at 12 Boost and 3 Spotlight slots per market so it keeps working.</p>
@@ -855,7 +896,7 @@ views.advertise = () => {
         <div class="native-ad" style="margin-top:14px">
           <span class="badge b-featured" style="align-self:flex-start">Sponsored</span>
           <div style="display:flex;gap:12px;align-items:center">${avatar(PROS[1])}
-            <div><div style="font-family:var(--serif);font-size:18px">Teresa Vance</div><div class="tiny muted">Finish Carpenter</div></div></div>
+            <div><div style="font-family:var(--serif);font-size:18px">Karin Halvorsen</div><div class="tiny muted">Finish Carpenter</div></div></div>
           <p class="small">Built-ins, trim and cabinet work. Shop drawing before the first cut.</p>
           <a class="btn btn-dark btn-sm" href="#/pro/p2" style="align-self:flex-start">View profile</a></div>
         <p class="small muted" style="margin-top:12px">Appears between job listings. Spotlight only.</p></div>
@@ -870,19 +911,19 @@ views.advertise = () => {
 };
 
 views.dashboard = () => {
-  const m = mkt(state.market), p = PROS[0];
+  const m = mkt(), p = PROS[0];
   return `<section class="sect-tight"><div class="wrap">
     <div class="head"><div>
-      <div class="eyebrow">Pro dashboard &middot; ${m.name}</div>
-      <h2 style="margin-top:10px">Morning, Ray</h2>
-      <p>Four new leads matched your trades overnight. Two are inside your 78704 core area.</p>
+      <div class="eyebrow">Pro dashboard &middot; ${MARKET.name}</div>
+      <h2 style="margin-top:10px">Morning, Marcus</h2>
+      <p>Four new leads matched your trades overnight. Two are inside Winnebago County.</p>
     </div><a class="btn btn-primary" href="#/advertise">Upgrade to Spotlight</a></div>
 
     <div class="grid g4" style="margin-bottom:22px">
       ${statTile("New leads &middot; 7d","14","+5 vs last week")}
       ${statTile("Quote win rate","38%","+6 pts")}
       ${statTile("Profile views &middot; 7d","486","Boost is driving 61%")}
-      ${statTile("Avg. reply time","12 min","Top 5% in " + m.code)}
+      ${statTile("Avg. reply time","12 min","Top 5% in " + MARKET.code)}
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start" class="dash-split">
@@ -902,7 +943,7 @@ views.dashboard = () => {
         <div class="panel">
           <div class="panel-h"><h3>Boost performance</h3><span class="small muted">Sept 2026</span></div>
           <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:24px">
-            <div><div class="eyebrow">Impressions in ${m.code}</div><div class="spark" style="margin-top:12px">${[34,41,38,52,49,63,58,71,66,80,76,92].map(h=>`<i style="height:${h}%"></i>`).join("")}</div>
+            <div><div class="eyebrow">Impressions in ${MARKET.code}</div><div class="spark" style="margin-top:12px">${[34,41,38,52,49,63,58,71,66,80,76,92].map(h=>`<i style="height:${h}%"></i>`).join("")}</div>
               <div class="small muted" style="margin-top:8px">4,910 impressions &middot; 312 profile clicks &middot; 6.4% CTR</div></div>
             <div><div class="eyebrow">Spend vs. jobs won</div>
               <div style="margin-top:14px"><div class="kv"><span class="k">Boost spend</span><b class="mono">$49.00</b></div>
@@ -932,7 +973,7 @@ views.dashboard = () => {
           <div class="panel-h"><h3>Plan</h3></div>
           <div style="padding:18px 20px">
             <div style="display:flex;align-items:center;gap:10px"><span class="badge b-featured">Boost</span><span class="mono">$49/mo</span></div>
-            <p class="small muted" style="margin-top:10px">Renews 1 Oct. 3 Spotlight slots open in ${m.code} &mdash; Spotlight pros average 2.7&times; the profile views.</p>
+            <p class="small muted" style="margin-top:10px">Renews 1 Oct. 1 Spotlight slot open in ${MARKET.code} &mdash; Spotlight pros average 2.7&times; the profile views.</p>
             <a class="btn btn-primary btn-block btn-sm" style="margin-top:14px" href="#/advertise">Compare plans</a>
           </div>
         </div>
@@ -962,9 +1003,9 @@ views.admin = () => {
     <div class="panel" style="margin-bottom:22px">
       <div class="panel-h"><h3>Markets &middot; tenants</h3><span class="small muted">Data is scoped by tenant_id on every table</span></div>
       <div class="tablewrap"><table>
-        <thead><tr><th>Market</th><th>Code</th><th>Status</th><th>Market admin</th><th>Pros</th><th>Open jobs</th><th>MRR</th><th>Live since</th><th></th></tr></thead>
+        <thead><tr><th>Market</th><th>Code</th><th>Counties</th><th>Status</th><th>Market admin</th><th>Pros</th><th>Open jobs</th><th>MRR</th><th>Live since</th><th></th></tr></thead>
         <tbody>${MARKETS.map(m=>`<tr>
-          <td><b>${m.name}</b></td><td class="num">${m.code}</td>
+          <td><b>${m.name}</b></td><td class="num">${m.code}</td><td class="num">${m.counties}</td>
           <td><span class="badge ${m.live?"b-live":"b-pending"}">${m.live?"Live":"Staged"}</span></td>
           <td>${m.admin==="Unassigned"?'<span class="muted">Unassigned</span>':m.admin}</td>
           <td class="num">${m.pros}</td><td class="num">${m.jobs}</td><td class="num">${money(m.rev)}</td><td class="num">${m.since}</td>
@@ -976,7 +1017,7 @@ views.admin = () => {
       <div class="panel">
         <div class="panel-h"><h3>Moderation queue</h3><span class="badge b-pending">${MODQ.length} waiting</span></div>
         <div style="padding:6px 0">${MODQ.map(q=>`<div style="padding:14px 20px;border-bottom:1px solid var(--line)">
-          <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><b style="font-size:14.5px">${q.t}</b><span class="tiny muted mono">${mkt(q.m).code} &middot; ${q.age}</span></div>
+          <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><b style="font-size:14.5px">${q.t}</b><span class="tiny muted mono">${q.age}</span></div>
           <div class="small muted" style="margin-top:4px">${q.who} &mdash; ${q.why}</div>
           <div style="display:flex;gap:8px;margin-top:10px">
             <button class="btn btn-dark btn-sm" data-toast="Approved and published.">Approve</button>
@@ -999,8 +1040,8 @@ views.admin = () => {
           <div class="panel-h"><h3>Recent users</h3><a class="btn btn-ghost btn-sm" href="#/admin">View all</a></div>
           <div class="tablewrap"><table>
             <thead><tr><th>User</th><th>Role</th><th>Market</th><th>Joined</th></tr></thead>
-            <tbody>${[["Curtis Nwosu","Pro &middot; Boost","roundrock","2 days ago"],["Marissa Kessler","Homeowner","austin","2 hours ago"],["Dana Whitfield","Market admin","austin","Jan 2026"],["Hal Brenner","Pro &middot; Free","sanmarcos","1 week ago"]].map(u=>`
-              <tr><td><b>${u[0]}</b></td><td>${u[1]}</td><td class="num">${mkt(u[2]).code}</td><td>${u[3]}</td></tr>`).join("")}</tbody>
+            <tbody>${[["Curtis Nwosu","Pro &middot; Boost","Byron","2 days ago"],["Marissa Kessler","Homeowner","Rockford","2 hours ago"],["Dana Whitfield","Market admin","Rockford","Sep 2026"],["Hal Brenner","Pro &middot; Free","Galena","1 week ago"]].map(u=>`
+              <tr><td><b>${u[0]}</b></td><td>${u[1]}</td><td>${u[2]}</td><td>${u[3]}</td></tr>`).join("")}</tbody>
           </table></div>
         </div>
       </div>
@@ -1013,8 +1054,8 @@ const NAV = [["#/home","Home"],["#/browse","Find a pro"],["#/jobs","Jobs board"]
 const ROLES = [["guest","Homeowner"],["pro","Handyman"],["admin","Market admin"],["super","Superadmin"]];
 
 function chrome(){
-  $("#market").innerHTML = MARKETS.filter(m=>m.live).map(m=>`<option value="${m.id}" ${m.id===state.market?"selected":""}>${m.name}</option>`).join("");
-  $("#footmarkets").innerHTML = MARKETS.map(m=>`<li><a href="#/browse" data-mkt="${m.id}">${m.name}${m.live?"":" <span class='tiny'>(soon)</span>"}</a></li>`).join("");
+  $("#market").innerHTML = AREAS.map(a=>`<option value="${a.id}" ${a.id===state.area?"selected":""}>${a.name}</option>`).join("");
+  $("#footmarkets").innerHTML = CITIES.slice(0,6).map(c=>`<li><a href="#/browse">Handyman in ${c}, IL</a></li>`).join("");
   $("#roles").innerHTML = ROLES.map(r=>`<button data-role="${r[0]}" class="${state.role===r[0]?"on":""}">${r[1]}</button>`).join("");
   const here = location.hash.split("/")[1] || "home";
   const links = NAV.map(n=>`<a href="${n[0]}" class="${n[0].includes(here)?"on":""}">${n[1]}</a>`).join("");
@@ -1039,7 +1080,7 @@ function render(){
   window.scrollTo({top:0,behavior:"instant"});
 }
 addEventListener("hashchange", render);
-$("#market").addEventListener("change", e => { state.market = e.target.value; render(); });
+$("#market").addEventListener("change", e => { state.area = e.target.value; render(); });
 $("#burger").addEventListener("click", () => { $("#mobnav").hidden = !$("#mobnav").hidden; });
 document.addEventListener("click", e => {
   const chip = e.target.closest("[data-chip]");
@@ -1048,9 +1089,7 @@ document.addEventListener("click", e => {
   if(pay){ pay.parentElement.querySelectorAll(".radio").forEach(r=>r.classList.remove("on")); pay.classList.add("on"); return; }
   const role = e.target.closest("[data-role]");
   if(role){ state.role = role.dataset.role; chrome();
-    toast({guest:"Viewing as a homeowner.",pro:"Viewing as a handyman — open the Pro dashboard.",admin:"Viewing as a market admin — scoped to " + mkt(state.market).name + ".",super:"Viewing as superadmin — open the Superadmin panel."}[state.role]); return; }
-  const m2 = e.target.closest("[data-mkt]");
-  if(m2){ state.market = m2.dataset.mkt; $("#market").value = state.market; }
+    toast({guest:"Viewing as a homeowner.",pro:"Viewing as a handyman — open the Pro dashboard.",admin:"Viewing as a market admin — scoped to " + MARKET.name + ".",super:"Viewing as superadmin — open the Superadmin panel."}[state.role]); return; }
   if(e.target.closest("[data-next]")){ state.step = Math.min(state.step + 1, 5); render(); return; }
   if(e.target.closest("[data-back]")){ state.step = Math.max(state.step - 1, 1); render(); return; }
   const t = e.target.closest("[data-toast]");

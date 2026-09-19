@@ -17,6 +17,7 @@ use FixListed\Core\Auth;
 use FixListed\Core\Database;
 use FixListed\Core\Repository;
 use FixListed\Core\TenantScope;
+use FixListed\Repositories\GeographyRepository;
 use FixListed\Repositories\JobRepository;
 use FixListed\Repositories\MarketRepository;
 use FixListed\Repositories\ProRepository;
@@ -36,62 +37,84 @@ $markets = new MarketRepository($db);
 
 // --- connection and tenants -------------------------------------------------
 $live = $markets->live();
-check('connects and reads markets', count($live) === 3, count($live) . ' live markets');
+check('connects and reads markets', count($live) === 1, count($live) . ' live, ' . (count($markets->all()) - count($live)) . ' staged');
 
-$austin    = $markets->findBySlug('austin');
-$roundRock = $markets->findBySlug('round-rock');
-$sanMarcos = $markets->findBySlug('san-marcos');
-check('resolves a market by slug', $austin !== null && $austin['code'] === 'ATX');
-check('per-market pricing is honoured',
-    $markets->listingFeeCents((int) $austin['id']) === 1000
-    && $markets->listingFeeCents((int) $sanMarcos['id']) === 0,
-    'ATX $10, SMT free');
+$nwi = $markets->findBySlug('northwest-illinois');
+check('resolves a market by slug', $nwi !== null && $nwi['code'] === 'NWI');
+$marketId = (int) $nwi['id'];
 
-// --- directory: scoping and ad ordering ------------------------------------
-$atxPros = new ProRepository($db, TenantScope::market((int) $austin['id']));
-$rrkPros = new ProRepository($db, TenantScope::market((int) $roundRock['id']));
+$geo = new GeographyRepository($db, TenantScope::market($marketId));
+check('market owns six counties', count($geo->counties()) === 6,
+    implode(', ', array_column($geo->counties(), 'short_name')));
+check('cities load, with a subset carrying landing pages',
+    count($geo->allCities()) === 46 && count($geo->pageCities()) === 11,
+    count($geo->allCities()) . ' cities, ' . count($geo->pageCities()) . ' with pages');
+check('a city resolves to its county',
+    ($c = $geo->findCity('freeport')) !== null && $c['county'] === 'Stephenson');
+check('per-market pricing is honoured', $markets->listingFeeCents($marketId) === 1000);
 
-$atx = $atxPros->directory();
-$rrk = $rrkPros->directory();
+// --- directory: coverage, no duplicates, ad ordering ------------------------
+$pros = new ProRepository($db, TenantScope::market($marketId));
+$all  = $pros->directory();
+$slugs = array_column($all, 'slug');
 
-// RRK is 3, not 2: Curtis and Priya live there, and Ray Okafor serves it as a
-// second market. That third row is the join table doing its job, which the
-// next-but-one assertion checks directly.
-check('directory is scoped to its market', count($atx) === 7 && count($rrk) === 3,
-    'ATX ' . count($atx) . ', RRK ' . count($rrk));
+check('directory lists every active pro', count($all) === 10, count($all) . ' pros');
 
-check('a market sees only its own pros',
-    !in_array('alma-reyes', array_column($rrk, 'slug'), true)
-    && !in_array('hal-brenner', array_column($atx, 'slug'), true),
-    'Austin-only and San Marcos-only pros stay put');
+// Marcus covers four counties and Karin four. A join would list each of them
+// once per county; EXISTS asks the question the query actually means.
+check('a multi-county pro is listed once, not once per county',
+    count($slugs) === count(array_unique($slugs)),
+    'no duplicate rows');
 
-$slugs = array_column($atx, 'slug');
 check('paid placement sorts first',
-    $slugs[0] === 'ray-okafor' && $slugs[1] === 'teresa-vance' && $slugs[2] === 'dmitri-sokolov',
-    implode(', ', array_slice($slugs, 0, 3)));
+    array_slice($slugs, 0, 4) === ['marcus-ojo', 'karin-halvorsen', 'dwayne-pryor', 'curtis-nwosu'],
+    implode(', ', array_slice($slugs, 0, 4)));
 
 check('paid rows are flagged for labelling',
-    (int) $atx[0]['is_ad'] === 1 && (int) $atx[6]['is_ad'] === 0);
+    (int) $all[0]['is_ad'] === 1 && (int) $all[9]['is_ad'] === 0);
 
-// Ray serves Austin and Round Rock; the join table, not the home market, decides.
-check('a pro serving two markets appears in both',
-    in_array('ray-okafor', array_column($rrk, 'slug'), true));
+// --- county coverage is the whole point of the geography change -------------
+$counties = [];
+foreach ($geo->counties() as $county) {
+    $counties[$county['slug']] = (int) $county['id'];
+}
+
+$joDaviess = array_column($pros->directory(null, $counties['jo-daviess-il']), 'slug');
+check('filtering by county narrows the directory',
+    count($joDaviess) === 3 && in_array('hal-brenner', $joDaviess, true),
+    'Jo Daviess: ' . implode(', ', $joDaviess));
+
+check('a pro who does not cover a county is absent from it',
+    !in_array('priya-raman', $joDaviess, true),
+    'Priya covers Ogle only');
+
+$winnebago = $pros->directory(null, $counties['winnebago-il']);
+check('the dense county carries the most pros',
+    count($winnebago) === 8, count($winnebago) . ' in Winnebago');
+
+check('trade filter works', count($pros->directory(7)) === 1, 'one roofer');
+check('a pro reports the counties they will drive to',
+    count($pros->counties(1)) === 4, 'Marcus covers 4');
 
 check('reads utf8mb4 without mangling',
-    str_contains((string) $atxPros->findBySlug('dmitri-sokolov')['headline'], '—'),
+    str_contains((string) $pros->findBySlug('dwayne-pryor')['headline'], '—'),
     'em-dash survives the round trip');
 
 // --- jobs board: pending_payment must never surface ------------------------
-$atxJobs = new JobRepository($db, TenantScope::market((int) $austin['id']));
-$board   = $atxJobs->board();
-$refs    = array_column($board, 'reference');
+$jobs  = new JobRepository($db, TenantScope::market($marketId));
+$board = $jobs->board();
+$refs  = array_column($board, 'reference');
 
-check('jobs board is scoped and active-only', count($board) === 5, count($board) . ' jobs');
+check('jobs board is scoped and active-only', count($board) === 9, count($board) . ' jobs');
 check('a job awaiting payment stays invisible',
-    !in_array('ATX-1D6G3Z', $refs, true),
-    'ATX-1D6G3Z absent');
-check('a paid job is visible', in_array('ATX-4K2P9M', $refs, true));
-check('another market\'s job is not leaked', !in_array('RRK-6C4N8V', $refs, true));
+    !in_array('NWI-1D6G3Z', $refs, true), 'NWI-1D6G3Z absent');
+check('a paid job is visible', in_array('NWI-4K2P9M', $refs, true));
+check('jobs carry their city for the landing pages',
+    $board[0]['city_name'] !== null && $board[0]['county_name'] !== null,
+    $board[0]['city_name'] . ', ' . $board[0]['county_name'] . ' County');
+check('a city page shows only that city\'s jobs',
+    count($jobs->inCity((int) $geo->findCity('rockford')['id'])) === 2,
+    'Rockford has 2 open jobs');
 
 // --- the boundary itself ----------------------------------------------------
 final class UnscopedRepo extends Repository
@@ -136,15 +159,17 @@ check('wrong password is rejected',
 check('unknown email is rejected',
     $auth->attempt('nobody@example.com', 'demo-password')['reason'] === 'no_such_user');
 
+$quadCities = $markets->findBySlug('quad-cities');
+
 $auth2 = new Auth($db);
 $auth2->attempt('dana@fixlisted.com', 'demo-password');
 check('market admin administers only their own market',
-    $auth2->canAdminister((int) $austin['id']) && !$auth2->canAdminister((int) $roundRock['id']));
+    $auth2->canAdminister($marketId) && !$auth2->canAdminister((int) $quadCities['id']));
 
 $auth3 = new Auth($db);
 $auth3->attempt('owner@fixlisted.com', 'demo-password');
 check('superadmin administers every market',
-    $auth3->canAdminister((int) $austin['id']) && $auth3->canAdminister((int) $roundRock['id']));
+    $auth3->canAdminister($marketId) && $auth3->canAdminister((int) $quadCities['id']));
 
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail === 0 ? 0 : 1);

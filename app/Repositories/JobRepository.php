@@ -29,9 +29,12 @@ final class JobRepository extends Repository
         return $this->scopedAll(
             "SELECT j.id, j.reference, j.title, j.description, j.zip, j.urgency,
                     j.budget_min_cents, j.budget_max_cents, j.quote_count,
-                    j.published_at, t.name AS trade_name, t.slug AS trade_slug
+                    j.published_at, t.name AS trade_name, t.slug AS trade_slug,
+                    ci.name AS city_name, ci.slug AS city_slug, co.short_name AS county_name
                FROM jobs j
                JOIN trades t ON t.id = j.trade_id
+               LEFT JOIN cities   ci ON ci.id = j.city_id
+               LEFT JOIN counties co ON co.id = j.county_id
               WHERE j.market_id = :market_id
                 AND j.status = 'active'
                 {$tradeFilter}
@@ -52,6 +55,24 @@ final class JobRepository extends Repository
                 AND j.status = 'active'
               LIMIT 1",
             ['reference' => $reference],
+        );
+    }
+
+    /** Open jobs in one city — what a city landing page shows. */
+    public function inCity(int $cityId, int $limit = 20): array
+    {
+        return $this->scopedAll(
+            "SELECT j.id, j.reference, j.title, j.zip, j.urgency, j.quote_count,
+                    j.budget_min_cents, j.budget_max_cents, j.published_at,
+                    t.name AS trade_name
+               FROM jobs j
+               JOIN trades t ON t.id = j.trade_id
+              WHERE j.market_id = :market_id
+                AND j.city_id = :city_id
+                AND j.status = 'active'
+              ORDER BY j.published_at DESC
+              LIMIT {$limit}",
+            ['city_id' => $cityId],
         );
     }
 

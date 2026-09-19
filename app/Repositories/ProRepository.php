@@ -15,33 +15,47 @@ final class ProRepository extends Repository
     /**
      * The directory listing.
      *
-     * Ordering is the advertising product: Spotlight first, then Boost, then
-     * everyone else by rating. `is_ad` comes back with each row so the template
-     * can label paid placement — every ad on this site is labelled, because the
-     * ratings and verified badges beside it are only worth something if
-     * visitors believe they were not bought.
+     * Coverage is tested with EXISTS rather than a JOIN. A pro who covers four
+     * of the market's six counties matches four rows in pro_county_areas, and
+     * a join would list them four times — EXISTS asks the yes/no question the
+     * query actually means, and needs no DISTINCT to undo the damage.
      *
-     * Reads pro_service_areas rather than pro_profiles.market_id, so a pro who
-     * works in two cities appears in both directories.
+     * Ordering is the advertising product: Spotlight, then Boost, then
+     * everyone else by rating. `is_ad` rides along so the template can label
+     * paid placement — every ad here is labelled, because the ratings and
+     * verified badges beside it are only worth something if visitors believe
+     * they were not bought.
      *
      * @return array<int,array<string,mixed>>
      */
-    public function directory(?int $tradeId = null, int $limit = 50): array
+    public function directory(?int $tradeId = null, ?int $countyId = null, int $limit = 50): array
     {
-        $tradeJoin  = $tradeId !== null ? 'JOIN pro_trades pt ON pt.pro_id = p.id AND pt.trade_id = :trade_id' : '';
+        $params = [];
+        $filters = '';
+
+        if ($countyId !== null) {
+            $filters .= ' AND a.county_id = :county_id';
+            $params['county_id'] = $countyId;
+        }
+        $tradeFilter = '';
+        if ($tradeId !== null) {
+            $tradeFilter = ' AND EXISTS (SELECT 1 FROM pro_trades pt
+                                          WHERE pt.pro_id = p.id AND pt.trade_id = :trade_id)';
+            $params['trade_id'] = $tradeId;
+        }
 
         return $this->scopedAll(
             "SELECT p.id, p.slug, p.business_name, p.headline, p.hourly_rate_cents,
                     p.years_experience, p.rating_avg, p.rating_count, p.jobs_completed,
                     p.response_minutes, p.license_verified_at, p.insurance_verified_at,
                     p.background_checked_at,
+                    hc.name AS home_city, hco.short_name AS home_county,
                     s.plan AS ad_plan,
                     (s.plan IS NOT NULL) AS is_ad,
                     pl.position AS ad_position
                FROM pro_profiles p
-               JOIN pro_service_areas sa
-                 ON sa.pro_id = p.id AND sa.market_id = :market_id
-               {$tradeJoin}
+               LEFT JOIN cities   hc  ON hc.id  = p.home_city_id
+               LEFT JOIN counties hco ON hco.id = p.home_county_id
                LEFT JOIN ad_placements pl
                  ON pl.pro_id = p.id
                 AND pl.market_id = :market_id
@@ -51,54 +65,78 @@ final class ProRepository extends Repository
                  ON s.id = pl.subscription_id
                 AND s.status = 'active'
               WHERE p.status = 'active'
+                AND EXISTS (SELECT 1 FROM pro_county_areas a
+                             WHERE a.pro_id = p.id
+                               AND a.market_id = :market_id
+                               {$filters})
+                {$tradeFilter}
               ORDER BY (s.plan = 'spotlight') DESC,
                        (s.plan = 'boost') DESC,
                        pl.position ASC,
                        p.rating_avg DESC,
                        p.rating_count DESC
               LIMIT {$limit}",
-            $tradeId !== null ? ['trade_id' => $tradeId] : [],
+            $params,
         );
     }
 
     public function findBySlug(string $slug): ?array
     {
         return $this->scopedOne(
-            'SELECT p.*, u.first_name, u.last_name
+            'SELECT p.*, u.first_name, u.last_name,
+                    hc.name AS home_city, hco.short_name AS home_county
                FROM pro_profiles p
                JOIN users u ON u.id = p.user_id
-               JOIN pro_service_areas sa ON sa.pro_id = p.id AND sa.market_id = :market_id
-              WHERE p.slug = :slug AND p.status = :status
+               LEFT JOIN cities   hc  ON hc.id  = p.home_city_id
+               LEFT JOIN counties hco ON hco.id = p.home_county_id
+              WHERE p.slug = :slug
+                AND p.status = :status
+                AND EXISTS (SELECT 1 FROM pro_county_areas a
+                             WHERE a.pro_id = p.id AND a.market_id = :market_id)
               LIMIT 1',
             ['slug' => $slug, 'status' => 'active'],
         );
     }
 
-    public function countActive(): int
+    public function countActive(?int $countyId = null): int
     {
+        $filter = $countyId !== null ? ' AND a.county_id = :county_id' : '';
         return (int) $this->scopedValue(
-            'SELECT COUNT(*)
+            "SELECT COUNT(*)
                FROM pro_profiles p
-               JOIN pro_service_areas sa ON sa.pro_id = p.id AND sa.market_id = :market_id
-              WHERE p.status = :status',
-            ['status' => 'active'],
+              WHERE p.status = :status
+                AND EXISTS (SELECT 1 FROM pro_county_areas a
+                             WHERE a.pro_id = p.id AND a.market_id = :market_id {$filter})",
+            $countyId !== null ? ['status' => 'active', 'county_id' => $countyId] : ['status' => 'active'],
+        );
+    }
+
+    /** The counties a pro will actually drive to, for their profile page. */
+    public function counties(int $proId): array
+    {
+        return $this->scopedAll(
+            'SELECT c.id, c.short_name, c.slug
+               FROM pro_county_areas a
+               JOIN counties c ON c.id = a.county_id
+              WHERE a.pro_id = :pro_id AND a.market_id = :market_id
+              ORDER BY c.short_name',
+            ['pro_id' => $proId],
         );
     }
 
     /** @return array<int,string> */
     public function skills(int $proId): array
     {
-        // pro_skills has no market_id of its own; it is reached through a pro
-        // this repository already scoped, so the scope is inherited.
         return array_column(
-            $this->db->all(
+            $this->scopedAll(
                 'SELECT s.label
                    FROM pro_skills s
                    JOIN pro_profiles p ON p.id = s.pro_id
-                   JOIN pro_service_areas sa ON sa.pro_id = p.id AND sa.market_id = :market_id
                   WHERE s.pro_id = :pro_id
+                    AND EXISTS (SELECT 1 FROM pro_county_areas a
+                                 WHERE a.pro_id = p.id AND a.market_id = :market_id)
                   ORDER BY s.sort_order',
-                ['pro_id' => $proId, 'market_id' => $this->scope->marketId],
+                ['pro_id' => $proId],
             ),
             'label',
         );

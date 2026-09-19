@@ -3,6 +3,42 @@
 Decisions that are expensive to change later. Everything here is implemented in
 `database/schema.sql` and proven by `database/verify.sql`.
 
+## Geography: markets, counties, cities
+
+Three layers, each doing a different job:
+
+| Layer | What it is | Who uses it |
+| --- | --- | --- |
+| **Market** | The tenant. A named region — "Northwest Illinois" | URLs, branding, admin |
+| **County** | The service-area unit | Pros choose which ones they cover |
+| **City** | What people type and search for | Homeowners posting; SEO landing pages |
+
+**Counties are the structural unit** because they are finite and permanent —
+Illinois has 102 and always will — whereas "places" number in the thousands and
+blur into townships and unincorporated areas. Rural tradespeople already think
+this way: "I cover Stephenson and Jo Daviess." Counties are keyed on **FIPS
+code, not name**: Boone County exists in both Illinois and Iowa, and Winnebago
+in three states.
+
+**A county cannot be the tenant.** Stephenson County alone is ~44,000 people.
+Market 1 covers six counties (~470,000) because Winnebago County is Rockford,
+and a directory without that density has no liquidity to offer anyone.
+
+**Cities are not markets.** They are landing pages inside one, because people
+search "handyman rockford il", not "handyman winnebago county". Only cities
+with `has_page = 1` get an indexed page; the long tail of villages is
+selectable when posting a job but has no page of its own, since forty
+near-empty pages read as a content farm.
+
+**A pro's coverage lives in `pro_county_areas`**, and the directory tests it
+with `EXISTS`, not a join — a pro covering four counties matches four rows, and
+a join would list them four times.
+
+**`zip_counties` ships empty on purpose.** It must be imported from the Census
+ZCTA-to-county relationship file, never hand-typed, because a wrong ZIP
+silently routes a paid job post into the wrong market. Until it is loaded,
+homeowners pick their city from a list, which needs no ZIP data at all.
+
 ## Multitenancy: one install, many city markets
 
 Every tenant-owned row carries `market_id`, and every composite index leads with

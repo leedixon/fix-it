@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<!-- PRE-LAUNCH: this is the design prototype, with placeholder pros and reviews.
+     Delete the next two lines the day the real site goes live, or Google will
+     never index flexhandy.com. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="googlebot" content="noindex, nofollow">
+
+<meta name="description" content="Post a handyman job for a flat $10 and hire direct. No commission, no lead resale. Vetted local trades in Austin, TX.">
+<meta name="theme-color" content="#0E1513">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%A7%3C/text%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FlexHandy">
+<meta property="og:title" content="FlexHandy — the local trades directory">
+<meta property="og:description" content="Post a handyman job for a flat $10 and hire direct. No commission, no lead resale. Vetted local trades in Austin, TX.">
+<meta property="og:url" content="https://flexhandy.com/">
+<style>
+  /* The Artifact viewer supplies these; a plain web server does not. */
+  html { color-scheme: light dark; }
+  :root {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>FlexHandy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Hanken+Grotesk:ital,wght@0,300..800;1,300..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#EDEFE9; --paper-2:#F7F8F3; --paper-3:#FFFFFF;
+  --ink:#0E1513; --ink-2:#18221F; --ink-3:#2B3A35;
+  --text:#16201D; --text-2:#4E5C57; --text-3:#78857F;
+  --line:#D6DACF; --line-2:#C2C9BB;
+  --brass:#8A6115; --brass-2:#C79A3E; --brass-3:#DCB25C; --brass-wash:#F3EAD6;
+  --jade:#2C6E5D; --jade-wash:#DFEBE5;
+  --clay:#A8412A; --clay-wash:#F4E1DB;
+  --on-ink:#E9EEE9; --on-ink-2:#9AA8A2; --on-ink-line:#2C3B36;
+  --shadow:0 1px 2px rgba(14,21,19,.05), 0 12px 32px -12px rgba(14,21,19,.18);
+  --shadow-lift:0 2px 4px rgba(14,21,19,.06), 0 24px 48px -16px rgba(14,21,19,.28);
+  --sans:"Hanken Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --serif:"Marcellus",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#0D1412; --paper-2:#141E1B; --paper-3:#1A2522;
+  --ink:#060B0A; --ink-2:#0F1917; --ink-3:#22302C;
+  --text:#E4EAE5; --text-2:#A2AFA9; --text-3:#7A8882;
+  --line:#25322E; --line-2:#334440;
+  --brass:#D9B060; --brass-2:#C79A3E; --brass-3:#DCB25C; --brass-wash:#2A2417;
+  --jade:#6BB39D; --jade-wash:#162B26;
+  --clay:#D97D64; --clay-wash:#2E1A15;
+  --on-ink:#E9EEE9; --on-ink-2:#9AA8A2; --on-ink-line:#22302C;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 32px -12px rgba(0,0,0,.6);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.35), 0 24px 48px -16px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+  --paper:#0D1412; --paper-2:#141E1B; --paper-3:#1A2522;
+  --ink:#060B0A; --ink-2:#0F1917; --ink-3:#22302C;
+  --text:#E4EAE5; --text-2:#A2AFA9; --text-3:#7A8882;
+  --line:#25322E; --line-2:#334440;
+  --brass:#D9B060; --brass-2:#C79A3E; --brass-3:#DCB25C; --brass-wash:#2A2417;
+  --jade:#6BB39D; --jade-wash:#162B26;
+  --clay:#D97D64; --clay-wash:#2E1A15;
+  --on-ink:#E9EEE9; --on-ink-2:#9AA8A2; --on-ink-line:#22302C;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 32px -12px rgba(0,0,0,.6);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.35), 0 24px 48px -16px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em;line-height:1.12}
+p{margin:0}
+a{color:inherit;text-decoration:none}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+.wrap{width:100%;max-width:1160px;margin:0 auto;padding-inline:20px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-3)}
+.eyebrow-brass{color:var(--brass)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--text-2)}
+.small{font-size:13.5px}
+.tiny{font-size:12px}
+
+/* ---- chrome ---- */
+.chrome{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.chrome-in{display:flex;align-items:center;gap:14px;height:64px}
+.logo{font-family:var(--serif);font-size:21px;letter-spacing:.02em;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo b{font-weight:400}
+.logo i{font-style:normal;color:var(--brass)}
+.nav{display:flex;gap:2px;margin-left:10px}
+.nav a{padding:7px 11px;font-size:14.5px;color:var(--text-2);border-radius:3px}
+.nav a:hover{color:var(--text);background:var(--paper-2)}
+.nav a.on{color:var(--text);box-shadow:inset 0 -2px 0 var(--brass-2)}
+.chrome-r{margin-left:auto;display:flex;align-items:center;gap:10px}
+.mkt{display:flex;align-items:center;gap:7px;border:1px solid var(--line-2);background:var(--paper-2);padding:6px 10px;border-radius:3px;font-size:13.5px;cursor:pointer}
+.mkt svg{opacity:.55}
+.mkt select{border:0;background:transparent;cursor:pointer;font-size:13.5px;max-width:132px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:3px;padding:11px 18px;font-size:14.5px;font-weight:600;cursor:pointer;transition:transform .12s ease,background .16s ease,box-shadow .16s ease;white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--brass-2);color:#0E1513;box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 6px 18px -8px rgba(138,97,21,.85)}
+.btn-primary:hover{background:var(--brass-3)}
+.btn-dark{background:var(--ink);color:var(--on-ink)}
+.btn-dark:hover{background:var(--ink-3)}
+.btn-ghost{border-color:var(--line-2);background:transparent;color:var(--text);font-weight:500}
+.btn-ghost:hover{background:var(--paper-2)}
+.btn-onink{border-color:var(--on-ink-line);color:var(--on-ink);background:transparent;font-weight:500}
+.btn-onink:hover{background:rgba(255,255,255,.07)}
+.btn-sm{padding:8px 13px;font-size:13.5px}
+.btn-lg{padding:15px 26px;font-size:16px}
+.btn-block{width:100%}
+.burger{display:none;border:1px solid var(--line-2);background:transparent;border-radius:3px;padding:8px 10px;cursor:pointer}
+
+/* ---- role bar (prototype affordance) ---- */
+.rolebar{background:var(--ink-2);color:var(--on-ink-2);font-size:12.5px}
+.rolebar-in{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:7px}
+.rolebar b{color:var(--on-ink);font-weight:600}
+.roles{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.roles button{background:transparent;border:1px solid var(--on-ink-line);color:var(--on-ink-2);border-radius:99px;padding:3px 11px;font-size:12px;cursor:pointer}
+.roles button.on{background:var(--brass-2);border-color:var(--brass-2);color:#0E1513;font-weight:600}
+
+/* ---- surfaces ---- */
+.card{background:var(--paper-3);border:1px solid var(--line);border-radius:4px}
+.sect{padding-block:72px}
+.sect-tight{padding-block:48px}
+.dark{background:var(--ink);color:var(--on-ink)}
+.dark h1,.dark h2,.dark h3{color:var(--on-ink)}
+.dark .muted{color:var(--on-ink-2)}
+.dark .eyebrow{color:var(--on-ink-2)}
+.hr{height:1px;background:var(--line);border:0;margin:0}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:26px;flex-wrap:wrap}
+.head h2{font-size:clamp(26px,3.4vw,36px)}
+.head p{color:var(--text-2);margin-top:8px;max-width:58ch}
+
+/* ---- hero ---- */
+.hero{background:var(--ink);color:var(--on-ink);position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 82% 0%,rgba(199,154,62,.16),transparent 58%);pointer-events:none}
+.hero-in{position:relative;z-index:1;display:grid;grid-template-columns:1.12fr .88fr;gap:56px;padding-block:78px 86px;align-items:start}
+.hero h1{font-size:clamp(38px,5.6vw,62px);line-height:1.04;letter-spacing:-.02em}
+.hero h1 em{font-style:italic;color:var(--brass-3)}
+.hero .lede{color:var(--on-ink-2);font-size:18px;margin-top:20px;max-width:46ch}
+.hero-cta{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.hero-fine{display:flex;gap:18px;margin-top:16px;flex-wrap:wrap;color:var(--on-ink-2);font-size:13px}
+.hero-fine span{display:flex;align-items:center;gap:6px}
+.proof{margin-top:44px;padding-top:26px;border-top:1px solid var(--on-ink-line);display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.proof .n{font-family:var(--serif);font-size:30px;color:var(--brass-3);line-height:1}
+.proof .l{font-size:12.5px;color:var(--on-ink-2);margin-top:5px}
+
+/* quote card in hero */
+.quote-card{background:var(--paper-3);color:var(--text);border-radius:5px;box-shadow:var(--shadow-lift);overflow:hidden}
+.qc-top{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.qc-body{padding:20px}
+.field{display:block;margin-bottom:14px}
+.field span{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:11px 12px;border:1px solid var(--line-2);border-radius:3px;background:var(--paper-2)}
+.field textarea{min-height:88px;resize:vertical}
+.chipset{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line-2);background:var(--paper-2);border-radius:99px;padding:6px 13px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.qc-foot{padding:14px 20px;background:var(--paper-2);border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text-2)}
+
+/* ---- trust strip ---- */
+.strip{border-block:1px solid var(--line);background:var(--paper-2)}
+.strip-in{display:flex;gap:30px;align-items:center;justify-content:space-between;padding-block:16px;flex-wrap:wrap}
+.strip-item{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--text-2)}
+.strip-item svg{color:var(--jade);flex:none}
+
+/* ---- grids ---- */
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+
+/* ---- category tiles ---- */
+.cat{display:flex;align-items:center;gap:13px;padding:16px 17px;border:1px solid var(--line);border-radius:4px;background:var(--paper-3);transition:border-color .16s,transform .16s}
+.cat:hover{border-color:var(--brass-2);transform:translateY(-2px)}
+.cat .ic{width:38px;height:38px;border-radius:3px;background:var(--brass-wash);color:var(--brass);display:grid;place-items:center;flex:none}
+.cat .t{font-weight:600;font-size:14.5px}
+.cat .c{font-size:12px;color:var(--text-3);font-family:var(--mono)}
+
+/* ---- pro card ---- */
+.pro{background:var(--paper-3);border:1px solid var(--line);border-radius:4px;padding:20px;display:flex;flex-direction:column;gap:14px;transition:box-shadow .18s,border-color .18s}
+.pro:hover{box-shadow:var(--shadow);border-color:var(--line-2)}
+.pro.featured{border-color:var(--brass-2);box-shadow:0 0 0 1px var(--brass-2) inset,var(--shadow)}
+.pro-top{display:flex;gap:13px;align-items:flex-start}
+.av{width:52px;height:52px;border-radius:3px;flex:none;display:grid;place-items:center;font-family:var(--serif);font-size:19px;color:#0E1513}
+.pro-name{font-family:var(--serif);font-size:19px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.pro-trade{font-size:13px;color:var(--text-2)}
+.rate{margin-left:auto;text-align:right;flex:none}
+.rate .v{font-family:var(--mono);font-size:17px;font-weight:600}
+.rate .u{font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.stars{display:flex;align-items:center;gap:6px;font-size:13px}
+.stars b{font-weight:600}
+.stars .s{color:var(--brass-2);letter-spacing:1px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:11.5px;border:1px solid var(--line);background:var(--paper-2);border-radius:2px;padding:3px 8px;color:var(--text-2)}
+.badge{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;border-radius:2px;white-space:nowrap}
+.b-verified{background:var(--jade-wash);color:var(--jade)}
+.b-featured{background:var(--brass-2);color:#0E1513;font-weight:600}
+.b-pending{background:var(--clay-wash);color:var(--clay)}
+.b-live{background:var(--jade-wash);color:var(--jade)}
+.b-flat{background:var(--paper-2);color:var(--text-2);border:1px solid var(--line)}
+.pro-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.pro-foot .resp{font-size:12px;color:var(--text-3);margin-left:auto;text-align:right}
+
+/* ---- ad slots ---- */
+.adslot{border:1px dashed var(--line-2);border-radius:4px;background:var(--paper-2);display:grid;place-items:center;text-align:center;padding:18px;gap:5px;color:var(--text-3)}
+.adslot .lab{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+.adslot .dim{font-family:var(--mono);font-size:12px;color:var(--text-2)}
+.adslot-lead{min-height:104px}
+.adslot-rail{min-height:270px}
+.native-ad{border:1px solid var(--brass-2);border-radius:4px;background:linear-gradient(180deg,var(--brass-wash),var(--paper-3));padding:20px;display:flex;flex-direction:column;gap:12px}
+
+/* ---- steps ---- */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;counter-reset:s}
+.step{position:relative;padding-top:20px;border-top:2px solid var(--line-2)}
+.step.active{border-top-color:var(--brass-2)}
+.step .n{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--brass);margin-bottom:9px}
+.step h3{font-size:20px;margin-bottom:7px}
+.step p{color:var(--text-2);font-size:14.5px}
+
+/* ---- reviews ---- */
+.rev{background:var(--paper-3);border:1px solid var(--line);border-radius:4px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.rev q{font-family:var(--serif);font-size:18px;line-height:1.45;quotes:none;display:block}
+.rev .who{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:12px;border-top:1px solid var(--line)}
+
+/* ---- job card ---- */
+.job{background:var(--paper-3);border:1px solid var(--line);border-radius:4px;padding:18px 20px;display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.job h3{font-size:18px}
+.job .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--text-3);margin-top:7px}
+.job .budget{margin-left:auto;text-align:right;flex:none}
+.job .budget .v{font-family:var(--mono);font-size:19px;font-weight:600}
+
+/* ---- filters ---- */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:4px;background:var(--paper-3)}
+.filters select,.filters input{padding:9px 11px;border:1px solid var(--line-2);border-radius:3px;background:var(--paper-2);font-size:14px}
+.filters input[type=search]{min-width:min(260px,100%);flex:1}
+
+/* ---- wizard ---- */
+.wiz{display:grid;grid-template-columns:1fr 344px;gap:34px;align-items:start}
+.progress{display:flex;gap:6px;margin-bottom:26px}
+.progress i{height:3px;flex:1;background:var(--line-2);border-radius:2px}
+.progress i.on{background:var(--brass-2)}
+.wizcard{background:var(--paper-3);border:1px solid var(--line);border-radius:5px;padding:30px}
+.summary{background:var(--paper-3);border:1px solid var(--line);border-radius:5px;overflow:hidden;position:sticky;top:calc(84px + env(safe-area-inset-top,0px))}
+.sum-row{display:flex;justify-content:space-between;gap:14px;padding:11px 20px;font-size:14px;border-bottom:1px solid var(--line)}
+.sum-row.total{background:var(--paper-2);font-weight:700;font-size:17px;border-bottom:0}
+.sum-row .k{color:var(--text-2)}
+.seal{display:flex;gap:10px;align-items:flex-start;padding:14px 20px;border-top:1px solid var(--line);background:var(--paper-2);font-size:12.5px;color:var(--text-2)}
+.seal svg{color:var(--jade);flex:none;margin-top:1px}
+.radio{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line-2);border-radius:4px;padding:14px 15px;cursor:pointer;background:var(--paper-2)}
+.radio.on{border-color:var(--brass-2);background:var(--brass-wash);box-shadow:0 0 0 1px var(--brass-2) inset}
+.radio .dot{width:17px;height:17px;border-radius:99px;border:1.5px solid var(--line-2);flex:none;margin-top:2px;display:grid;place-items:center;background:var(--paper-3)}
+.radio.on .dot{border-color:var(--brass);}
+.radio.on .dot::after{content:"";width:9px;height:9px;border-radius:99px;background:var(--brass)}
+.pay{display:flex;gap:10px;align-items:center;justify-content:center;padding:10px 0;color:var(--text-3);font-size:12px}
+.paid{text-align:center;padding:26px 10px}
+.paid .tick{width:62px;height:62px;border-radius:99px;background:var(--jade-wash);color:var(--jade);display:grid;place-items:center;margin:0 auto 18px}
+
+/* ---- pricing ---- */
+.tier{background:var(--paper-3);border:1px solid var(--line);border-radius:5px;padding:26px;display:flex;flex-direction:column;gap:16px}
+.tier.best{border-color:var(--brass-2);box-shadow:0 0 0 1px var(--brass-2) inset,var(--shadow-lift);position:relative}
+.tier .price{font-family:var(--serif);font-size:42px;line-height:1;display:flex;align-items:baseline;gap:6px}
+.tier .price small{font-family:var(--sans);font-size:14px;color:var(--text-3);font-weight:500}
+.tier ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:14.5px}
+.tier li{display:flex;gap:9px;align-items:flex-start;color:var(--text-2)}
+.tier li svg{color:var(--jade);flex:none;margin-top:4px}
+.ribbon{position:absolute;top:-11px;left:26px;background:var(--brass-2);color:#0E1513;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 10px;border-radius:2px;font-weight:600}
+
+/* ---- dashboards / tables ---- */
+.panel{background:var(--paper-3);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.panel-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.panel-h h3{font-size:17px}
+.panel-h .btn{margin-left:auto}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-3);font-weight:500;padding:11px 20px;background:var(--paper-2);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:13px 20px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.stat{background:var(--paper-3);border:1px solid var(--line);border-radius:4px;padding:18px 20px}
+.stat .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-3)}
+.stat .v{font-family:var(--serif);font-size:32px;line-height:1.1;margin-top:8px}
+.stat .d{font-size:12.5px;margin-top:4px;color:var(--jade)}
+.stat .d.down{color:var(--clay)}
+.bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brass-2)}
+.spark{display:flex;align-items:flex-end;gap:3px;height:42px}
+.spark i{flex:1;background:var(--jade);opacity:.32;border-radius:1px 1px 0 0}
+.spark i:last-child{opacity:1}
+
+/* ---- profile ---- */
+.profile-hd{display:grid;grid-template-columns:1fr 320px;gap:34px;align-items:start}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.shot{aspect-ratio:4/3;max-width:100%;border-radius:3px;border:1px solid var(--line);display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--text-3);text-align:center;padding:8px}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--text-2)}
+
+/* ---- footer + mobile bar ---- */
+.foot{background:var(--ink);color:var(--on-ink-2);padding-block:52px 96px;font-size:14px}
+.foot-in{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:34px}
+.foot h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--on-ink);margin-bottom:12px;font-weight:500}
+.foot ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.foot a:hover{color:var(--on-ink)}
+.foot-bot{margin-top:38px;padding-top:20px;border-top:1px solid var(--on-ink-line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12.5px}
+.mobilebar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:70;background:color-mix(in srgb,var(--paper-3) 94%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));gap:10px}
+.notice{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:90;background:var(--ink);color:var(--on-ink);padding:11px 18px;border-radius:3px;font-size:13.5px;box-shadow:var(--shadow-lift);max-width:calc(100vw - 32px)}
+
+/* grid children default to min-width:auto, which lets wide tables push the page sideways */
+.grid>*,.wiz>*,.profile-hd>*,.browse-split>*,.dash-split>*,.admin-split>*,.cta-split>*,.hero-in>*,.panel,.tablewrap,.summary{min-width:0}
+@media (max-width:980px){
+  .cta-split,.browse-split,.dash-split,.admin-split{grid-template-columns:1fr!important}
+  .hero-in{grid-template-columns:1fr;gap:38px;padding-block:52px 62px}
+  .wiz,.profile-hd{grid-template-columns:1fr}
+  .summary{position:static}
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .foot-in{grid-template-columns:repeat(2,1fr)}
+  .nav{display:none}
+  .burger{display:block}
+}
+@media (max-width:700px){
+  .sect{padding-block:48px}
+  .g2,.g3,.g4,.steps{grid-template-columns:1fr}
+  .gallery{grid-template-columns:repeat(2,1fr)}
+  .mobilebar{display:flex}
+  .mkt select{max-width:96px}
+  .chrome-in{height:58px;gap:8px}
+  .logo{font-size:18px}
+  .hero-cta .btn{flex:1}
+  .job .budget{margin-left:0;text-align:left}
+  .chrome-r .btn-primary{display:none}
+  .filters input[type=search]{min-width:0}
+  .rolebar-in span{display:none}
+}
+</style>
+</head>
+<body>
+<div class="rolebar">
+  <div class="wrap rolebar-in">
+    <b>Prototype</b>
+    <span>&mdash; switch role to preview each dashboard. Nothing here charges a real card.</span>
+    <div class="roles" id="roles"></div>
+  </div>
+</div>
+
+<header class="chrome">
+  <div class="wrap chrome-in">
+    <a class="logo" href="#/home"><b>Flex</b><i>Handy</i></a>
+    <nav class="nav" id="nav"></nav>
+    <div class="chrome-r">
+      <div class="mkt">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 1114 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <select id="market" aria-label="Choose your market"></select>
+      </div>
+      <a class="btn btn-primary btn-sm" href="#/post">Post a job &mdash; $10</a>
+      <button class="burger" id="burger" aria-label="Menu"><svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    </div>
+  </div>
+  <div class="wrap" id="mobnav" hidden style="padding-bottom:12px"></div>
+</header>
+
+<main id="view"></main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-in">
+      <div>
+        <div class="logo" style="color:var(--on-ink)"><b>Flex</b><i>Handy</i></div>
+        <p class="small" style="margin-top:12px;max-width:34ch">The local trades directory. Post a job for $10 flat, hire direct, and keep every dollar of the quote.</p>
+      </div>
+      <div><h4>Homeowners</h4><ul><li><a href="#/post">Post a job</a></li><li><a href="#/browse">Browse pros</a></li><li><a href="#/home">How pricing works</a></li><li><a href="#/home">Safety &amp; vetting</a></li></ul></div>
+      <div><h4>Pros</h4><ul><li><a href="#/dashboard">Pro dashboard</a></li><li><a href="#/jobs">Open jobs board</a></li><li><a href="#/advertise">Advertise</a></li><li><a href="#/advertise">Get verified</a></li></ul></div>
+      <div><h4>Markets</h4><ul id="footmarkets"></ul></div>
+    </div>
+    <div class="foot-bot">
+      <span>&copy; 2026 FlexHandy &middot; flexhandy.com</span>
+      <span class="mono tiny">DESIGN PROTOTYPE &middot; NOT LIVE</span>
+    </div>
+  </div>
+</footer>
+
+<div class="mobilebar">
+  <a class="btn btn-ghost btn-block" href="#/browse">Browse pros</a>
+  <a class="btn btn-primary btn-block" href="#/post">Post a job &mdash; $10</a>
+</div>
+
+<script>
+/* ============================ seed data ============================ */
+const MARKETS = [
+  {id:"austin",    name:"Austin, TX",     code:"ATX", pros:214, jobs:38, live:true,  admin:"Dana Whitfield", rev:8420,  since:"Jan 2026"},
+  {id:"roundrock", name:"Round Rock, TX", code:"RRK", pros:63,  jobs:11, live:true,  admin:"Marcus Bell",    rev:2190,  since:"Apr 2026"},
+  {id:"sanmarcos", name:"San Marcos, TX", code:"SMT", pros:29,  jobs:6,  live:true,  admin:"Unassigned",     rev:740,   since:"Aug 2026"},
+  {id:"waco",      name:"Waco, TX",       code:"WCO", pros:0,   jobs:0,  live:false, admin:"Unassigned",     rev:0,     since:"—"}
+];
+const CATS = [
+  {n:"Plumbing",     c:41, i:"M8 4v6a4 4 0 008 0V7"},
+  {n:"Electrical",   c:33, i:"M13 2L4 14h7l-1 8 9-12h-7l1-8z"},
+  {n:"Carpentry",    c:56, i:"M3 21l6-6m-1-9l4-4 7 7-4 4z"},
+  {n:"Drywall &amp; Paint", c:48, i:"M4 20h16M6 16V6h12v10"},
+  {n:"Appliance",    c:22, i:"M5 3h14v18H5zM9 7h6"},
+  {n:"HVAC",         c:19, i:"M12 3v18M3 12h18M6 6l12 12M18 6L6 18"},
+  {n:"Fencing &amp; Decks", c:27, i:"M4 20V8l4-4 4 4 4-4 4 4v12"},
+  {n:"Odd Jobs",     c:88, i:"M12 2l2.4 6.5L21 11l-6.6 2.5L12 20l-2.4-6.5L3 11l6.6-2.5z"}
+];
+const PROS = [
+  {id:"p1",n:"Ray Okafor",     t:"Master Plumber",          m:"austin",    r:4.9,rc:187,h:95, y:18,j:412,v:1,ins:1,bg:1,ad:"spotlight",resp:"~12 min",hue:38,
+   tags:["Repipe","Water heaters","Slab leaks","Emergency"],b:"Licensed master plumber (TX M-41182). I do the diagnosis before the quote, in writing, and I don't leave a job without pressure-testing it."},
+  {id:"p2",n:"Teresa Vance",   t:"Finish Carpenter",        m:"austin",    r:5.0,rc:96, h:78, y:12,j:238,v:1,ins:1,bg:1,ad:"spotlight",resp:"~40 min",hue:12,
+   tags:["Built-ins","Trim &amp; crown","Cabinet refacing","Stairs"],b:"Custom built-ins and trim carpentry. Twelve years, mostly referral work in Tarrytown and Hyde Park. I show up with a shop drawing, not a guess."},
+  {id:"p3",n:"Dmitri Sokolov", t:"Handyman &mdash; General", m:"austin",   r:4.8,rc:143,h:62, y:9, j:520,v:1,ins:1,bg:1,ad:"boost",resp:"~25 min",hue:152,
+   tags:["TV mounting","Drywall patch","Faucets","Furniture"],b:"The everything-list guy. If your honey-do list has nine unrelated items on it, that's a normal Tuesday for me. Two-hour minimum."},
+  {id:"p4",n:"Alma Reyes",     t:"Painter &amp; Drywall",   m:"austin",    r:4.9,rc:74, h:55, y:15,j:301,v:1,ins:1,bg:0,ad:"",resp:"~1 hr",hue:196,
+   tags:["Interior repaint","Texture match","Popcorn removal","Cabinets"],b:"Interior repaints and texture matching. I match orange peel and knockdown so you can't find the patch afterward."},
+  {id:"p5",n:"Jonah Pike",     t:"Electrician",             m:"austin",    r:4.7,rc:58, h:88, y:7, j:164,v:1,ins:1,bg:1,ad:"",resp:"~2 hr",hue:268,
+   tags:["Panel upgrades","EV chargers","Ceiling fans","Recessed lighting"],b:"Journeyman electrician. Panel upgrades and EV charger installs are most of my week &mdash; I pull the permit, you don't chase the city."},
+  {id:"p6",n:"Beatrice Lund",  t:"Appliance Repair",        m:"austin",    r:4.6,rc:41, h:70, y:22,j:890,v:0,ins:1,bg:0,ad:"",resp:"~3 hr",hue:330,
+   tags:["Washers","Refrigeration","Ovens","Dishwashers"],b:"Twenty-two years on appliances. I carry common parts on the truck, so most repairs are one visit, not three."},
+  {id:"p7",n:"Curtis Nwosu",   t:"Deck &amp; Fence Builder",m:"roundrock", r:4.9,rc:62, h:72, y:11,j:148,v:1,ins:1,bg:1,ad:"boost",resp:"~30 min",hue:88,
+   tags:["Cedar fences","Deck rebuilds","Pergolas","Gates"],b:"Cedar fences and deck rebuilds across Williamson County. Post holes dug to depth, concrete every post, no exceptions."},
+  {id:"p8",n:"Priya Raman",    t:"Handyman &mdash; General",m:"roundrock", r:4.8,rc:37, h:58, y:6, j:203,v:1,ins:0,bg:1,ad:"",resp:"~45 min",hue:20,
+   tags:["Shelving","Door hardware","Caulking","Smart home"],b:"Small-job specialist. Door adjustments, shelving, smart locks and thermostats. Flat-rate on anything under an hour."},
+  {id:"p9",n:"Hal Brenner",    t:"HVAC Technician",         m:"sanmarcos", r:4.7,rc:24, h:92, y:14,j:311,v:1,ins:1,bg:1,ad:"",resp:"~1 hr",hue:210,
+   tags:["AC tune-ups","Condenser repair","Duct sealing","Mini-splits"],b:"EPA-certified HVAC tech covering Hays County. Summer emergency slots held open daily until 6pm."}
+];
+const JOBS = [
+  {id:"j1",t:"Kitchen faucet leaking at the base",m:"austin",c:"Plumbing",bud:"$120–$250",when:"This week",p:"2 hours ago",bids:7,st:"live",who:"Marissa K.",zip:"78704",
+   d:"Pull-down faucet drips from the base whenever the sprayer is used. Cabinet below is getting damp. Happy to buy the replacement faucet myself if that's cheaper."},
+  {id:"j2",t:"Mount 65\" TV + hide cables in drywall",m:"austin",c:"Odd Jobs",bud:"$150–$300",when:"Flexible",p:"5 hours ago",bids:12,st:"live",who:"Ben T.",zip:"78745",
+   d:"Standard drywall, no brick. Want the cables run inside the wall to an outlet behind the console. I have the mount already."},
+  {id:"j3",t:"Repaint two bedrooms, walls and trim",m:"austin",c:"Drywall &amp; Paint",bud:"$800–$1,400",when:"Next 2 weeks",p:"Yesterday",bids:5,st:"live",who:"The Ashbys",zip:"78731",
+   d:"Two 12x13 bedrooms, 9ft ceilings. Walls plus baseboards and door casings. Paint not purchased yet, would like a recommendation."},
+  {id:"j4",t:"Replace rotted deck boards (approx 40 sq ft)",m:"austin",c:"Carpentry",bud:"$400–$900",when:"This month",p:"2 days ago",bids:9,st:"live",who:"Grady P.",zip:"78702",
+   d:"Back corner of the deck has about eight soft boards. Frame underneath looks solid. Cedar preferred to match, pressure-treated fine if cheaper."},
+  {id:"j5",t:"Install EV charger in attached garage",m:"austin",c:"Electrical",bud:"$600–$1,200",when:"Next 2 weeks",p:"3 days ago",bids:4,st:"live",who:"Simone A.",zip:"78703",
+   d:"Level 2, 240V. Panel is in the garage about 15 feet from where the charger goes. Need the permit handled."},
+  {id:"j6",t:"Build 8ft cedar privacy fence, back line only",m:"roundrock",c:"Fencing &amp; Decks",bud:"$2,000–$3,500",when:"This month",p:"6 hours ago",bids:3,st:"live",who:"Devon L.",zip:"78665",
+   d:"About 92 linear feet along the back property line. Old fence needs hauling off. HOA requires cap and trim."},
+  {id:"j7",t:"Dishwasher won't drain, standing water",m:"roundrock",c:"Appliance",bud:"$90–$200",when:"ASAP",p:"1 hour ago",bids:2,st:"live",who:"Nora F.",zip:"78681",
+   d:"Bosch, about six years old. Ran the disposal, cleaned the filter, still holding water at the bottom after every cycle."},
+  {id:"j8",t:"AC blowing warm in the afternoons",m:"sanmarcos",c:"HVAC",bud:"$150–$500",when:"ASAP",p:"4 hours ago",bids:1,st:"live",who:"Rick M.",zip:"78666",
+   d:"Cools fine in the morning, gives up around 3pm when it gets hot. Unit is nine years old, filter is new."},
+  {id:"j9",t:"Hang 14 pictures and two mirrors",m:"austin",c:"Odd Jobs",bud:"$100–$180",when:"Flexible",p:"Just now",bids:0,st:"pending",who:"You (draft)",zip:"78704",
+   d:"Moving in. Everything is stacked against the wall in the living room. Mirrors are heavy and need anchors."}
+];
+const REVIEWS = [
+  {q:"He found the slab leak in twenty minutes after another company spent a day and quoted me a re-pipe. The bill was a third of what I expected.",n:"Marissa K.",j:"Slab leak repair &middot; $640",m:"austin",pro:"Ray Okafor"},
+  {q:"Teresa sent a drawing before she cut a single board. The built-ins look like they came with the house.",n:"Paul & Ivy R.",j:"Living room built-ins &middot; $3,900",m:"austin",pro:"Teresa Vance"},
+  {q:"Posted my list at 9pm for ten dollars. Four quotes by lunch, and I hired the one who actually read the list.",n:"Ben T.",j:"Nine-item punch list &middot; $415",m:"austin",pro:"Dmitri Sokolov"}
+];
+const LEADS = [
+  {t:"Kitchen faucet leaking at the base",who:"Marissa K.",zip:"78704",bud:"$120–$250",age:"2h",st:"New"},
+  {t:"Replace rotted deck boards",who:"Grady P.",zip:"78702",bud:"$400–$900",age:"2d",st:"Quoted"},
+  {t:"Water heater making popping noise",who:"Alicia D.",zip:"78745",bud:"$200–$600",age:"3d",st:"Won"},
+  {t:"Shower valve replacement",who:"Tom H.",zip:"78751",bud:"$300–$700",age:"5d",st:"Lost"}
+];
+const MODQ = [
+  {t:"Free roof inspection — call now!!!",m:"austin",who:"roofpro_tx",why:"Advertising in a job post",age:"11 min"},
+  {t:"Handyman profile — no license on file",m:"roundrock",who:"J. Alvarez",why:"Claims electrical work, unverified",age:"1 hr"},
+  {t:"Duplicate job post (3rd today)",m:"austin",who:"Ben T.",why:"Possible payment retry",age:"3 hr"}
+];
+
+/* ============================ helpers ============================ */
+const $ = s => document.querySelector(s);
+const state = {market:"austin", role:"guest", step:1, cat:"Plumbing", tier:"boost"};
+const money = n => "$" + n.toLocaleString("en-US");
+const mkt = id => MARKETS.find(m => m.id === id) || MARKETS[0];
+const proSort = a => [...a].sort((x,y) => (y.ad==="spotlight") - (x.ad==="spotlight") || (y.ad?1:0)-(x.ad?1:0) || y.r-x.r);
+const prosIn = id => proSort(PROS.filter(p => p.m === id));
+const jobsIn = id => JOBS.filter(j => j.m === id && j.st === "live");
+const avatar = p => '<div class="av" style="background:hsl('+p.hue+' 42% 68%)">'+p.n.split(" ").map(w=>w[0]).join("")+'</div>';
+const starRow = (r,c) => '<div class="stars"><span class="s">'+"★".repeat(Math.round(r))+'</span><b class="mono">'+r.toFixed(1)+'</b><span class="muted tiny">('+c+' reviews)</span></div>';
+const ICON = {
+  check:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>',
+  shield:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  lock:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>',
+  bolt:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>'
+};
+const badges = p => (p.ad==="spotlight"?'<span class="badge b-featured">Featured</span>':"") + (p.v?'<span class="badge b-verified">Verified</span>':"");
+const adslot = (lab,dim,cls) => '<div class="adslot '+cls+'"><span class="lab">'+lab+'</span><span class="dim mono">'+dim+'</span><span class="tiny">Google AdSense or direct-sold</span></div>';
+
+/* ============================ shared blocks ============================ */
+function proCard(p){
+  return `<article class="pro ${p.ad==="spotlight"?"featured":""}">
+    <div class="pro-top">${avatar(p)}
+      <div style="min-width:0">
+        <div class="pro-name">${p.n} ${badges(p)}</div>
+        <div class="pro-trade">${p.t} &middot; ${p.y} yrs</div>
+      </div>
+      <div class="rate"><div class="v">$${p.h}</div><div class="u">per hr</div></div>
+    </div>
+    ${starRow(p.r,p.rc)}
+    <div class="tags">${p.tags.slice(0,3).map(t=>`<span class="tag">${t}</span>`).join("")}</div>
+    <div class="pro-foot">
+      <a class="btn btn-dark btn-sm" href="#/pro/${p.id}">View profile</a>
+      <a class="btn btn-ghost btn-sm" href="#/post">Request quote</a>
+      <span class="resp">Replies ${p.resp}</span>
+    </div>
+  </article>`;
+}
+function jobCard(j){
+  return `<article class="job">
+    <div style="flex:1;min-width:220px">
+      <h3>${j.t}</h3>
+      <div class="meta"><span class="mono">${j.c}</span><span>ZIP ${j.zip}</span><span>${j.when}</span><span>Posted ${j.p}</span><span>${j.bids} quotes</span></div>
+    </div>
+    <div class="budget"><div class="v">${j.bud}</div><div class="tiny muted">Homeowner budget</div></div>
+    <a class="btn btn-ghost btn-sm" href="#/jobs">Send quote</a>
+  </article>`;
+}
+function statTile(k,v,d,down){
+  return `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${d?`<div class="d ${down?"down":""}">${d}</div>`:""}</div>`;
+}
+
+/* ============================ views ============================ */
+const views = {};
+
+views.home = () => {
+  const m = mkt(state.market), ps = prosIn(m.id), js = jobsIn(m.id);
+  const revs = REVIEWS;
+  return `
+  <section class="hero"><div class="wrap hero-in">
+    <div>
+      <div class="eyebrow eyebrow-brass">Now serving ${m.name}</div>
+      <h1 style="margin-top:14px">The trades directory<br>that doesn't take <em>a cut of your job</em>.</h1>
+      <p class="lede">Post what needs fixing for a flat $10. Every licensed pro in ${m.code} sees it, quotes it, and deals with you directly. No commission, no lead resale, no 20% skim off the top.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary btn-lg" href="#/post">Post a job &mdash; $10 flat</a>
+        <a class="btn btn-onink btn-lg" href="#/browse">Browse ${m.pros} pros</a>
+      </div>
+      <div class="hero-fine">
+        <span>${ICON.check} Licence &amp; insurance checked</span>
+        <span>${ICON.check} Most jobs quoted within the hour</span>
+        <span>${ICON.check} Free for pros to quote</span>
+      </div>
+      <div class="proof">
+        <div><div class="n mono">${m.pros}</div><div class="l">Vetted pros in ${m.code}</div></div>
+        <div><div class="n mono">${js.length}</div><div class="l">Jobs open right now</div></div>
+        <div><div class="n mono">$0</div><div class="l">Commission, ever</div></div>
+      </div>
+    </div>
+    <div class="quote-card">
+      <div class="qc-top">
+        <div><div class="eyebrow">Start here</div><div style="font-family:var(--serif);font-size:19px;margin-top:2px">What needs doing?</div></div>
+        <span class="badge b-flat mono">$10</span>
+      </div>
+      <div class="qc-body">
+        <label class="field"><span>Trade</span>
+          <select id="hero-trade">${CATS.map(c=>`<option>${c.n}</option>`).join("")}</select></label>
+        <label class="field"><span>Describe the job</span>
+          <textarea id="hero-desc" placeholder="Kitchen faucet drips at the base whenever the sprayer runs…"></textarea></label>
+        <label class="field" style="margin-bottom:16px"><span>When</span>
+          <div class="chipset">${["ASAP","This week","This month","Flexible"].map((c,i)=>`<button class="chip ${i===1?"on":""}" data-chip>${c}</button>`).join("")}</div></label>
+        <a class="btn btn-primary btn-block btn-lg" href="#/post">Get quotes &mdash; $10</a>
+      </div>
+      <div class="qc-foot">${ICON.lock} Nothing is charged until you see your post and confirm.</div>
+    </div>
+  </div></section>
+
+  <div class="strip"><div class="wrap strip-in">
+    <span class="strip-item">${ICON.shield} Licence verified against TDLR</span>
+    <span class="strip-item">${ICON.shield} Proof of liability insurance on file</span>
+    <span class="strip-item">${ICON.shield} Background check on every Featured pro</span>
+    <span class="strip-item">${ICON.shield} Reviews only from paid, completed jobs</span>
+  </div></div>
+
+  <section class="sect"><div class="wrap">
+    <div class="head"><div>
+      <div class="eyebrow">How it works</div>
+      <h2 style="margin-top:10px">Ten dollars. Three steps. Done by the weekend.</h2>
+      <p>The fee exists to keep the tire-kickers out, which is exactly why pros answer fast here.</p>
+    </div><a class="btn btn-ghost" href="#/post">Start a post</a></div>
+    <div class="steps">
+      <div class="step active"><div class="n">STEP 01</div><h3>Describe the job</h3><p>Trade, a few sentences, photos if you have them, and your rough budget. Two minutes, no account needed yet.</p></div>
+      <div class="step active"><div class="n">STEP 02</div><h3>Pay $10, go live</h3><p>Your post hits every matching pro in ${m.code} the moment it's paid. That's the whole fee &mdash; there is nothing after it.</p></div>
+      <div class="step active"><div class="n">STEP 03</div><h3>Pick your pro</h3><p>Compare quotes, licences and reviews side by side, then message the one you want. You pay them directly.</p></div>
+    </div>
+  </div></section>
+
+  <hr class="hr">
+
+  <section class="sect"><div class="wrap">
+    <div class="head"><div><div class="eyebrow">Trades in ${m.name}</div><h2 style="margin-top:10px">Find the right hands</h2></div></div>
+    <div class="grid g4">${CATS.map(c=>`<a class="cat" href="#/browse">
+      <span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="${c.i}"/></svg></span>
+      <span><span class="t">${c.n}</span><br><span class="c">${c.c} pros</span></span></a>`).join("")}</div>
+  </div></section>
+
+  <section class="sect-tight"><div class="wrap">${adslot("Advertisement","728 &times; 90 leaderboard","adslot-lead")}</div></section>
+
+  <section class="sect" style="background:var(--paper-2);border-block:1px solid var(--line)"><div class="wrap">
+    <div class="head"><div><div class="eyebrow eyebrow-brass">Featured this week &middot; sponsored</div><h2 style="margin-top:10px">Top-rated pros in ${m.code}</h2>
+      <p>Featured placement is a paid ad slot. Ratings, licences and review counts are not &mdash; those are earned.</p></div>
+      <a class="btn btn-ghost" href="#/browse">See all ${m.pros}</a></div>
+    <div class="grid g3">${ps.slice(0,3).map(proCard).join("") || '<p class="muted">No pros in this market yet.</p>'}</div>
+  </div></section>
+
+  <section class="sect"><div class="wrap">
+    <div class="head"><div><div class="eyebrow">Open jobs</div><h2 style="margin-top:10px">What ${m.code} is fixing right now</h2>
+      <p>Pros browse and quote these for free. Homeowners paid $10 each to put them here.</p></div>
+      <a class="btn btn-ghost" href="#/jobs">Open the board</a></div>
+    <div class="grid" style="gap:12px">${js.slice(0,4).map(jobCard).join("") || '<p class="muted">No open jobs in this market yet.</p>'}</div>
+  </div></section>
+
+  <section class="sect" style="background:var(--paper-2);border-block:1px solid var(--line)"><div class="wrap">
+    <div class="head"><div><div class="eyebrow">Reviews</div><h2 style="margin-top:10px">From people who paid the ten dollars</h2></div></div>
+    <div class="grid g3">${revs.map(r=>`<div class="rev">
+      <div class="stars"><span class="s">★★★★★</span></div>
+      <q>${r.q}</q>
+      <div class="who"><div><div style="font-weight:600;font-size:14px">${r.n}</div><div class="tiny muted">${r.j}</div></div>
+      <span class="badge b-verified" style="margin-left:auto">Verified job</span></div></div>`).join("")}</div>
+  </div></section>
+
+  <section class="dark sect"><div class="wrap">
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:44px;align-items:center" class="cta-split">
+      <div>
+        <div class="eyebrow eyebrow-brass">For pros</div>
+        <h2 style="font-size:clamp(28px,3.8vw,42px);margin-top:12px">Quoting is free. Being the first name they see isn't.</h2>
+        <p class="muted" style="margin-top:14px;max-width:52ch">Claim your profile for nothing and quote every job in ${m.code}. When you're ready for more work than that, Boost and Spotlight put you at the top of the directory and inside the category pages.</p>
+        <div class="hero-cta"><a class="btn btn-primary btn-lg" href="#/advertise">See ad packages</a><a class="btn btn-onink btn-lg" href="#/dashboard">Claim free profile</a></div>
+      </div>
+      <div class="native-ad" style="color:var(--text)">
+        <span class="badge b-featured" style="align-self:flex-start">Spotlight &middot; ad preview</span>
+        <div style="display:flex;gap:12px;align-items:center">${avatar(PROS[0])}
+          <div><div style="font-family:var(--serif);font-size:19px">Ray Okafor</div><div class="tiny muted">Master Plumber &middot; ${mkt("austin").code}</div></div></div>
+        <p class="small">"Licensed master plumber. Diagnosis before quote, in writing, every time."</p>
+        <a class="btn btn-dark btn-sm" href="#/pro/p1" style="align-self:flex-start">This is what a Spotlight ad looks like</a>
+      </div>
+    </div>
+  </div></section>`;
+};
+
+views.browse = () => {
+  const m = mkt(state.market), ps = prosIn(m.id);
+  return `<section class="sect-tight"><div class="wrap">
+    <div class="head"><div>
+      <div class="eyebrow">Directory &middot; ${m.name}</div>
+      <h2 style="margin-top:10px">${m.pros} vetted pros in ${m.code}</h2>
+      <p>Sorted by placement, then rating. Paid placements are labelled every single time.</p>
+    </div><a class="btn btn-primary" href="#/post">Post a job &mdash; $10</a></div>
+
+    <div class="filters" style="margin-bottom:20px">
+      <input type="search" id="f-q" placeholder="Search a trade, name or skill…" aria-label="Search pros">
+      <select id="f-cat" aria-label="Trade"><option>All trades</option>${CATS.map(c=>`<option>${c.n}</option>`).join("")}</select>
+      <select id="f-rate" aria-label="Rate"><option>Any rate</option><option>Under $60/hr</option><option>$60–$85/hr</option><option>$85+/hr</option></select>
+      <select id="f-sort" aria-label="Sort"><option>Recommended</option><option>Highest rated</option><option>Fastest to reply</option><option>Lowest rate</option></select>
+      <label class="small" style="display:flex;gap:7px;align-items:center;color:var(--text-2)"><input type="checkbox" id="f-ver" checked> Verified only</label>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start" class="browse-split">
+      <div class="grid g2" id="pro-grid">${ps.map(proCard).join("") || '<p class="muted">This market is still being built out. Be the first pro here.</p>'}</div>
+      <aside style="display:flex;flex-direction:column;gap:18px">
+        ${adslot("Advertisement","300 &times; 250 rail","")}
+        <div class="native-ad">
+          <span class="badge b-featured" style="align-self:flex-start">Sponsored</span>
+          <div style="font-family:var(--serif);font-size:20px">Want this spot?</div>
+          <p class="small muted">Spotlight puts your profile at the top of every ${m.code} search and inside your two best categories.</p>
+          <a class="btn btn-dark btn-sm" href="#/advertise">From $49/mo</a>
+        </div>
+        ${adslot("Advertisement","300 &times; 600 half-page","adslot-rail")}
+      </aside>
+    </div>
+  </div></section>`;
+};
+
+views.pro = (id) => {
+  const p = PROS.find(x => x.id === id) || PROS[0];
+  const m = mkt(p.m);
+  const revs = [
+    {q:"Showed up inside the window, walked me through the diagnosis on his phone screen, and the final invoice matched the quote to the dollar.",n:"Marissa K.",j:"Slab leak repair",d:"3 weeks ago"},
+    {q:"Second opinion that saved me about four thousand dollars. I'd have been re-piping a house that didn't need it.",n:"Gerald W.",j:"Leak detection",d:"2 months ago"},
+    {q:"Not the cheapest quote I got. Was the only one who explained why the cheap fix would fail in a year.",n:"Priya S.",j:"Water heater replacement",d:"4 months ago"}
+  ];
+  return `<section class="sect-tight"><div class="wrap">
+    <a class="small muted" href="#/browse">&larr; All pros in ${m.code}</a>
+    <div class="profile-hd" style="margin-top:20px">
+      <div>
+        <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+          <div style="transform:scale(1.5);transform-origin:top left;margin-right:26px">${avatar(p)}</div>
+          <div style="flex:1;min-width:200px">
+            <h1 style="font-size:clamp(30px,4vw,42px)">${p.n}</h1>
+            <div class="muted" style="margin-top:6px">${p.t} &middot; ${m.name} &middot; ${p.y} years in the trade</div>
+            <div style="display:flex;gap:7px;margin-top:12px;flex-wrap:wrap">
+              ${badges(p)}
+              ${p.ins?'<span class="badge b-flat">Insured</span>':""}
+              ${p.bg?'<span class="badge b-flat">Background checked</span>':""}
+            </div>
+            <div style="margin-top:14px">${starRow(p.r,p.rc)}</div>
+          </div>
+        </div>
+        <p style="margin-top:26px;font-size:17.5px;max-width:62ch;color:var(--text-2)">${p.b}</p>
+
+        <h3 style="font-size:21px;margin-top:38px;margin-bottom:14px">What ${p.n.split(" ")[0]} does</h3>
+        <div class="tags">${p.tags.map(t=>`<span class="tag" style="font-size:13px;padding:6px 11px">${t}</span>`).join("")}</div>
+
+        <h3 style="font-size:21px;margin-top:38px;margin-bottom:14px">Recent work</h3>
+        <div class="gallery">${["Repipe &mdash; 78704","Water heater swap","Slab leak, located","Shower valve rebuild","Gas line for range","Under-sink rebuild"].map(s=>`<div class="shot" style="background:hsl(${p.hue} 28% 88%)">${s}</div>`).join("")}</div>
+
+        <h3 style="font-size:21px;margin-top:38px;margin-bottom:14px">Reviews from paid jobs</h3>
+        <div class="grid" style="gap:12px">${revs.map(r=>`<div class="rev" style="padding:20px">
+          <div style="display:flex;align-items:center;gap:10px"><span class="s stars" style="color:var(--brass-2)">★★★★★</span><span class="tiny muted">${r.d}</span>
+          <span class="badge b-verified" style="margin-left:auto">Verified</span></div>
+          <q style="font-size:16.5px">${r.q}</q>
+          <div class="who"><div style="font-weight:600;font-size:14px">${r.n}</div><div class="tiny muted">&middot; ${r.j}</div></div></div>`).join("")}</div>
+      </div>
+
+      <aside style="display:flex;flex-direction:column;gap:16px">
+        <div class="summary" style="position:sticky">
+          <div style="padding:20px 20px 4px">
+            <div class="eyebrow">Hourly rate</div>
+            <div style="font-family:var(--serif);font-size:38px;line-height:1;margin-top:6px">$${p.h}<span style="font-family:var(--sans);font-size:14px;color:var(--text-3)"> /hr</span></div>
+            <p class="tiny muted" style="margin-top:8px">Two-hour minimum. Flat-rate quotes available on defined jobs.</p>
+          </div>
+          <div style="padding:16px 20px">
+            <a class="btn btn-primary btn-block btn-lg" href="#/post">Request a quote</a>
+            <button class="btn btn-ghost btn-block" style="margin-top:9px" data-toast="Message sent. ${p.n.split(" ")[0]} typically replies ${p.resp}.">Message ${p.n.split(" ")[0]}</button>
+          </div>
+          <div style="padding:4px 20px 14px">
+            <div class="kv"><span class="k">Replies in</span><b>${p.resp}</b></div>
+            <div class="kv"><span class="k">Jobs completed</span><b class="mono">${p.j}</b></div>
+            <div class="kv"><span class="k">Licence</span><b>${p.v?"On file &amp; current":"Not provided"}</b></div>
+            <div class="kv"><span class="k">Insurance</span><b>${p.ins?"$1M liability":"Not provided"}</b></div>
+            <div class="kv"><span class="k">Serves</span><b>${m.name}</b></div>
+          </div>
+          <div class="seal">${ICON.shield}<span>Licence checked against state records on 12 Aug 2026. FlexHandy does not hold your payment &mdash; you pay ${p.n.split(" ")[0]} directly.</span></div>
+        </div>
+        ${adslot("Advertisement","300 &times; 250 rail","")}
+      </aside>
+    </div>
+  </div></section>`;
+};
+
+views.jobs = () => {
+  const m = mkt(state.market), js = jobsIn(m.id);
+  return `<section class="sect-tight"><div class="wrap">
+    <div class="head"><div>
+      <div class="eyebrow">Jobs board &middot; ${m.name}</div>
+      <h2 style="margin-top:10px">${js.length} open jobs in ${m.code}</h2>
+      <p>Free to browse and free to quote. Every post here was paid for, so the people behind them are ready to hire.</p>
+    </div><a class="btn btn-primary" href="#/post">Post a job &mdash; $10</a></div>
+    <div class="filters" style="margin-bottom:18px">
+      <input type="search" placeholder="Search open jobs…" aria-label="Search jobs">
+      <select aria-label="Trade"><option>All trades</option>${CATS.map(c=>`<option>${c.n}</option>`).join("")}</select>
+      <select aria-label="Urgency"><option>Any timing</option><option>ASAP</option><option>This week</option><option>This month</option></select>
+      <select aria-label="Budget"><option>Any budget</option><option>Under $250</option><option>$250–$1,000</option><option>$1,000+</option></select>
+    </div>
+    <div class="grid" style="gap:12px">
+      ${js.slice(0,3).map(jobCard).join("")}
+      ${adslot("Advertisement","728 &times; 90 in-feed","adslot-lead")}
+      ${js.slice(3).map(jobCard).join("")}
+    </div>
+  </div></section>`;
+};
+
+views.post = () => {
+  const m = mkt(state.market), s = state.step;
+  const bar = `<div class="progress">${[1,2,3,4].map(i=>`<i class="${i<=s?"on":""}"></i>`).join("")}</div>
+    <div class="eyebrow" style="margin-bottom:8px">Step ${Math.min(s,4)} of 4 &middot; ${["Describe the job","Timing &amp; budget","Your details","Pay &amp; publish"][Math.min(s,4)-1]}</div>`;
+  let body = "";
+  if(s === 1) body = `<h2 style="font-size:30px">What needs doing?</h2>
+    <p class="muted" style="margin-top:8px;margin-bottom:24px">Be specific &mdash; posts with a clear description get roughly three times the quotes.</p>
+    <label class="field"><span>Trade</span><select id="w-trade">${CATS.map(c=>`<option ${c.n===state.cat?"selected":""}>${c.n}</option>`).join("")}</select></label>
+    <label class="field"><span>Job title</span><input id="w-title" value="Kitchen faucet leaking at the base"></label>
+    <label class="field"><span>Description</span><textarea id="w-desc" style="min-height:130px">Pull-down faucet drips from the base whenever the sprayer is used. The cabinet below is getting damp. Happy to buy the replacement faucet myself if that works out cheaper.</textarea></label>
+    <label class="field"><span>Photos &mdash; optional, but they double your quote count</span>
+      <div class="gallery" style="grid-template-columns:repeat(4,1fr)">
+        <div class="shot" style="background:var(--paper-2)">IMG_4471.jpg</div>
+        <div class="shot" style="background:var(--paper-2)">IMG_4472.jpg</div>
+        <div class="shot" style="border-style:dashed;cursor:pointer">+ Add photo</div><div></div>
+      </div></label>`;
+  if(s === 2) body = `<h2 style="font-size:30px">When, and roughly what budget?</h2>
+    <p class="muted" style="margin-top:8px;margin-bottom:24px">A budget range is optional, but pros skip posts without one. It is not a commitment.</p>
+    <label class="field"><span>How soon</span><div class="chipset">${["ASAP","This week","This month","Flexible"].map((c,i)=>`<button class="chip ${i===1?"on":""}" data-chip>${c}</button>`).join("")}</div></label>
+    <label class="field" style="margin-top:20px"><span>Budget range</span><div class="chipset">${["Under $250","$250–$600","$600–$1,500","$1,500+","Not sure yet"].map((c,i)=>`<button class="chip ${i===0?"on":""}" data-chip>${c}</button>`).join("")}</div></label>
+    <label class="field" style="margin-top:20px"><span>Property ZIP</span><input id="w-zip" value="78704" inputmode="numeric" style="max-width:180px"></label>
+    <div class="seal" style="border:1px solid var(--line);border-radius:4px;margin-top:8px">${ICON.bolt}<span><b>7 plumbers</b> in ${m.code} match this job and are quoting today.</span></div>`;
+  if(s === 3) body = `<h2 style="font-size:30px">Where do the quotes go?</h2>
+    <p class="muted" style="margin-top:8px;margin-bottom:24px">We create your account from this &mdash; no separate sign-up step.</p>
+    <div class="grid g2" style="gap:0 16px"><label class="field"><span>First name</span><input value="Marissa"></label>
+    <label class="field"><span>Last name</span><input value="Kessler"></label></div>
+    <label class="field"><span>Email</span><input type="email" value="marissa.k@example.com"></label>
+    <label class="field"><span>Mobile &mdash; for quote alerts</span><input type="tel" value="(512) 555-0148"></label>
+    <label class="small" style="display:flex;gap:9px;align-items:flex-start;color:var(--text-2);margin-top:6px"><input type="checkbox" checked style="margin-top:3px">
+      <span>Text me when a pro quotes. Standard rates apply, and you can stop any time.</span></label>`;
+  if(s === 4) body = `<h2 style="font-size:30px">Pay $10 and go live</h2>
+    <p class="muted" style="margin-top:8px;margin-bottom:24px">One charge, right now. There is nothing else to pay &mdash; FlexHandy takes no cut of what you agree with your pro.</p>
+    <div class="grid" style="gap:10px;margin-bottom:22px">
+      <label class="radio on" data-pay><span class="dot"></span><span><b>Card</b><br><span class="small muted">Visa, Mastercard, Amex &mdash; via Stripe</span></span></label>
+      <label class="radio" data-pay><span class="dot"></span><span><b>Apple Pay / Google Pay</b><br><span class="small muted">One tap, no card entry</span></span></label>
+    </div>
+    <div class="grid g2" style="gap:0 16px"><label class="field" style="grid-column:1/-1"><span>Card number</span><input class="mono" value="4242 4242 4242 4242"></label>
+      <label class="field"><span>Expiry</span><input class="mono" value="04 / 29"></label>
+      <label class="field"><span>CVC</span><input class="mono" value="123"></label></div>
+    <button class="btn btn-primary btn-block btn-lg" data-next>${ICON.lock} Pay $10 and publish</button>
+    <div class="pay">${ICON.lock} Payments handled by Stripe. FlexHandy never sees your card number.</div>`;
+  if(s === 5) return `<section class="sect"><div class="wrap" style="max-width:640px">
+    <div class="wizcard paid">
+      <div class="tick"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <h2 style="font-size:32px">Your job is live in ${m.code}</h2>
+      <p class="muted" style="margin-top:12px;max-width:44ch;margin-inline:auto">Seven matching plumbers were notified. Most homeowners have their first quote within the hour &mdash; we'll text you as they arrive.</p>
+      <div class="grid g3" style="margin-top:28px;text-align:left">
+        ${statTile("Receipt","$10.00","Charge ID ch_3Qk8dF2eZv")}
+        ${statTile("Notified","7 pros","Plumbing &middot; 78704")}
+        ${statTile("Live until","16 Oct","30 days, then archived")}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:26px;justify-content:center;flex-wrap:wrap">
+        <a class="btn btn-dark" href="#/jobs">See it on the board</a>
+        <a class="btn btn-ghost" href="#/browse">Browse pros while you wait</a>
+      </div>
+    </div>
+    <div style="margin-top:20px">${adslot("Advertisement","728 &times; 90 &middot; post-conversion","adslot-lead")}</div>
+  </div></section>`;
+
+  return `<section class="sect-tight"><div class="wrap">
+    <div class="wiz">
+      <div>
+        ${bar}
+        <div class="wizcard">${body}
+          ${s<4?`<div style="display:flex;gap:10px;margin-top:28px">
+            ${s>1?'<button class="btn btn-ghost" data-back>Back</button>':""}
+            <button class="btn btn-primary" data-next style="flex:1">Continue</button></div>`:""}
+        </div>
+        ${s===4?'<button class="btn btn-ghost" data-back style="margin-top:14px">Back</button>':""}
+      </div>
+      <aside class="summary">
+        <div style="padding:18px 20px;border-bottom:1px solid var(--line)">
+          <div class="eyebrow">Your post</div>
+          <div style="font-family:var(--serif);font-size:19px;margin-top:4px">Kitchen faucet leaking at the base</div>
+          <div class="tiny muted" style="margin-top:4px">Plumbing &middot; ${m.name} &middot; 78704</div>
+        </div>
+        <div class="sum-row"><span class="k">Job listing fee</span><span class="mono">$10.00</span></div>
+        <div class="sum-row"><span class="k">Pro commission</span><span class="mono" style="color:var(--jade)">$0.00</span></div>
+        <div class="sum-row"><span class="k">Lead resale</span><span class="mono" style="color:var(--jade)">Never</span></div>
+        <div class="sum-row total"><span>Total today</span><span class="mono">$10.00</span></div>
+        <div class="seal">${ICON.shield}<span>No quotes in 72 hours? We refund the $10 automatically &mdash; you don't have to ask.</span></div>
+      </aside>
+    </div>
+  </div></section>`;
+};
+
+views.advertise = () => {
+  const m = mkt(state.market);
+  const tiers = [
+    {id:"claim",n:"Claimed Profile",p:"Free",sub:"forever",best:0,
+     f:["Listed in the ${CODE} directory","Quote every open job, unlimited","Reviews from completed jobs","Licence &amp; insurance badges"],cta:"Claim your profile"},
+    {id:"boost",n:"Boost",p:"$49",sub:"per month",best:1,
+     f:["Above all free profiles in search","Featured in one category page","Boost badge on every listing","Lead alerts by SMS, instantly","Basic performance dashboard"],cta:"Start Boost"},
+    {id:"spot",n:"Spotlight",p:"$149",sub:"per month",best:0,
+     f:["Top three slots, ${CODE} site-wide","Homepage featured card","Two category pages","Native ad unit on the jobs board","Background check included","Call tracking &amp; monthly report"],cta:"Start Spotlight"}
+  ];
+  return `<section class="hero"><div class="wrap hero-in" style="grid-template-columns:1fr;padding-block:56px 44px">
+    <div style="max-width:60ch">
+      <div class="eyebrow eyebrow-brass">Advertising on FlexHandy</div>
+      <h1 style="font-size:clamp(32px,4.6vw,50px);margin-top:12px">Quoting is free. Getting seen first is the product.</h1>
+      <p class="lede">We don't sell leads and we don't take a cut of your invoice. The only thing we sell is placement &mdash; and it's the same price for everyone in ${m.code}.</p>
+    </div>
+  </div></section>
+
+  <section class="sect"><div class="wrap">
+    <div class="grid g3" style="align-items:stretch">${tiers.map(t=>`
+      <div class="tier ${t.best?"best":""}">
+        ${t.best?'<span class="ribbon">Most pros pick this</span>':""}
+        <div><div class="eyebrow">${t.n}</div>
+          <div class="price" style="margin-top:8px">${t.p}<small>${t.sub}</small></div></div>
+        <ul>${t.f.map(f=>`<li>${ICON.check}<span>${f.replace("${CODE}",m.code)}</span></li>`).join("")}</ul>
+        <a class="btn ${t.best?"btn-primary":"btn-ghost"} btn-block" style="margin-top:auto" href="#/dashboard">${t.cta}</a>
+      </div>`).join("")}</div>
+    <p class="small muted" style="margin-top:18px;text-align:center">Month to month. Cancel from your dashboard, no call required. Placement inventory is capped at 12 Boost and 3 Spotlight slots per market so it keeps working.</p>
+  </div></section>
+
+  <section class="sect" style="background:var(--paper-2);border-block:1px solid var(--line)"><div class="wrap">
+    <div class="head"><div><div class="eyebrow">Ad inventory</div><h2 style="margin-top:10px">Where your money actually puts you</h2>
+      <p>Every paid position on FlexHandy, labelled as an ad, exactly as a homeowner sees it.</p></div></div>
+    <div class="grid g2">
+      <div class="card" style="padding:20px"><div class="eyebrow">Slot 01 &middot; Directory top</div>
+        <div style="margin-top:14px">${proCard(PROS[0])}</div>
+        <p class="small muted" style="margin-top:12px">Spotlight. Brass border, Featured chip, first position in ${m.code} search.</p></div>
+      <div class="card" style="padding:20px"><div class="eyebrow">Slot 02 &middot; Jobs board native</div>
+        <div class="native-ad" style="margin-top:14px">
+          <span class="badge b-featured" style="align-self:flex-start">Sponsored</span>
+          <div style="display:flex;gap:12px;align-items:center">${avatar(PROS[1])}
+            <div><div style="font-family:var(--serif);font-size:18px">Teresa Vance</div><div class="tiny muted">Finish Carpenter</div></div></div>
+          <p class="small">Built-ins, trim and cabinet work. Shop drawing before the first cut.</p>
+          <a class="btn btn-dark btn-sm" href="#/pro/p2" style="align-self:flex-start">View profile</a></div>
+        <p class="small muted" style="margin-top:12px">Appears between job listings. Spotlight only.</p></div>
+      <div class="card" style="padding:20px"><div class="eyebrow">Slot 03 &middot; Display &mdash; leaderboard</div>
+        <div style="margin-top:14px">${adslot("Advertisement","728 &times; 90","adslot-lead")}</div>
+        <p class="small muted" style="margin-top:12px">Google AdSense by default. Sell direct to a local supplier and it pays multiples.</p></div>
+      <div class="card" style="padding:20px"><div class="eyebrow">Slot 04 &middot; Display &mdash; rail</div>
+        <div style="margin-top:14px">${adslot("Advertisement","300 &times; 250","")}</div>
+        <p class="small muted" style="margin-top:12px">Directory and profile pages. Never inside the checkout flow.</p></div>
+    </div>
+  </div></section>`;
+};
+
+views.dashboard = () => {
+  const m = mkt(state.market), p = PROS[0];
+  return `<section class="sect-tight"><div class="wrap">
+    <div class="head"><div>
+      <div class="eyebrow">Pro dashboard &middot; ${m.name}</div>
+      <h2 style="margin-top:10px">Morning, Ray</h2>
+      <p>Four new leads matched your trades overnight. Two are inside your 78704 core area.</p>
+    </div><a class="btn btn-primary" href="#/advertise">Upgrade to Spotlight</a></div>
+
+    <div class="grid g4" style="margin-bottom:22px">
+      ${statTile("New leads &middot; 7d","14","+5 vs last week")}
+      ${statTile("Quote win rate","38%","+6 pts")}
+      ${statTile("Profile views &middot; 7d","486","Boost is driving 61%")}
+      ${statTile("Avg. reply time","12 min","Top 5% in " + m.code)}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start" class="dash-split">
+      <div style="display:flex;flex-direction:column;gap:22px">
+        <div class="panel">
+          <div class="panel-h"><h3>Your leads</h3><span class="badge b-flat mono">Free to quote</span><a class="btn btn-ghost btn-sm" href="#/jobs">Open jobs board</a></div>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Job</th><th>Homeowner</th><th>ZIP</th><th>Budget</th><th>Age</th><th>Status</th><th></th></tr></thead>
+            <tbody>${LEADS.map(l=>`<tr>
+              <td style="white-space:normal;min-width:220px"><b>${l.t}</b></td>
+              <td>${l.who}</td><td class="num">${l.zip}</td><td class="num">${l.bud}</td><td class="num">${l.age}</td>
+              <td><span class="badge ${l.st==="Won"?"b-live":l.st==="Lost"?"b-pending":"b-flat"}">${l.st}</span></td>
+              <td><button class="btn btn-ghost btn-sm" data-toast="Quote drafted for ${l.who}.">Quote</button></td></tr>`).join("")}</tbody>
+          </table></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h3>Boost performance</h3><span class="small muted">Sept 2026</span></div>
+          <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+            <div><div class="eyebrow">Impressions in ${m.code}</div><div class="spark" style="margin-top:12px">${[34,41,38,52,49,63,58,71,66,80,76,92].map(h=>`<i style="height:${h}%"></i>`).join("")}</div>
+              <div class="small muted" style="margin-top:8px">4,910 impressions &middot; 312 profile clicks &middot; 6.4% CTR</div></div>
+            <div><div class="eyebrow">Spend vs. jobs won</div>
+              <div style="margin-top:14px"><div class="kv"><span class="k">Boost spend</span><b class="mono">$49.00</b></div>
+              <div class="kv"><span class="k">Jobs won</span><b class="mono">5</b></div>
+              <div class="kv"><span class="k">Revenue booked</span><b class="mono">$3,180</b></div>
+              <div class="kv"><span class="k">Return on spend</span><b class="mono" style="color:var(--jade)">64&times;</b></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <aside style="display:flex;flex-direction:column;gap:16px">
+        <div class="panel">
+          <div class="panel-h"><h3>Profile strength</h3></div>
+          <div style="padding:18px 20px">
+            <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px"><span class="muted">82% complete</span><b class="mono">82%</b></div>
+            <div class="bar"><i style="width:82%"></i></div>
+            <ul style="list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:10px;font-size:14px">
+              <li style="display:flex;gap:8px;color:var(--jade)">${ICON.check}<span>Licence verified</span></li>
+              <li style="display:flex;gap:8px;color:var(--jade)">${ICON.check}<span>Insurance on file</span></li>
+              <li style="display:flex;gap:8px;color:var(--jade)">${ICON.check}<span>6 work photos</span></li>
+              <li style="display:flex;gap:8px;color:var(--text-2)"><span style="color:var(--clay)">&#9679;</span><span>Add 2 more photos &mdash; profiles with 8+ win 24% more</span></li>
+            </ul>
+            <button class="btn btn-dark btn-block btn-sm" style="margin-top:16px" data-toast="Photo uploader would open here.">Add photos</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><h3>Plan</h3></div>
+          <div style="padding:18px 20px">
+            <div style="display:flex;align-items:center;gap:10px"><span class="badge b-featured">Boost</span><span class="mono">$49/mo</span></div>
+            <p class="small muted" style="margin-top:10px">Renews 1 Oct. 3 Spotlight slots open in ${m.code} &mdash; Spotlight pros average 2.7&times; the profile views.</p>
+            <a class="btn btn-primary btn-block btn-sm" style="margin-top:14px" href="#/advertise">Compare plans</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div></section>`;
+};
+
+views.admin = () => {
+  const totalRev = MARKETS.reduce((s,m)=>s+m.rev,0);
+  const totalPros = MARKETS.reduce((s,m)=>s+m.pros,0);
+  const totalJobs = MARKETS.reduce((s,m)=>s+m.jobs,0);
+  return `<section class="sect-tight"><div class="wrap">
+    <div class="head"><div>
+      <div class="eyebrow eyebrow-brass">Superadmin</div>
+      <h2 style="margin-top:10px">All markets</h2>
+      <p>Every tenant, user and dollar across FlexHandy. Market admins only ever see their own row.</p>
+    </div><button class="btn btn-primary" data-toast="New market form would open here.">Add a market</button></div>
+
+    <div class="grid g4" style="margin-bottom:22px">
+      ${statTile("MRR &middot; all markets",money(totalRev),"+18% vs Aug")}
+      ${statTile("Job fees &middot; Sept","$1,540","154 posts &times; $10")}
+      ${statTile("Active pros",String(totalPros),"+31 this month")}
+      ${statTile("Refunds &middot; Sept","$60","6 no-quote auto-refunds",true)}
+    </div>
+
+    <div class="panel" style="margin-bottom:22px">
+      <div class="panel-h"><h3>Markets &middot; tenants</h3><span class="small muted">Data is scoped by tenant_id on every table</span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Market</th><th>Code</th><th>Status</th><th>Market admin</th><th>Pros</th><th>Open jobs</th><th>MRR</th><th>Live since</th><th></th></tr></thead>
+        <tbody>${MARKETS.map(m=>`<tr>
+          <td><b>${m.name}</b></td><td class="num">${m.code}</td>
+          <td><span class="badge ${m.live?"b-live":"b-pending"}">${m.live?"Live":"Staged"}</span></td>
+          <td>${m.admin==="Unassigned"?'<span class="muted">Unassigned</span>':m.admin}</td>
+          <td class="num">${m.pros}</td><td class="num">${m.jobs}</td><td class="num">${money(m.rev)}</td><td class="num">${m.since}</td>
+          <td><button class="btn btn-ghost btn-sm" data-toast="Opening ${m.name} settings.">Manage</button></td></tr>`).join("")}</tbody>
+      </table></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start" class="admin-split">
+      <div class="panel">
+        <div class="panel-h"><h3>Moderation queue</h3><span class="badge b-pending">${MODQ.length} waiting</span></div>
+        <div style="padding:6px 0">${MODQ.map(q=>`<div style="padding:14px 20px;border-bottom:1px solid var(--line)">
+          <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><b style="font-size:14.5px">${q.t}</b><span class="tiny muted mono">${mkt(q.m).code} &middot; ${q.age}</span></div>
+          <div class="small muted" style="margin-top:4px">${q.who} &mdash; ${q.why}</div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn btn-dark btn-sm" data-toast="Approved and published.">Approve</button>
+            <button class="btn btn-ghost btn-sm" data-toast="Removed and the poster was notified.">Remove</button>
+            <button class="btn btn-ghost btn-sm" data-toast="Refund issued to the card on file.">Refund $10</button>
+          </div></div>`).join("")}</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:22px">
+        <div class="panel">
+          <div class="panel-h"><h3>Revenue by line</h3><span class="small muted">September 2026</span></div>
+          <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+            ${[["Spotlight subscriptions",4470,"30 &times; $149"],["Boost subscriptions",3773,"77 &times; $49"],["Job listing fees",1540,"154 &times; $10"],["Display ads &middot; AdSense",1567,"est. RPM $4.10"]].map(([k,v,n])=>`
+              <div><div style="display:flex;justify-content:space-between;font-size:14px"><span>${k}</span><b class="mono">${money(v)}</b></div>
+              <div class="bar" style="margin-top:6px"><i style="width:${Math.round(v/4470*100)}%"></i></div>
+              <div class="tiny muted" style="margin-top:4px">${n}</div></div>`).join("")}
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><h3>Recent users</h3><a class="btn btn-ghost btn-sm" href="#/admin">View all</a></div>
+          <div class="tablewrap"><table>
+            <thead><tr><th>User</th><th>Role</th><th>Market</th><th>Joined</th></tr></thead>
+            <tbody>${[["Curtis Nwosu","Pro &middot; Boost","roundrock","2 days ago"],["Marissa Kessler","Homeowner","austin","2 hours ago"],["Dana Whitfield","Market admin","austin","Jan 2026"],["Hal Brenner","Pro &middot; Free","sanmarcos","1 week ago"]].map(u=>`
+              <tr><td><b>${u[0]}</b></td><td>${u[1]}</td><td class="num">${mkt(u[2]).code}</td><td>${u[3]}</td></tr>`).join("")}</tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div></section>`;
+};
+
+/* ============================ router + wiring ============================ */
+const NAV = [["#/home","Home"],["#/browse","Find a pro"],["#/jobs","Jobs board"],["#/advertise","Advertise"],["#/dashboard","Pro dashboard"],["#/admin","Superadmin"]];
+const ROLES = [["guest","Homeowner"],["pro","Handyman"],["admin","Market admin"],["super","Superadmin"]];
+
+function chrome(){
+  $("#market").innerHTML = MARKETS.filter(m=>m.live).map(m=>`<option value="${m.id}" ${m.id===state.market?"selected":""}>${m.name}</option>`).join("");
+  $("#footmarkets").innerHTML = MARKETS.map(m=>`<li><a href="#/browse" data-mkt="${m.id}">${m.name}${m.live?"":" <span class='tiny'>(soon)</span>"}</a></li>`).join("");
+  $("#roles").innerHTML = ROLES.map(r=>`<button data-role="${r[0]}" class="${state.role===r[0]?"on":""}">${r[1]}</button>`).join("");
+  const here = location.hash.split("/")[1] || "home";
+  const links = NAV.map(n=>`<a href="${n[0]}" class="${n[0].includes(here)?"on":""}">${n[1]}</a>`).join("");
+  $("#nav").innerHTML = links;
+  $("#mobnav").innerHTML = `<div style="display:flex;flex-direction:column;gap:2px">${links}</div>`;
+}
+function toast(msg){
+  document.querySelectorAll(".notice").forEach(n=>n.remove());
+  const el = document.createElement("div");
+  el.className = "notice"; el.textContent = msg; el.setAttribute("role","status");
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 3200);
+}
+function render(){
+  const parts = (location.hash || "#/home").slice(2).split("/");
+  const name = parts[0] || "home";
+  if(name !== "post") state.step = 1;
+  const fn = views[name] || views.home;
+  $("#view").innerHTML = fn(parts[1]);
+  chrome();
+  $("#mobnav").hidden = true;
+  window.scrollTo({top:0,behavior:"instant"});
+}
+addEventListener("hashchange", render);
+$("#market").addEventListener("change", e => { state.market = e.target.value; render(); });
+$("#burger").addEventListener("click", () => { $("#mobnav").hidden = !$("#mobnav").hidden; });
+document.addEventListener("click", e => {
+  const chip = e.target.closest("[data-chip]");
+  if(chip){ e.preventDefault(); chip.parentElement.querySelectorAll(".chip").forEach(c=>c.classList.remove("on")); chip.classList.add("on"); return; }
+  const pay = e.target.closest("[data-pay]");
+  if(pay){ pay.parentElement.querySelectorAll(".radio").forEach(r=>r.classList.remove("on")); pay.classList.add("on"); return; }
+  const role = e.target.closest("[data-role]");
+  if(role){ state.role = role.dataset.role; chrome();
+    toast({guest:"Viewing as a homeowner.",pro:"Viewing as a handyman — open the Pro dashboard.",admin:"Viewing as a market admin — scoped to " + mkt(state.market).name + ".",super:"Viewing as superadmin — open the Superadmin panel."}[state.role]); return; }
+  const m2 = e.target.closest("[data-mkt]");
+  if(m2){ state.market = m2.dataset.mkt; $("#market").value = state.market; }
+  if(e.target.closest("[data-next]")){ state.step = Math.min(state.step + 1, 5); render(); return; }
+  if(e.target.closest("[data-back]")){ state.step = Math.max(state.step - 1, 1); render(); return; }
+  const t = e.target.closest("[data-toast]");
+  if(t){ e.preventDefault(); toast(t.dataset.toast); }
+});
+if(!location.hash) location.hash = "#/home";
+render();
+</script>
+</body>
+</html>

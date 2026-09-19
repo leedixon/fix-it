@@ -6,10 +6,23 @@ create profiles and quote for free, and revenue comes from listing fees plus adv
 **Current state:** design prototype + database layer. The PHP application has not
 been written yet.
 
+## Deploying
+
+See [docs/deploy.md](docs/deploy.md) — a step-by-step runbook for A2 Hosting shared
+cPanel, covering DNS, SSH, the database import, SSL and the prototype upload.
+
 ## Prototype
 
-`prototype/index.html` — a self-contained clickable prototype. Open it in a browser, or
-run `python3 -m http.server` from the repo root. No build step, no dependencies.
+`prototype/index.html` is the source. It's written in Artifact format (no `<!doctype>`,
+`<html>` or `<head>` — the viewer supplies those), so it needs a build step before a
+real web server can serve it:
+
+```
+python3 prototype/build.py    # -> dist/index.html, robots.txt, .htaccess
+```
+
+`dist/` is what you upload to `public_html`. It's committed so the server can just
+`git pull`. Don't edit it by hand — edit the prototype and rebuild.
 
 Eight views, hash-routed:
 

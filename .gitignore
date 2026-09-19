@@ -1,0 +1,16 @@
+# Secrets — never commit real credentials
+config/config.php
+.env
+
+# Runtime
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+storage/cache/*
+
+# Local
+.DS_Store
+*.log
+node_modules/
+vendor/

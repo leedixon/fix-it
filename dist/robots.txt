@@ -1,0 +1,4 @@
+# Pre-launch. The site is a design prototype with placeholder content.
+# Replace this file the day the real site ships.
+User-agent: *
+Disallow: /

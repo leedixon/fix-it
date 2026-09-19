@@ -1,4 +1,4 @@
-# Deploying FlexHandy to A2 Hosting
+# Deploying Fix Listed to A2 Hosting
 
 Written for: **SSH access available**, **domain registered but not yet pointed at A2**,
 **prototype going on the main domain**.
@@ -19,9 +19,9 @@ until it finishes**. Start it before anything else.
 1. Find your A2 nameservers. They're in your A2 welcome email, and in the A2 customer
    portal under your hosting plan's details. They usually look like `ns1.a2hosting.com`
    through `ns4.a2hosting.com`, but **use the ones A2 gave you** — they differ by server.
-2. At whoever you registered flexhandy.com with (GoDaddy, Namecheap, Cloudflare…), find
+2. At whoever you registered fixlisted.com with (GoDaddy, Namecheap, Cloudflare…), find
    the nameserver settings and replace the registrar's defaults with A2's.
-3. Check progress: `dig +short NS flexhandy.com` — when it returns A2's nameservers,
+3. Check progress: `dig +short NS fixlisted.com` — when it returns A2's nameservers,
    you're through.
 
 Everything below can be done while DNS propagates, except issuing SSL.
@@ -34,7 +34,7 @@ A2 shared hosting uses **port 7822**, not the default 22. Confirm yours in
 cPanel → **SSH Access**.
 
 ```bash
-ssh -p 7822 YOURCPANELUSER@flexhandy.com
+ssh -p 7822 YOURCPANELUSER@fixlisted.com
 # before DNS propagates, use the server hostname from your A2 welcome email:
 ssh -p 7822 YOURCPANELUSER@a2ss123.a2hosting.com
 ```
@@ -52,8 +52,8 @@ never sit inside the web root — anything in there is fetchable over HTTP.
 
 ```bash
 cd ~
-git clone https://github.com/leedixon/fix-it.git flexhandy
-cd flexhandy
+git clone https://github.com/leedixon/fix-it.git fixlisted
+cd fixlisted
 git checkout claude/laughing-knuth-mpnpav
 ```
 
@@ -61,7 +61,7 @@ Your home directory ends up like this:
 
 ```
 /home/YOURCPANELUSER/
-├── flexhandy/          ← the repo. NOT web-accessible.
+├── fixlisted/          ← the repo. NOT web-accessible.
 │   ├── database/
 │   ├── dist/
 │   └── docs/
@@ -74,11 +74,11 @@ Your home directory ends up like this:
 
 **In cPanel → MySQL® Databases:**
 
-1. **Create a database.** Name it `flexhandy`. cPanel prefixes it with your account
-   name, so the real name becomes something like `leedixo_flexhandy` — note the full
+1. **Create a database.** Name it `fixlisted`. cPanel prefixes it with your account
+   name, so the real name becomes something like `leedixo_fixlisted` — note the full
    name, you'll need it.
 2. **Create a user.** Use cPanel's password generator and save the password somewhere
-   safe. The username gets the same prefix: `leedixo_fhapp`.
+   safe. The username gets the same prefix: `leedixo_fixapp`.
 3. **Add the user to the database** with **ALL PRIVILEGES**. Easy to skip; nothing
    works without it.
 
@@ -86,16 +86,16 @@ Your home directory ends up like this:
 imports and silently truncates:
 
 ```bash
-cd ~/flexhandy
-mysql -u leedixo_fhapp -p leedixo_flexhandy < database/schema.sql
-mysql -u leedixo_fhapp -p leedixo_flexhandy < database/seed.sql
+cd ~/fixlisted
+mysql -u leedixo_fixapp -p leedixo_fixlisted < database/schema.sql
+mysql -u leedixo_fixapp -p leedixo_fixlisted < database/seed.sql
 ```
 
 **Verify the import before moving on:**
 
 ```bash
-mysql -u leedixo_fhapp -p --default-character-set=utf8mb4 --table \
-      leedixo_flexhandy < database/verify.sql
+mysql -u leedixo_fixapp -p --default-character-set=utf8mb4 --table \
+      leedixo_fixlisted < database/verify.sql
 ```
 
 Check the output against the expectations listed at the top of `database/verify.sql`.
@@ -114,7 +114,7 @@ VALUES ('austin','Austin, TX','ATX','Austin','TX','live',1000,NOW());
 
 -- generate the hash first:  php -r 'echo password_hash("YOUR-PASSWORD", PASSWORD_BCRYPT);'
 INSERT INTO users (market_id,role,email,password_hash,first_name,last_name,email_verified_at)
-VALUES (NULL,'superadmin','you@flexhandy.com','$2y$12$PASTE_THE_HASH_HERE','Lee','Dixon',NOW());
+VALUES (NULL,'superadmin','you@fixlisted.com','$2y$12$PASTE_THE_HASH_HERE','Lee','Dixon',NOW());
 ```
 
 The trades list is in `seed.sql` and is not demo data — copy that one `INSERT INTO
@@ -125,7 +125,7 @@ trades` block across regardless.
 ## Phase 5 — Put the prototype live
 
 ```bash
-cd ~/flexhandy
+cd ~/fixlisted
 git pull
 cp -r dist/. ~/public_html/
 ls -la ~/public_html/          # expect index.html, robots.txt, .htaccess
@@ -137,7 +137,7 @@ on the server.
 
 ### Set the PHP version now, while you're here
 
-cPanel → **MultiPHP Manager** (or **Select PHP Version**): set flexhandy.com to
+cPanel → **MultiPHP Manager** (or **Select PHP Version**): set fixlisted.com to
 **PHP 8.2 or 8.3**. Then confirm these extensions are enabled: `pdo_mysql`, `mbstring`,
 `curl`, `openssl`, `json`, and `gd` or `imagick` for photo uploads. The prototype
 doesn't need any of them; the application needs all of them, and finding out now beats
@@ -145,7 +145,7 @@ finding out mid-deploy.
 
 ### Issue SSL — once DNS has propagated
 
-cPanel → **SSL/TLS Status** → select flexhandy.com → **Run AutoSSL**. Wait for the
+cPanel → **SSL/TLS Status** → select fixlisted.com → **Run AutoSSL**. Wait for the
 green padlock. The HTTPS redirect is already in `dist/.htaccess` and starts working the
 moment the certificate lands.
 
@@ -171,7 +171,7 @@ When the PHP app ships, three things change.
 **1. The web root moves.** Only `public/` should be web-accessible:
 
 ```
-~/flexhandy/
+~/fixlisted/
 ├── app/        ← controllers, models, views — NOT web-accessible
 ├── config/     ← config.php with your live credentials — NOT web-accessible
 ├── database/
@@ -179,13 +179,13 @@ When the PHP app ships, three things change.
 └── public/     ← index.php, assets — THIS is the web root
 ```
 
-Preferred: cPanel → **Domains** → flexhandy.com → set the document root to
-`/home/YOURCPANELUSER/flexhandy/public`. If your cPanel won't allow it on the primary
+Preferred: cPanel → **Domains** → fixlisted.com → set the document root to
+`/home/YOURCPANELUSER/fixlisted/public`. If your cPanel won't allow it on the primary
 domain, symlink instead:
 
 ```bash
 mv ~/public_html ~/public_html.bak
-ln -s ~/flexhandy/public ~/public_html
+ln -s ~/fixlisted/public ~/public_html
 ```
 
 **2. Config carries live secrets.** Copy the example, fill it in, lock it down:
@@ -205,14 +205,14 @@ though the columns are correct.
 
 | Schedule | Command |
 | --- | --- |
-| `* * * * *` | `/usr/local/bin/php ~/flexhandy/bin/notifications.php` |
-| `0 * * * *` | `/usr/local/bin/php ~/flexhandy/bin/hourly.php` |
-| `15 3 * * *` | `/usr/local/bin/php ~/flexhandy/bin/daily.php` |
+| `* * * * *` | `/usr/local/bin/php ~/fixlisted/bin/notifications.php` |
+| `0 * * * *` | `/usr/local/bin/php ~/fixlisted/bin/hourly.php` |
+| `15 3 * * *` | `/usr/local/bin/php ~/fixlisted/bin/daily.php` |
 
 What each one does is in [architecture.md](architecture.md#shared-hosting-constraints).
 
 **4. Stripe.** Needs a working HTTPS certificate first, because Stripe refuses to send
-webhooks to plain HTTP. Point the webhook at `https://flexhandy.com/webhooks/stripe`,
+webhooks to plain HTTP. Point the webhook at `https://fixlisted.com/webhooks/stripe`,
 copy the signing secret into `config/config.php`, and test with Stripe's CLI in test
 mode before touching live keys.
 
@@ -221,8 +221,8 @@ mode before touching live keys.
 ## Routine deploys, after all that
 
 ```bash
-ssh -p 7822 YOURCPANELUSER@flexhandy.com
-cd ~/flexhandy && git pull
+ssh -p 7822 YOURCPANELUSER@fixlisted.com
+cd ~/fixlisted && git pull
 ```
 
 That's it, once the document root points at `public/`. Schema changes get their own
@@ -237,6 +237,6 @@ migration file; run it the same way you ran the import.
 | 500 error, blank page | PHP version too old, or a missing extension. Check cPanel → **Errors**. |
 | "Access denied for user" | The DB user was created but never **added to the database** with ALL PRIVILEGES. |
 | Em-dashes show as `?` or `â€"` | The connection isn't `utf8mb4`. Check the DSN, not the tables. |
-| AutoSSL fails | DNS hasn't propagated. `dig +short NS flexhandy.com` and wait. |
+| AutoSSL fails | DNS hasn't propagated. `dig +short NS fixlisted.com` and wait. |
 | Site shows A2's default page | The document root still points at `public_html`. |
 | `.htaccess` rules ignored | `AllowOverride` is off for that directory — open a ticket with A2. |

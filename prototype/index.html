@@ -1,4 +1,4 @@
-<title>FlexHandy</title>
+<title>Fix Listed</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Hanken+Grotesk:ital,wght@0,300..800;1,300..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -322,7 +322,7 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 <header class="chrome">
   <div class="wrap chrome-in">
-    <a class="logo" href="#/home"><b>Flex</b><i>Handy</i></a>
+    <a class="logo" href="#/home"><b>Fix</b> <i>Listed</i></a>
     <nav class="nav" id="nav"></nav>
     <div class="chrome-r">
       <div class="mkt">
@@ -342,7 +342,7 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
   <div class="wrap">
     <div class="foot-in">
       <div>
-        <div class="logo" style="color:var(--on-ink)"><b>Flex</b><i>Handy</i></div>
+        <div class="logo" style="color:var(--on-ink)"><b>Fix</b> <i>Listed</i></div>
         <p class="small" style="margin-top:12px;max-width:34ch">The local trades directory. Post a job for $10 flat, hire direct, and keep every dollar of the quote.</p>
       </div>
       <div><h4>Homeowners</h4><ul><li><a href="#/post">Post a job</a></li><li><a href="#/browse">Browse pros</a></li><li><a href="#/home">How pricing works</a></li><li><a href="#/home">Safety &amp; vetting</a></li></ul></div>
@@ -350,7 +350,7 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
       <div><h4>Markets</h4><ul id="footmarkets"></ul></div>
     </div>
     <div class="foot-bot">
-      <span>&copy; 2026 FlexHandy &middot; flexhandy.com</span>
+      <span>&copy; 2026 Fix Listed &middot; fixlisted.com</span>
       <span class="mono tiny">DESIGN PROTOTYPE &middot; NOT LIVE</span>
     </div>
   </div>
@@ -698,7 +698,7 @@ views.pro = (id) => {
             <div class="kv"><span class="k">Insurance</span><b>${p.ins?"$1M liability":"Not provided"}</b></div>
             <div class="kv"><span class="k">Serves</span><b>${m.name}</b></div>
           </div>
-          <div class="seal">${ICON.shield}<span>Licence checked against state records on 12 Aug 2026. FlexHandy does not hold your payment &mdash; you pay ${p.n.split(" ")[0]} directly.</span></div>
+          <div class="seal">${ICON.shield}<span>Licence checked against state records on 12 Aug 2026. Fix Listed does not hold your payment &mdash; you pay ${p.n.split(" ")[0]} directly.</span></div>
         </div>
         ${adslot("Advertisement","300 &times; 250 rail","")}
       </aside>
@@ -759,7 +759,7 @@ views.post = () => {
     <label class="small" style="display:flex;gap:9px;align-items:flex-start;color:var(--text-2);margin-top:6px"><input type="checkbox" checked style="margin-top:3px">
       <span>Text me when a pro quotes. Standard rates apply, and you can stop any time.</span></label>`;
   if(s === 4) body = `<h2 style="font-size:30px">Pay $10 and go live</h2>
-    <p class="muted" style="margin-top:8px;margin-bottom:24px">One charge, right now. There is nothing else to pay &mdash; FlexHandy takes no cut of what you agree with your pro.</p>
+    <p class="muted" style="margin-top:8px;margin-bottom:24px">One charge, right now. There is nothing else to pay &mdash; Fix Listed takes no cut of what you agree with your pro.</p>
     <div class="grid" style="gap:10px;margin-bottom:22px">
       <label class="radio on" data-pay><span class="dot"></span><span><b>Card</b><br><span class="small muted">Visa, Mastercard, Amex &mdash; via Stripe</span></span></label>
       <label class="radio" data-pay><span class="dot"></span><span><b>Apple Pay / Google Pay</b><br><span class="small muted">One tap, no card entry</span></span></label>
@@ -768,7 +768,7 @@ views.post = () => {
       <label class="field"><span>Expiry</span><input class="mono" value="04 / 29"></label>
       <label class="field"><span>CVC</span><input class="mono" value="123"></label></div>
     <button class="btn btn-primary btn-block btn-lg" data-next>${ICON.lock} Pay $10 and publish</button>
-    <div class="pay">${ICON.lock} Payments handled by Stripe. FlexHandy never sees your card number.</div>`;
+    <div class="pay">${ICON.lock} Payments handled by Stripe. Fix Listed never sees your card number.</div>`;
   if(s === 5) return `<section class="sect"><div class="wrap" style="max-width:640px">
     <div class="wizcard paid">
       <div class="tick"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5"/></svg></div>
@@ -826,7 +826,7 @@ views.advertise = () => {
   ];
   return `<section class="hero"><div class="wrap hero-in" style="grid-template-columns:1fr;padding-block:56px 44px">
     <div style="max-width:60ch">
-      <div class="eyebrow eyebrow-brass">Advertising on FlexHandy</div>
+      <div class="eyebrow eyebrow-brass">Advertising on Fix Listed</div>
       <h1 style="font-size:clamp(32px,4.6vw,50px);margin-top:12px">Quoting is free. Getting seen first is the product.</h1>
       <p class="lede">We don't sell leads and we don't take a cut of your invoice. The only thing we sell is placement &mdash; and it's the same price for everyone in ${m.code}.</p>
     </div>
@@ -846,7 +846,7 @@ views.advertise = () => {
 
   <section class="sect" style="background:var(--paper-2);border-block:1px solid var(--line)"><div class="wrap">
     <div class="head"><div><div class="eyebrow">Ad inventory</div><h2 style="margin-top:10px">Where your money actually puts you</h2>
-      <p>Every paid position on FlexHandy, labelled as an ad, exactly as a homeowner sees it.</p></div></div>
+      <p>Every paid position on Fix Listed, labelled as an ad, exactly as a homeowner sees it.</p></div></div>
     <div class="grid g2">
       <div class="card" style="padding:20px"><div class="eyebrow">Slot 01 &middot; Directory top</div>
         <div style="margin-top:14px">${proCard(PROS[0])}</div>
@@ -949,7 +949,7 @@ views.admin = () => {
     <div class="head"><div>
       <div class="eyebrow eyebrow-brass">Superadmin</div>
       <h2 style="margin-top:10px">All markets</h2>
-      <p>Every tenant, user and dollar across FlexHandy. Market admins only ever see their own row.</p>
+      <p>Every tenant, user and dollar across Fix Listed. Market admins only ever see their own row.</p>
     </div><button class="btn btn-primary" data-toast="New market form would open here.">Add a market</button></div>
 
     <div class="grid g4" style="margin-bottom:22px">

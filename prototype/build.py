@@ -39,7 +39,7 @@ head_extra = f"""<meta charset="utf-8">
 
 <!-- PRE-LAUNCH: this is the design prototype, with placeholder pros and reviews.
      Delete the next two lines the day the real site goes live, or Google will
-     never index flexhandy.com. -->
+     never index fixlisted.com. -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="googlebot" content="noindex, nofollow">
 
@@ -47,10 +47,10 @@ head_extra = f"""<meta charset="utf-8">
 <meta name="theme-color" content="#0E1513">
 <link rel="icon" href="{FAVICON}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="FlexHandy">
-<meta property="og:title" content="FlexHandy — the local trades directory">
+<meta property="og:site_name" content="Fix Listed">
+<meta property="og:title" content="Fix Listed — the local trades directory">
 <meta property="og:description" content="{DESCRIPTION}">
-<meta property="og:url" content="https://flexhandy.com/">
+<meta property="og:url" content="https://fixlisted.com/">
 <style>
   /* The Artifact viewer supplies these; a plain web server does not. */
   html {{ color-scheme: light dark; }}
@@ -83,7 +83,7 @@ DIST.mkdir(exist_ok=True)
     "Disallow: /\n",
     encoding="utf-8")
 
-(DIST / ".htaccess").write_text("""# FlexHandy — prototype hosting rules.
+(DIST / ".htaccess").write_text("""# Fix Listed — prototype hosting rules.
 # Replaced by the application's own .htaccess when the PHP app ships.
 
 # Force HTTPS. Only effective once AutoSSL has issued a certificate.

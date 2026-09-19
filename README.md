@@ -1,6 +1,6 @@
-# FlexHandy
+# Fix Listed
 
-Local trades directory for flexhandy.com — homeowners post jobs for a flat $10, handymen
+Local trades directory for fixlisted.com — homeowners post jobs for a flat $10, handymen
 create profiles and quote for free, and revenue comes from listing fees plus advertising.
 
 **Current state:** design prototype + database layer. The PHP application has not
@@ -53,7 +53,7 @@ on, each with its expected answer written at the top of the file. Run it after
 importing to a new server before pointing a domain at it.
 
 Verified against MariaDB 10.11. Demo accounts all use the password
-`demo-password`; `owner@flexhandy.com` is the superadmin. Delete them before launch.
+`demo-password`; `owner@fixlisted.com` is the superadmin. Delete them before launch.
 
 See [docs/architecture.md](docs/architecture.md) for the decisions behind the schema.
 

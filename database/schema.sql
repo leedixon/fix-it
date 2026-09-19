@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- FlexHandy — schema
+-- Fix Listed — schema
 --
 -- Target: MySQL 8.0 / MariaDB 10.4+ on A2 Hosting shared cPanel.
 -- Engine InnoDB, utf8mb4 throughout. Indexed strings are capped at VARCHAR(191)

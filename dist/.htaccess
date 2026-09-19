@@ -1,4 +1,4 @@
-# FlexHandy — prototype hosting rules.
+# Fix Listed — prototype hosting rules.
 # Replaced by the application's own .htaccess when the PHP app ships.
 
 # Force HTTPS. Only effective once AutoSSL has issued a certificate.

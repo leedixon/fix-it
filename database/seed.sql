@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- FlexHandy — demo seed data
+-- Fix Listed — demo seed data
 --
 -- Mirrors the design prototype so the application has real rows to render.
 -- Safe to re-run: it truncates the tenant tables first.
@@ -46,9 +46,9 @@ INSERT INTO trades (id, slug, name, icon, sort_order) VALUES
 -- --- users -----------------------------------------------------------------
 -- id 1 is the superadmin: market_id NULL, the only row that may drop tenant scope.
 INSERT INTO users (id, market_id, role, email, password_hash, first_name, last_name, phone, email_verified_at, sms_opt_in) VALUES
- (1, NULL,'superadmin',   'owner@flexhandy.com',   '$2y$12$EqamHUG6bee9W5b.i8lSi.T4eYxJ8T6VjUzosZShwAd.CiO2AP8kK','Lee','Dixon','',              NOW(),0),
- (2, 1,   'market_admin', 'dana@flexhandy.com',    '$2y$12$EqamHUG6bee9W5b.i8lSi.T4eYxJ8T6VjUzosZShwAd.CiO2AP8kK','Dana','Whitfield','',          NOW(),0),
- (3, 2,   'market_admin', 'marcus@flexhandy.com',  '$2y$12$EqamHUG6bee9W5b.i8lSi.T4eYxJ8T6VjUzosZShwAd.CiO2AP8kK','Marcus','Bell','',             NOW(),0),
+ (1, NULL,'superadmin',   'owner@fixlisted.com',   '$2y$12$EqamHUG6bee9W5b.i8lSi.T4eYxJ8T6VjUzosZShwAd.CiO2AP8kK','Lee','Dixon','',              NOW(),0),
+ (2, 1,   'market_admin', 'dana@fixlisted.com',    '$2y$12$EqamHUG6bee9W5b.i8lSi.T4eYxJ8T6VjUzosZShwAd.CiO2AP8kK','Dana','Whitfield','',          NOW(),0),
+ (3, 2,   'market_admin', 'marcus@fixlisted.com',  '$2y$12$EqamHUG6bee9W5b.i8lSi.T4eYxJ8T6VjUzosZShwAd.CiO2AP8kK','Marcus','Bell','',             NOW(),0),
  -- pros
  (10,1,'pro','ray@okaforplumbing.com',    '$2y$12$EqamHUG6bee9W5b.i8lSi.T4eYxJ8T6VjUzosZShwAd.CiO2AP8kK','Ray','Okafor','(512) 555-0112',   NOW(),1),
  (11,1,'pro','teresa@vancewoodwork.com',  '$2y$12$EqamHUG6bee9W5b.i8lSi.T4eYxJ8T6VjUzosZShwAd.CiO2AP8kK','Teresa','Vance','(512) 555-0134', NOW(),1),

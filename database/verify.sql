@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- FlexHandy — post-import smoke test
+-- Fix Listed — post-import smoke test
 --
 -- Run this against a fresh import of schema.sql + seed.sql to prove the
 -- install is sound before pointing a domain at it. Every block is a query the

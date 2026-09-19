@@ -1,7 +1,7 @@
 # Deploying Fix Listed to A2 Hosting
 
-Written for: **SSH access available**, **domain registered but not yet pointed at A2**,
-**prototype going on the main domain**.
+Written for: **SSH access available**, **prototype going on the main domain**.
+The domain is pointed at A2 with an A record at the registrar (Route A in Phase 1).
 
 Phases 1–5 are what you can do now. Phase 6 onward is the real application, which
 does not exist yet — it's here so the sequence is clear and nothing surprises you later.
@@ -16,13 +16,65 @@ does not exist yet — it's here so the sequence is clear and nothing surprises 
 DNS propagation takes anywhere from 20 minutes to 24 hours, and **SSL cannot be issued
 until it finishes**. Start it before anything else.
 
-1. Find your A2 nameservers. They're in your A2 welcome email, and in the A2 customer
-   portal under your hosting plan's details. They usually look like `ns1.a2hosting.com`
-   through `ns4.a2hosting.com`, but **use the ones A2 gave you** — they differ by server.
-2. At whoever you registered fixlisted.com with (GoDaddy, Namecheap, Cloudflare…), find
-   the nameserver settings and replace the registrar's defaults with A2's.
-3. Check progress: `dig +short NS fixlisted.com` — when it returns A2's nameservers,
-   you're through.
+There are two ways to do it. **Either works** — pick one, don't do both.
+
+### Route A — A record at your registrar  *(this is what we did)*
+
+Leaves DNS control at the registrar and just points the web traffic at A2.
+
+1. Get your server's IP from cPanel → sidebar → **General Information** →
+   **Shared IP Address**. It's also in your A2 welcome email. **Use that number** —
+   an A record pointing at the wrong IP propagates perfectly cleanly and still fails.
+2. At your registrar, add:
+
+   | Type | Host | Value |
+   | --- | --- | --- |
+   | A | `@` | your A2 shared IP |
+   | A *(or CNAME to `@`)* | `www` | your A2 shared IP |
+
+   **Don't skip `www`.** Miss it and the bare domain works while `www.fixlisted.com`
+   dies, which you won't notice until a customer does.
+3. Make sure the domain is actually set up in cPanel — as the primary domain, or under
+   **Domains** → **Create A New Domain**. If the server doesn't know the hostname it
+   will serve A2's default page no matter how correct the DNS is.
+
+**What this route changes later:** your registrar stays the source of truth for DNS, not
+cPanel. Every future record — MX for email, SPF/DKIM, Stripe or Google verification —
+gets added at the registrar. Editing cPanel's zone file will do nothing at all.
+
+### Route B — Point nameservers at A2
+
+Hands all DNS to cPanel. Simpler long-term if you want A2 to handle email too.
+
+1. Get your nameservers from the A2 welcome email or the A2 customer portal. They
+   usually look like `ns1.a2hosting.com` through `ns4.a2hosting.com`, but **use the ones
+   A2 gave you** — they differ by server.
+2. At your registrar, replace the default nameservers with A2's.
+3. Records are then managed in cPanel → **Zone Editor**.
+
+### Verifying either route
+
+```bash
+dig +short fixlisted.com              # should return your A2 shared IP
+dig +short NS fixlisted.com           # Route B: should return A2's nameservers
+```
+
+Or use [dnschecker.org](https://dnschecker.org) for a worldwide view — green across the
+map means propagation is complete.
+
+Propagation confirms the record is *set*, not that it's *right*. Confirm the server
+itself answers for your hostname, which works even before DNS has spread:
+
+```bash
+curl -sI --resolve fixlisted.com:80:YOUR.A2.IP.HERE http://fixlisted.com/ | head -5
+```
+
+| Result | Meaning |
+| --- | --- |
+| `HTTP/1.1 200` plus your content | Server and IP both correct |
+| A2 default or "coming soon" page | IP correct; domain not set up in cPanel, or nothing uploaded |
+| Someone else's site | Wrong IP |
+| Timeout or connection refused | Wrong IP, or the domain isn't added in cPanel |
 
 Everything below can be done while DNS propagates, except issuing SSL.
 

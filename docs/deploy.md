@@ -259,16 +259,39 @@ trades` block across regardless.
 
 ## Phase 5 — Put the prototype live
 
+> ### Find the document root first — do not assume `~/public_html`
+>
+> `~/public_html` is the document root of the account's **primary domain**. On this
+> account the primary domain is `leedixon.com`, and fixlisted.com is one of 38 **addon
+> domains**, so it has its own separate directory. Copying into `~/public_html` would
+> overwrite the primary domain's live site.
+>
+> Get the real path from cPanel → **Domains** → find `fixlisted.com` → read its
+> **Document Root** column. It will be something like
+> `/home/leedixon/fixlisted.com` or `/home/leedixon/public_html/fixlisted.com`.
+>
+> Or from the shell:
+>
+> ```bash
+> grep -A2 -i "fixlisted.com" ~/.cpanel/userdata/main 2>/dev/null
+> ls -d ~/fixlisted.com ~/public_html/fixlisted.com 2>/dev/null
+> ```
+>
+> Set it once and reuse it:
+>
+> ```bash
+> DOCROOT=/home/leedixon/fixlisted.com     # replace with the real path
+> ```
+
 ```bash
 cd ~/fixlisted
 git pull
-cp -r dist/. ~/public_html/
-ls -la ~/public_html/          # expect index.html, robots.txt, .htaccess
+cp -r dist/. "$DOCROOT"/
+ls -la "$DOCROOT"/             # expect index.html, robots.txt, .htaccess
 ```
 
 `dist/` is generated from `prototype/index.html` by `python3 prototype/build.py`. Edit
-the prototype, re-run the build, commit, then `git pull && cp -r dist/. ~/public_html/`
-on the server.
+the prototype, re-run the build, commit, then `git pull && cp -r dist/. "$DOCROOT"/` on the server.
 
 ### Set the PHP version now, while you're here
 
@@ -315,12 +338,15 @@ When the PHP app ships, three things change.
 ```
 
 Preferred: cPanel → **Domains** → fixlisted.com → set the document root to
-`/home/YOURCPANELUSER/fixlisted/public`. If your cPanel won't allow it on the primary
-domain, symlink instead:
+`/home/leedixon/fixlisted/public`. On an addon domain this is usually editable
+directly, which is easier than it is on a primary domain.
+
+If cPanel won't let you change it, symlink the addon domain's own directory —
+**never `~/public_html`**, which belongs to the primary domain:
 
 ```bash
-mv ~/public_html ~/public_html.bak
-ln -s ~/fixlisted/public ~/public_html
+mv "$DOCROOT" "$DOCROOT.bak"
+ln -s ~/fixlisted/public "$DOCROOT"
 ```
 
 **2. Config carries live secrets.** Copy the example, fill it in, lock it down:
@@ -373,5 +399,6 @@ migration file; run it the same way you ran the import.
 | "Access denied for user" | The DB user was created but never **added to the database** with ALL PRIVILEGES. |
 | Em-dashes show as `?` or `â€"` | The connection isn't `utf8mb4`. Check the DSN, not the tables. |
 | AutoSSL fails | DNS hasn't propagated. `dig +short NS fixlisted.com` and wait. |
-| Site shows A2's default page | The document root still points at `public_html`. |
+| Site shows A2's default page | The document root still points at the old directory. |
+| Changes appear on the wrong domain | You wrote into `~/public_html`, which is the **primary** domain (leedixon.com), not fixlisted.com's addon directory. |
 | `.htaccess` rules ignored | `AllowOverride` is off for that directory — open a ticket with A2. |

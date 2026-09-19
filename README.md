@@ -3,7 +3,8 @@
 Local trades directory for flexhandy.com — homeowners post jobs for a flat $10, handymen
 create profiles and quote for free, and revenue comes from listing fees plus advertising.
 
-**Current state: design prototype only.** No backend has been written yet.
+**Current state:** design prototype + database layer. The PHP application has not
+been written yet.
 
 ## Prototype
 
@@ -26,6 +27,23 @@ The market selector in the header really does re-scope the data, so the multi-ma
 behaviour is visible rather than described. The role chips in the top bar are a prototype
 affordance for previewing each dashboard.
 
+## Database
+
+```
+mysql -u USER -p DBNAME < database/schema.sql   # 25 tables, 58 foreign keys
+mysql -u USER -p DBNAME < database/seed.sql     # demo data mirroring the prototype
+mysql -u USER -p --default-character-set=utf8mb4 --table DBNAME < database/verify.sql
+```
+
+`verify.sql` is a smoke test — eight queries the application genuinely depends
+on, each with its expected answer written at the top of the file. Run it after
+importing to a new server before pointing a domain at it.
+
+Verified against MariaDB 10.11. Demo accounts all use the password
+`demo-password`; `owner@flexhandy.com` is the superadmin. Delete them before launch.
+
+See [docs/architecture.md](docs/architecture.md) for the decisions behind the schema.
+
 ## Decisions made so far
 
 - **Hosting:** A2 Hosting shared cPanel — so the build target is PHP 8 + MySQL with no
@@ -36,6 +54,10 @@ affordance for previewing each dashboard.
 - **Payments:** Stripe Checkout for the $10 job fee, Stripe Billing for the monthly ad
   packages. A job stays in `pending_payment` and is not publicly visible until the
   webhook confirms the charge.
+- **Ads are derived from the profile**, not built by the advertiser. A pro may override
+  a headline, a one-line offer and which photo leads; the rating, review count and
+  verified badges are rendered from live profile data and can't be self-authored.
+  See [docs/architecture.md](docs/architecture.md#advertising-profile-derived-not-an-ad-builder).
 - **Pricing:** $10 flat per job post. Free profiles and free quoting for pros. Revenue
   above that is advertising — Boost and Spotlight placements plus AdSense display slots.
 
@@ -52,5 +74,6 @@ affordance for previewing each dashboard.
 
 ## Not built yet
 
-Database schema, authentication, the PHP application, Stripe integration, email and SMS
-notification, image uploads, review moderation, and the AdSense wiring.
+The PHP application: authentication, the public site, the posting flow, Stripe
+integration and webhooks, the pro and admin dashboards, image uploads, and the cron
+jobs listed in [docs/architecture.md](docs/architecture.md#shared-hosting-constraints).

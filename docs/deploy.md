@@ -226,6 +226,11 @@ mysql -u leedixo_fixapp -p leedixo_fixlisted < database/schema.sql
 mysql -u leedixo_fixapp -p leedixo_fixlisted < database/seed.sql
 ```
 
+`schema.sql` is intentionally **one-shot** — no `CREATE TABLE IF NOT EXISTS`. Running it
+a second time fails with `ERROR 1050: Table 'markets' already exists`, which means the
+first run worked, not that anything is wrong. A silent run is a successful one; MySQL
+prints nothing on success. `seed.sql` truncates first, so that one is safe to re-run.
+
 **Verify the import before moving on:**
 
 ```bash
@@ -402,3 +407,4 @@ migration file; run it the same way you ran the import.
 | Site shows A2's default page | The document root still points at the old directory. |
 | Changes appear on the wrong domain | You wrote into `~/public_html`, which is the **primary** domain (leedixon.com), not fixlisted.com's addon directory. |
 | `.htaccess` rules ignored | `AllowOverride` is off for that directory — open a ticket with A2. |
+| `ERROR 1050: Table 'markets' already exists` | `schema.sql` already ran successfully. Skip to `seed.sql`. |

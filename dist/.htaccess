@@ -1,8 +1,15 @@
 # Fix Listed — prototype hosting rules.
 # Replaced by the application's own .htaccess when the PHP app ships.
 
-# Force HTTPS. Only effective once AutoSSL has issued a certificate.
 RewriteEngine On
+
+# Let's Encrypt validates and renews over plain HTTP by fetching a file from
+# /.well-known/acme-challenge/. Never redirect or rewrite that path: if the
+# certificate ever lapses, redirecting renewal traffic to a broken HTTPS host
+# is how a site gets permanently stuck with an expired certificate.
+RewriteRule ^\.well-known/ - [L]
+
+# Force HTTPS. Only effective once AutoSSL has issued a certificate.
 RewriteCond %{HTTPS} !=on
 RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]

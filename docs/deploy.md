@@ -90,10 +90,23 @@ cPanel's **SSH Access → Generate a Public Key** form creates the private key *
 server*, so it exists somewhere you don't control and has to be downloaded back to you.
 That form also only offers RSA and DSA — DSA is obsolete and should never be used.
 
-Generate locally instead. `ssh-keygen` ships with macOS, Linux and Windows 10/11:
+Generate locally instead. `ssh-keygen` ships with macOS, Linux and Windows 10/11.
+
+**macOS / Linux:**
 
 ```bash
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
 ssh-keygen -t ed25519 -C "fixlisted-a2" -f ~/.ssh/fixlisted_a2
+```
+
+**Windows PowerShell** — note the full path. PowerShell does *not* expand `~` for
+native commands like `ssh-keygen`, and the `.ssh` folder does not exist on a fresh
+profile, so the short Unix form fails with
+`Saving key "~/.ssh/fixlisted_a2" failed: No such file or directory`:
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
+ssh-keygen -t ed25519 -C "fixlisted-a2" -f "$env:USERPROFILE\.ssh\fixlisted_a2"
 ```
 
 Set a passphrase when prompted. That produces two files — `fixlisted_a2` (private, never
@@ -104,7 +117,11 @@ anywhere).
 
 ```bash
 cat ~/.ssh/fixlisted_a2.pub
-# Windows PowerShell:  type $env:USERPROFILE\.ssh\fixlisted_a2.pub
+```
+
+```powershell
+# Windows — straight to the clipboard
+Get-Content "$env:USERPROFILE\.ssh\fixlisted_a2.pub" | Set-Clipboard
 ```
 
 cPanel → **SSH Access** → **Manage SSH Keys** → **Import Key**. Paste into the **public
@@ -120,7 +137,17 @@ single most common reason A2 SSH appears broken.
 ssh -p 7822 -i ~/.ssh/fixlisted_a2 YOURCPANELUSER@fixlisted.com
 ```
 
-Worth setting up once, in `~/.ssh/config`, so every later deploy is just `ssh fixlisted`:
+```powershell
+# Windows
+ssh -p 7822 -i "$env:USERPROFILE\.ssh\fixlisted_a2" YOURCPANELUSER@fixlisted.com
+```
+
+`YOURCPANELUSER` is the cPanel account name from cPanel's **General Information**
+sidebar — not your local Windows or Mac username.
+
+Worth setting up once so every later deploy is just `ssh fixlisted`. Put this in
+`~/.ssh/config`, or `%USERPROFILE%\.ssh\config` on Windows (create the file with no
+extension):
 
 ```
 Host fixlisted
@@ -130,6 +157,9 @@ Host fixlisted
     IdentityFile ~/.ssh/fixlisted_a2
 ```
 
+The `~` inside this config file *is* understood by ssh on Windows — it's only
+PowerShell's command line that doesn't expand it.
+
 ### If it still refuses
 
 - SSH is off by default on some A2 plans — enable it in the **A2 customer portal**
@@ -138,6 +168,9 @@ Host fixlisted
 - Before DNS propagates, connect to the server hostname from your A2 welcome email
   instead: `ssh -p 7822 YOURCPANELUSER@a2ss123.a2hosting.com`.
 - `ssh -vvv` prints which key it actually offered, which usually ends the argument.
+- Windows only: if ssh refuses the key as "unprotected" or "too open", reset its
+  permissions with
+  `icacls "$env:USERPROFILE\.ssh\fixlisted_a2" /inheritance:r /grant:r "$env:USERNAME:R"`.
 
 ### If you use the cPanel generator anyway
 

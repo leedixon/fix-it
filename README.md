@@ -12,7 +12,7 @@ production. The PHP application has not been written yet.
 | Design prototype | Live at fixlisted.com (noindex, placeholder content) |
 | Hosting, DNS, SSL | Done — A record at registrar, Let's Encrypt issued |
 | Database schema | Written, verified on MariaDB 10.11, not yet imported to A2 |
-| PHP application | Not started |
+| PHP application | Foundation built and tested (22 checks); pages not yet written |
 | Stripe | Not started |
 
 Deployment specifics for this account: cPanel user `leedixon`, document root
@@ -98,8 +98,23 @@ See [docs/architecture.md](docs/architecture.md) for the decisions behind the sc
 - Paid placement is always labelled as an ad, so ratings and licence badges stay credible.
 - Sticky mobile action bar; the header CTA collapses into it below 700px.
 
-## Not built yet
+## Application
 
-The PHP application: authentication, the public site, the posting flow, Stripe
-integration and webhooks, the pro and admin dashboards, image uploads, and the cron
-jobs listed in [docs/architecture.md](docs/architecture.md#shared-hosting-constraints).
+```
+php bin/smoke.php        # 22 checks against a real database
+```
+
+`bin/smoke.php` is the regression test for the tenant boundary. Run it after touching
+`Repository`, `TenantScope`, or any repository query. It proves, among other things,
+that a query which forgets its `market_id` predicate raises instead of silently
+returning another market's rows, and that a job in `pending_payment` never reaches the
+public board.
+
+Built so far: config, PDO bootstrap, the tenant-scoped repository base, session, CSRF,
+auth with lockout, routing, views, and the market/pro/job repositories.
+
+### Not built yet
+
+Controllers and templates for the public site, the job posting flow, Stripe integration
+and webhooks, the pro and admin dashboards, image uploads, and the cron jobs listed in
+[docs/architecture.md](docs/architecture.md#shared-hosting-constraints).

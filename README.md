@@ -3,8 +3,21 @@
 Local trades directory for fixlisted.com — homeowners post jobs for a flat $10, handymen
 create profiles and quote for free, and revenue comes from listing fees plus advertising.
 
-**Current state:** design prototype + database layer. The PHP application has not
-been written yet.
+**Current state:** the prototype is live at https://fixlisted.com on A2 Hosting with
+Let's Encrypt SSL. The database schema is written and verified but not yet imported to
+production. The PHP application has not been written yet.
+
+| Piece | State |
+| --- | --- |
+| Design prototype | Live at fixlisted.com (noindex, placeholder content) |
+| Hosting, DNS, SSL | Done — A record at registrar, Let's Encrypt issued |
+| Database schema | Written, verified on MariaDB 10.11, not yet imported to A2 |
+| PHP application | Not started |
+| Stripe | Not started |
+
+Deployment specifics for this account: cPanel user `leedixon`, document root
+`/home/leedixon/fixlisted.com` (an addon domain — **not** `~/public_html`, which belongs
+to the primary domain leedixon.com), repo cloned at `~/fixlisted`.
 
 ## Deploying
 

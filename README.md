@@ -101,6 +101,7 @@ See [docs/architecture.md](docs/architecture.md) for the decisions behind the sc
 ## Application
 
 ```
+php bin/configure.php    # write config/config.php (don't hand-edit it)
 php bin/check.php        # pre-flight: config, database, extensions, permissions
 php bin/smoke.php        # 30 checks against a real database
 php bin/preview_emails.php   # render the transactional emails to storage/cache/

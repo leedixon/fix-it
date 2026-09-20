@@ -368,16 +368,23 @@ mv "$DOCROOT" "$DOCROOT.bak"
 ln -s ~/fixlisted/public "$DOCROOT"
 ```
 
-**2. Config carries live secrets.** `config/config.example.php` ships with the repo as
-a template. Copy it, fill the copy in, lock it down:
+**2. Config carries live secrets.** Don't hand-edit it — run the builder:
 
 ```bash
 cd ~/fixlisted
-cp config/config.example.php config/config.php
-php -r 'echo bin2hex(random_bytes(32)), "\n";'   # paste this into app.key
-nano config/config.php                            # db.name, db.user, db.pass, app.key
-chmod 600 config/config.php
+php bin/configure.php
 ```
+
+It asks for the database name, user and password, the site URL and the email
+addresses, then writes `config/config.php`, generates the app key, sets mode 600, and
+tests the database connection before it finishes. The password is not echoed as you
+type and never reaches your shell history.
+
+Editing the file by hand in a terminal editor is where this step goes wrong: a paste
+lands in the wrong place, a line gets clipped, and you get a parse error or a silently
+missing setting. `config/config.example.php` documents what each value is for; the
+builder is how the real file gets written. Re-running it backs up the existing file
+first.
 
 Then confirm it, rather than finding out from a blank page in a browser:
 

@@ -64,8 +64,27 @@ PAGES = [
 ]
 
 
+def card_url() -> str:
+    """
+    The social card's URL, carrying the file's mtime.
+
+    Facebook caches an image *by URL*, including a failed fetch of it. Once it
+    has recorded a 403 for https://fixlisted.com/og.png, re-scraping the page
+    will not necessarily make it try that URL again — but it will always fetch
+    a URL it has never seen. Stamping the mtime means every re-render produces
+    a URL Facebook has to go and look at.
+
+    The app does the same thing through asset(); this is the holding page's
+    version of it.
+    """
+    card = ROOT / "public" / "assets" / "social" / "og.png"
+    stamp = f"?v={int(card.stat().st_mtime)}" if card.is_file() else ""
+    return f"https://fixlisted.com/og.png{stamp}"
+
+
 def head(page: str) -> str:
     meta = next(p for p in PAGES if p["out"] == page)
+    card = card_url()
     return f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
@@ -83,12 +102,14 @@ def head(page: str) -> str:
 <meta property="og:title" content="{meta['title']}">
 <meta property="og:description" content="{meta['description']}">
 <meta property="og:url" content="https://fixlisted.com/">
-<meta property="og:image" content="https://fixlisted.com/og.png">
+<meta property="og:image" content="{card}">
+<meta property="og:image:secure_url" content="{card}">
+<meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Fix Listed — the trades directory that doesn't take a cut of your job.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://fixlisted.com/og.png">
+<meta name="twitter:image" content="{card}">
 {RESET}
 """
 

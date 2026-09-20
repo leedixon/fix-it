@@ -174,13 +174,21 @@ if ($page['final'] !== $url) {
 
 // Facebook ignores meta robots when scraping, but Twitter and LinkedIn are
 // less predictable, so a noindex is worth knowing about.
-if (preg_match('/<meta[^>]+name=["\']robots["\'][^>]+content=["\']([^"\']+)/i', $page['body'], $m) === 1) {
+if (preg_match('/<meta[^>]+name=["\']robots["\'][^>]+content=["\']([^"\']+)/i', $browser['body'] ?: $page['body'], $m) === 1) {
     echo "       meta robots: {$m[1]}  (expected before launch; Facebook ignores it when scraping)\n";
+}
+
+// Read the tags from whichever fetch actually returned a page. If the host is
+// refusing the crawler, the browser's copy is the only one with any markup in
+// it — and the image still needs checking, which is the whole point.
+$markup = $page['status'] === 200 ? $page['body'] : $browser['body'];
+if ($page['status'] !== 200 && $browser['status'] === 200) {
+    echo "       (reading the tags from the browser's copy, since the crawler was refused)\n";
 }
 
 preg_match_all(
     '/<meta[^>]+(?:property|name)=["\'](og:[a-z:]+|twitter:[a-z:]+)["\'][^>]+content=["\']([^"\']*)/i',
-    $page['body'],
+    $markup,
     $tags,
     PREG_SET_ORDER,
 );
@@ -190,6 +198,50 @@ foreach ($tags as $t) { $og[strtolower($t[1])] = $t[2]; }
 foreach (['og:title', 'og:description', 'og:url', 'og:image'] as $required) {
     $say(isset($og[$required]) && $og[$required] !== '', $required . ' is present',
         isset($og[$required]) ? '' : 'missing — is this the rebuilt index.html?');
+}
+
+// --- 2b. every crawler, side by side ----------------------------------------
+//
+// The question this answers: when one platform previews correctly and another
+// does not, is the difference in the page or in who is asking? Same URL, same
+// moment, only the user agent changes. A column of 200s with one 403 in it is
+// a host security rule, and it is the evidence an A2 ticket needs.
+echo "\n2b. who the server will talk to\n";
+$agents = [
+    'a browser'            => UA_BROWSER,
+    'facebookexternalhit'  => UA_FACEBOOK,
+    'facebookcatalog'      => 'facebookcatalog/1.0',
+    'Twitterbot'           => 'Twitterbot/1.0',
+    'LinkedInBot'          => 'LinkedInBot/1.0 (compatible; Mozilla/5.0; +http://www.linkedin.com)',
+    'Slackbot'             => 'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)',
+    'WhatsApp'             => 'WhatsApp/2.23',
+    'no user agent'        => '',
+];
+
+$pageCodes = [];
+foreach ($agents as $name => $agent) {
+    $r = fetch($url, $agent);
+    $i = isset($og['og:image']) && $og['og:image'] !== '' ? fetch($og['og:image'], $agent) : null;
+    $pageCodes[$name] = $r['status'];
+    printf("       %-22s page %-4s image %s\n",
+        $name,
+        $r['status'] === 0 ? 'ERR' : (string) $r['status'],
+        $i === null ? '—' : ($i['status'] === 0 ? 'ERR' : (string) $i['status']));
+}
+
+$ok  = array_keys(array_filter($pageCodes, static fn (int $c): bool => $c === 200));
+$bad = array_keys(array_filter($pageCodes, static fn (int $c): bool => $c !== 200));
+if ($bad !== [] && $ok !== []) {
+    echo "\n";
+    echo "       Accepted: " . implode(', ', $ok) . "\n";
+    echo "       Refused:  " . implode(', ', $bad) . "\n\n";
+    echo "       Same page, same second — only the user agent differs, so the\n";
+    echo "       page is fine and the host is refusing those crawlers by name.\n";
+    echo "       That is mod_security or Imunify360, not robots.txt and not\n";
+    echo "       anything in the markup. cPanel > Security > ModSecurity Tools\n";
+    echo "       > Hits List will show the rule id. Disable that id for\n";
+    echo "       fixlisted.com, or send A2 support the two lines above.\n";
+    $problems++;
 }
 
 // --- 3. the image -----------------------------------------------------------

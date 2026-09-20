@@ -354,12 +354,27 @@ mv "$DOCROOT" "$DOCROOT.bak"
 ln -s ~/fixlisted/public "$DOCROOT"
 ```
 
-**2. Config carries live secrets.** Copy the example, fill it in, lock it down:
+**2. Config carries live secrets.** `config/config.example.php` ships with the repo as
+a template. Copy it, fill the copy in, lock it down:
 
 ```bash
+cd ~/fixlisted
 cp config/config.example.php config/config.php
+php -r 'echo bin2hex(random_bytes(32)), "\n";'   # paste this into app.key
+nano config/config.php                            # db.name, db.user, db.pass, app.key
 chmod 600 config/config.php
 ```
+
+Then confirm it, rather than finding out from a blank page in a browser:
+
+```bash
+php bin/check.php
+```
+
+It checks the config values, the file permissions, the database connection, whether the
+schema imported, that utf8mb4 survives a round trip, the PHP version and extensions, and
+that the storage directories are writable. Everything must read `OK` before you point a
+domain at the application.
 
 It's already in `.gitignore`, so a `git pull` will never overwrite it and your Stripe
 keys will never reach GitHub. The DSN **must** include `charset=utf8mb4` — without it

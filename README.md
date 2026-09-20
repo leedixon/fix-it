@@ -101,8 +101,13 @@ See [docs/architecture.md](docs/architecture.md) for the decisions behind the sc
 ## Application
 
 ```
+php bin/check.php        # pre-flight: config, database, extensions, permissions
 php bin/smoke.php        # 30 checks against a real database
+php bin/preview_emails.php   # render the transactional emails to storage/cache/
 ```
+
+`config/config.php` holds the live credentials and is gitignored.
+`config/config.example.php` is the template it is copied from.
 
 `bin/smoke.php` is the regression test for the tenant boundary. Run it after touching
 `Repository`, `TenantScope`, or any repository query. It proves, among other things,

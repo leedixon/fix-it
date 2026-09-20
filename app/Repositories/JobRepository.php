@@ -70,7 +70,7 @@ final class JobRepository extends Repository
         $demoFilter = Demo::filter('j');
 
         return $this->scopedAll(
-            "SELECT j.id, j.reference, j.title, j.zip, j.urgency, j.quote_count, j.is_demo,
+            "SELECT j.id, j.reference, j.title, j.description, j.zip, j.urgency, j.quote_count, j.is_demo,
                     j.budget_min_cents, j.budget_max_cents, j.published_at,
                     t.name AS trade_name
                FROM jobs j

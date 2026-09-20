@@ -384,3 +384,56 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 /* ---- a pro's own words, on their profile ---- */
 .bio{font-size:16px;line-height:1.65;color:var(--text-2);max-width:62ch}
 .bio p{margin-bottom:14px}
+
+/* =========================================================================
+ * Role toggle in the hero card.
+ *
+ * Two radios and sibling selectors, no JavaScript: the card has to work on a
+ * slow phone before any script runs, because it is the first thing a visitor
+ * touches and the only conversion point above the fold.
+ * ====================================================================== */
+.role-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.roletabs{display:flex;gap:4px;width:100%}
+.roletabs label{
+  flex:1;text-align:center;cursor:pointer;border:1px solid var(--line-2);border-radius:3px;
+  padding:9px 10px;font-size:13.5px;font-weight:600;color:var(--text-2);background:var(--paper-2);
+  transition:background .15s,color .15s,border-color .15s;
+}
+.roletabs label:hover{color:var(--text)}
+#role-home:checked ~ .qc-top .roletabs label[for="role-home"],
+#role-pro:checked  ~ .qc-top .roletabs label[for="role-pro"]{
+  background:var(--ink);border-color:var(--ink);color:var(--on-ink);
+}
+/* The radio is visually hidden, so the ring has to be drawn on its label. */
+#role-home:focus-visible ~ .qc-top .roletabs label[for="role-home"],
+#role-pro:focus-visible  ~ .qc-top .roletabs label[for="role-pro"]{
+  outline:2px solid var(--brass);outline-offset:2px;
+}
+#role-home:checked ~ .pane-pro,
+#role-pro:checked  ~ .pane-home{display:none}
+
+/* =========================================================================
+ * Jobs as a grid rather than a stacked list.
+ *
+ * A list of full-width rows wastes two thirds of a desktop screen and makes
+ * four jobs look like the whole board. As cards they scan in parallel, which
+ * is how somebody deciding what to quote actually reads them.
+ * ====================================================================== */
+.jobs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.jobs-grid > *{min-width:0}
+.jobs-grid .job{flex-direction:column;align-items:stretch;gap:0;padding:20px}
+.jobs-grid .job h3{font-size:17.5px}
+.jobs-grid .job .body{flex:1;min-width:0}
+.jobs-grid .job .excerpt{
+  color:var(--text-2);font-size:13.5px;margin-top:10px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.jobs-grid .job .job-foot{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+}
+.jobs-grid .job .budget{margin-left:0;text-align:left;flex:1}
+.jobs-grid .job .budget .v{font-size:17px}
+.jobs-grid .job .btn{margin-left:auto}
+
+@media (max-width:980px){ .jobs-grid{grid-template-columns:1fr} }

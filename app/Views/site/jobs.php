@@ -67,7 +67,7 @@ require_once __DIR__ . '/../partials/icons.php';
       require __DIR__ . '/../partials/empty.php';
       ?>
     <?php else: ?>
-      <div class="grid" style="gap:12px">
+      <div class="jobs-grid">
         <?php foreach ($jobs as $job): ?>
           <?php require __DIR__ . '/../partials/job_card.php'; ?>
         <?php endforeach; ?>

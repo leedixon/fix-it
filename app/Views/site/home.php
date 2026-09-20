@@ -57,14 +57,27 @@ $feeLabel = money($fee);
     </div>
 
     <div class="quote-card">
+      <?php
+      /*
+       * Two radios and sibling CSS, no JavaScript.
+       *
+       * The card asks the only question that matters on arrival — which side
+       * of the marketplace are you — and answers it differently for each.
+       * Sending a tradesperson to a form headed "what needs doing?" is how a
+       * two-sided directory loses the half that is harder to recruit.
+       */
+      ?>
+      <input class="role-input" type="radio" name="role" id="role-home" checked>
+      <input class="role-input" type="radio" name="role" id="role-pro">
+
       <div class="qc-top">
-        <div>
-          <div class="eyebrow">Post a job</div>
-          <div style="font-family:var(--serif);font-size:20px;margin-top:3px">Takes about a minute</div>
+        <div class="roletabs" role="group" aria-label="What brings you here">
+          <label for="role-home">I need work done</label>
+          <label for="role-pro">I'm a tradesperson</label>
         </div>
-        <span class="badge b-flat mono"><?= e($feeLabel) ?></span>
       </div>
-      <div class="qc-body">
+
+      <div class="qc-body pane pane-home">
         <label class="field">
           <span>What needs doing</span>
           <input type="text" placeholder="e.g. Sump pump failed, water in the basement" disabled>
@@ -85,14 +98,51 @@ $feeLabel = money($fee);
             <?php endforeach; ?>
           </select>
         </label>
-        <a class="btn btn-primary btn-block" href="<?= e(url('/pricing')) ?>">
-          Continue <?= icon('arrow', 15) ?>
+        <a class="btn btn-primary btn-block btn-lg" href="<?= e(url('/post-a-job')) ?>">
+          Get quotes — <?= e($feeLabel) ?> <?= icon('arrow', 15) ?>
         </a>
+        <p class="tiny muted" style="margin-top:10px;text-align:center">
+          Nothing is charged until you have seen your post and confirmed it.
+        </p>
       </div>
-      <div class="qc-foot">
+      <div class="qc-foot pane pane-home">
         <?= icon('lock', 14) ?>
         <span>Card details are handled by Stripe. Fix Listed never sees them.</span>
       </div>
+
+      <div class="qc-body pane pane-pro">
+        <label class="field">
+          <span>Your trade</span>
+          <select disabled>
+            <?php foreach (array_slice($tradeTiles, 0, 6) as $t): ?>
+              <option><?= e($t['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label class="field">
+          <span>Counties you will drive to</span>
+          <select disabled>
+            <?php foreach (array_slice($counties, 0, 8) as $c): ?>
+              <option><?= e($c['short_name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label class="field">
+          <span>Business name</span>
+          <input type="text" placeholder="e.g. Ojo Plumbing — or your own name" disabled>
+        </label>
+        <a class="btn btn-primary btn-block btn-lg" href="<?= e(url('/list-your-business')) ?>">
+          List your business — free <?= icon('arrow', 15) ?>
+        </a>
+        <p class="tiny muted" style="margin-top:10px;text-align:center">
+          No commission, no per-lead charge. You keep the whole job.
+        </p>
+      </div>
+      <div class="qc-foot pane pane-pro">
+        <?= icon('shield', 14) ?>
+        <span>We check your licence and insurance before your profile goes live.</span>
+      </div>
+
     </div>
   </div>
 </section>
@@ -222,7 +272,7 @@ $feeLabel = money($fee);
       require __DIR__ . '/../partials/empty.php';
       ?>
     <?php else: ?>
-      <div class="grid" style="gap:12px">
+      <div class="jobs-grid">
         <?php foreach ($latestJobs as $job): ?>
           <?php require __DIR__ . '/../partials/job_card.php'; ?>
         <?php endforeach; ?>

@@ -79,7 +79,7 @@ require_once __DIR__ . '/../partials/icons.php';
       <div><h2 style="font-size:28px">Open jobs in <?= e($city['name']) ?></h2></div>
       <a class="btn btn-ghost btn-sm" href="<?= e(url('/jobs')) ?>">All jobs <?= icon('arrow', 14) ?></a>
     </div>
-    <div class="grid" style="gap:12px">
+    <div class="jobs-grid">
       <?php foreach ($cityJobs as $job): ?>
         <?php require __DIR__ . '/../partials/job_card.php'; ?>
       <?php endforeach; ?>

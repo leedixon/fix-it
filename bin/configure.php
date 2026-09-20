@@ -41,7 +41,11 @@ echo "Press Enter to accept the value in brackets.\n\n";
 if (is_file($target)) {
     $backup = $target . '.bak-' . date('Ymd-His');
     copy($target, $backup);
-    echo "Existing config backed up to " . basename($backup) . "\n\n";
+    // The backup holds the same credentials as the original, so it gets the
+    // same permissions — copy() would otherwise leave it at the umask default.
+    chmod($backup, 0600);
+    echo "Existing config backed up to " . basename($backup) . "\n";
+    echo "Delete old backups once you are happy: rm config/config.php.bak-*\n\n";
 }
 
 $dbName = ask('Database name', 'leedixon_fixlisted');

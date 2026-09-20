@@ -71,7 +71,15 @@ try {
         'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = :schema',
         ['schema' => Config::get('db.name')],
     );
-    line($tables >= 29, 'schema is imported', "{$tables} tables" . ($tables >= 29 ? '' : ' — expected 29+, run database/schema.sql'));
+    if ($tables >= 29) {
+        line(true, 'schema is up to date', "{$tables} tables");
+    } elseif ($tables > 0) {
+        // An existing install cannot be fixed by re-running schema.sql — it has
+        // no IF NOT EXISTS and stops at the first table that already exists.
+        line(false, 'schema is behind', "{$tables} tables, expected 29+ — apply the migrations in database/migrations/");
+    } else {
+        line(false, 'schema is not imported', 'run database/schema.sql');
+    }
 
     $hasWaitlist = (int) $db->value(
         "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = :schema AND table_name = 'waitlist'",

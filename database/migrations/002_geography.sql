@@ -11,8 +11,14 @@
 --
 --   mysql -u USER -p DBNAME < database/seed.sql
 --
+-- SAFE TO RE-RUN. MySQL has no ADD COLUMN IF NOT EXISTS, so every ALTER below
+-- is guarded by a check against information_schema and skipped if it has
+-- already been applied. A migration that fails halfway must be re-runnable:
+-- MySQL does not roll back DDL, so a partial apply is a state you have to be
+-- able to recover from by running the file again.
+--
 -- Verified by building a database from the pre-geography schema, applying this
--- file, and diffing the result against a fresh schema.sql install.
+-- file twice, and diffing the result against a fresh schema.sql install.
 -- ---------------------------------------------------------------------------
 
 -- --- counties, cities, and the market they belong to ------------------------
@@ -69,11 +75,33 @@ CREATE TABLE IF NOT EXISTS zip_counties (
 
 -- --- pros gain a home county and city ---------------------------------------
 
-ALTER TABLE pro_profiles
-  ADD COLUMN home_county_id INT UNSIGNED NULL AFTER service_radius_miles,
-  ADD COLUMN home_city_id   INT UNSIGNED NULL AFTER home_county_id,
-  ADD CONSTRAINT fk_pro_county FOREIGN KEY (home_county_id) REFERENCES counties (id) ON DELETE SET NULL,
-  ADD CONSTRAINT fk_pro_city   FOREIGN KEY (home_city_id)   REFERENCES cities (id)   ON DELETE SET NULL;
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'pro_profiles' AND column_name = 'home_county_id') = 0,
+  'ALTER TABLE pro_profiles ADD COLUMN home_county_id INT UNSIGNED NULL AFTER service_radius_miles',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'pro_profiles' AND column_name = 'home_city_id') = 0,
+  'ALTER TABLE pro_profiles ADD COLUMN home_city_id INT UNSIGNED NULL AFTER home_county_id',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.table_constraints
+    WHERE table_schema = DATABASE() AND table_name = 'pro_profiles' AND constraint_name = 'fk_pro_county') = 0,
+  'ALTER TABLE pro_profiles ADD CONSTRAINT fk_pro_county FOREIGN KEY (home_county_id) REFERENCES counties (id) ON DELETE SET NULL',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.table_constraints
+    WHERE table_schema = DATABASE() AND table_name = 'pro_profiles' AND constraint_name = 'fk_pro_city') = 0,
+  'ALTER TABLE pro_profiles ADD CONSTRAINT fk_pro_city FOREIGN KEY (home_city_id) REFERENCES cities (id) ON DELETE SET NULL',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
 -- --- coverage moves from market level to county level -----------------------
 -- pro_service_areas held only "this pro works in this market", which cannot
@@ -96,13 +124,47 @@ DROP TABLE IF EXISTS pro_service_areas;
 
 -- --- jobs gain a county and a city ------------------------------------------
 
-ALTER TABLE jobs
-  ADD COLUMN county_id INT UNSIGNED NULL AFTER trade_id,
-  ADD COLUMN city_id   INT UNSIGNED NULL AFTER county_id,
-  ADD KEY ix_jobs_city (city_id, status, published_at),
-  ADD KEY ix_jobs_county (county_id, status),
-  ADD CONSTRAINT fk_jobs_county FOREIGN KEY (county_id) REFERENCES counties (id) ON DELETE SET NULL,
-  ADD CONSTRAINT fk_jobs_city   FOREIGN KEY (city_id)   REFERENCES cities (id)   ON DELETE SET NULL;
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'jobs' AND column_name = 'county_id') = 0,
+  'ALTER TABLE jobs ADD COLUMN county_id INT UNSIGNED NULL AFTER trade_id',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'jobs' AND column_name = 'city_id') = 0,
+  'ALTER TABLE jobs ADD COLUMN city_id INT UNSIGNED NULL AFTER county_id',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'jobs' AND index_name = 'ix_jobs_city') = 0,
+  'ALTER TABLE jobs ADD KEY ix_jobs_city (city_id, status, published_at)',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'jobs' AND index_name = 'ix_jobs_county') = 0,
+  'ALTER TABLE jobs ADD KEY ix_jobs_county (county_id, status)',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.table_constraints
+    WHERE table_schema = DATABASE() AND table_name = 'jobs' AND constraint_name = 'fk_jobs_county') = 0,
+  'ALTER TABLE jobs ADD CONSTRAINT fk_jobs_county FOREIGN KEY (county_id) REFERENCES counties (id) ON DELETE SET NULL',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.table_constraints
+    WHERE table_schema = DATABASE() AND table_name = 'jobs' AND constraint_name = 'fk_jobs_city') = 0,
+  'ALTER TABLE jobs ADD CONSTRAINT fk_jobs_city FOREIGN KEY (city_id) REFERENCES cities (id) ON DELETE SET NULL',
+  'DO 0');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
 -- --- trades ------------------------------------------------------------------
 -- Deliberately not touched here. The northern-market list adds Roofing &

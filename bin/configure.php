@@ -56,8 +56,9 @@ $dbName = ask('Database name', 'leedixon_fixlisted');
 $dbUser = ask('Database user', 'leedixon_fixapp');
 $dbPass = ask('Database password (not shown as you type)', '', true);
 $url    = ask('Site URL', 'https://fixlisted.com');
-$mail   = ask('Send email from', 'lee@leedixon.com');
-$alert  = ask('Send signup alerts to', $mail);
+$mail   = ask('Send email FROM (the brand address)', 'hello@fixlisted.com');
+$reply  = ask('Replies should go TO', 'lee@leedixon.com');
+$alert  = ask('Send signup alerts to', $reply);
 
 echo "\nMail sending\n";
 echo "If the from-address is on Google Workspace or Microsoft 365, answer yes.\n";
@@ -65,17 +66,38 @@ echo "Sending such mail from this web server fails authentication and the\n";
 echo "recipient's provider drops it silently.\n\n";
 
 $useSmtp = strtolower(substr(ask('Send through SMTP? (y/n)', 'y'), 0, 1)) === 'y';
-$smtp = ['host' => 'smtp.gmail.com', 'port' => 587, 'encryption' => 'tls', 'username' => $mail, 'password' => ''];
+$smtp = ['host' => '', 'port' => 587, 'encryption' => 'tls', 'username' => '', 'password' => ''];
+
+// Hosts for the providers worth using. Picking from the list avoids a typo in
+// a hostname producing a timeout that looks like a firewall problem.
+$providers = [
+    '1' => ['Resend',     'smtp.resend.com',     587, 'resend'],
+    '2' => ['Brevo',      'smtp-relay.brevo.com', 587, null],
+    '3' => ['MailerSend', 'smtp.mailersend.net', 587, null],
+    '4' => ['Postmark',   'smtp.postmarkapp.com', 587, null],
+    '5' => ['Gmail / Google Workspace', 'smtp.gmail.com', 587, null],
+    '6' => ['Something else', '', 587, null],
+];
 
 if ($useSmtp) {
-    $smtp['host']     = ask('SMTP host', 'smtp.gmail.com');
-    $smtp['port']     = (int) ask('SMTP port', '587');
+    echo "\n";
+    foreach ($providers as $k => $p) {
+        printf("  %s. %s%s\n", $k, $p[0], $p[1] !== '' ? '  (' . $p[1] . ')' : '');
+    }
+    echo "\n";
+    $choice = ask('Which provider', '1');
+    $picked = $providers[$choice] ?? $providers['6'];
+
+    $smtp['host']     = $picked[1] !== '' ? $picked[1] : ask('SMTP host', '');
+    $smtp['port']     = (int) ask('SMTP port', (string) $picked[2]);
     // 465 is implicit TLS from the first byte; 587 upgrades with STARTTLS.
     // Getting this backwards produces a timeout rather than a useful error.
     $smtp['encryption'] = $smtp['port'] === 465 ? 'ssl' : 'tls';
-    $smtp['username'] = ask('SMTP username', $mail);
-    echo "\nFor Google this must be an App Password, not your normal password:\n";
-    echo "Google Account > Security > 2-Step Verification > App passwords.\n";
+    // Resend's username is the literal word "resend" for every account; the
+    // API key is the password. Getting this wrong is the usual first failure.
+    $smtp['username'] = ask('SMTP username', $picked[3] ?? $mail);
+    echo "\nThis is the API key or SMTP password from the provider's dashboard,\n";
+    echo "not your login password for that provider.\n";
     // Google shows App Passwords in groups of four; the spaces are cosmetic.
     $smtp['password'] = str_replace(' ', '', ask('SMTP password (not shown as you type)', '', true));
 
@@ -116,6 +138,7 @@ $config = [
     'mail' => [
         'from_address' => $mail,
         'from_name'    => 'Fix Listed',
+        'reply_to'     => $reply,
         'alert_to'     => $alert,
         'transport'    => $useSmtp ? 'smtp' : 'mail',
         'smtp'         => $smtp,

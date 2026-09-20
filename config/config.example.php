@@ -37,9 +37,14 @@ return [
     ],
 
     'mail' => [
-        'from_address' => 'lee@leedixon.com',
+        // The brand sends from here. This domain must be verified with the
+        // mail provider, or nothing will be delivered.
+        'from_address' => 'hello@fixlisted.com',
         'from_name'    => 'Fix Listed',
-        // Where signup alerts go. Same address is fine.
+        // Where replies land. The signup emails ask people to reply, so this
+        // has to be an inbox someone actually reads.
+        'reply_to'     => 'lee@leedixon.com',
+        // Where signup alerts go.
         'alert_to'     => 'lee@leedixon.com',
 
         // 'smtp' or 'mail'.
@@ -56,14 +61,16 @@ return [
         'transport' => 'smtp',
 
         'smtp' => [
-            // Google Workspace / Gmail
-            'host'       => 'smtp.gmail.com',
+            // Resend          smtp.resend.com        username: resend
+            // Brevo           smtp-relay.brevo.com
+            // MailerSend      smtp.mailersend.net
+            // Postmark        smtp.postmarkapp.com
+            'host'       => 'smtp.resend.com',
             'port'       => 587,
             'encryption' => 'tls',             // tls (587) or ssl (465)
-            'username'   => 'lee@leedixon.com',
-            // NOT your normal password. Google requires an App Password:
-            // Google Account > Security > 2-Step Verification > App passwords.
-            // It is 16 characters; spaces in it are ignored.
+            'username'   => 'resend',
+            // The provider's API key or SMTP password — not your login
+            // password for their website.
             'password'   => '',
         ],
     ],

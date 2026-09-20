@@ -27,15 +27,22 @@ final class Mailer
         private readonly string $fromAddress,
         private readonly string $fromName,
         private readonly ?Smtp $smtp = null,
+        // Where replies go, when it differs from the sending address. The
+        // brand sends from hello@fixlisted.com; a person reads the replies
+        // somewhere else. Without this, replying to a transactional email
+        // reaches an address nobody watches.
+        private readonly string $replyToDefault = '',
     ) {
     }
 
     public static function fromConfig(): self
     {
+        $from = (string) Config::get('mail.from_address', 'noreply@fixlisted.com');
         return new self(
-            (string) Config::get('mail.from_address', 'noreply@fixlisted.com'),
+            $from,
             (string) Config::get('mail.from_name', 'Fix Listed'),
             Smtp::fromConfig(),
+            (string) Config::get('mail.reply_to', $from),
         );
     }
 
@@ -88,7 +95,7 @@ final class Mailer
             'MIME-Version: 1.0',
             'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
             'From: ' . $this->encodeName($this->fromName) . ' <' . $this->fromAddress . '>',
-            'Reply-To: ' . ($replyTo ?: $this->fromAddress),
+            'Reply-To: ' . ($replyTo ?: ($this->replyToDefault ?: $this->fromAddress)),
             'X-Mailer: Fix Listed',
             // Transactional mail should not trigger an out-of-office reply.
             'Auto-Submitted: auto-generated',

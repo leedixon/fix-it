@@ -172,10 +172,42 @@ ServerSignature Off
 Options -Indexes +SymLinksIfOwnerMatch
 """
 
+# Search engines stay out until launch. Link-preview crawlers do not.
+#
+# A blanket "User-agent: * / Disallow: /" blocks both, and the second one
+# matters right now: facebookexternalhit obeys robots.txt, so a disallowed
+# page is never fetched, the og: tags are never read, and the link previews as
+# a grey box — which is exactly how this link is being shared to recruit
+# tradespeople.
+#
+# robots.txt resolution picks the single most specific matching user-agent
+# group, so a crawler named below follows its own group and ignores the
+# catch-all entirely. Naming them is the whole mechanism.
+PREVIEW_BOTS = [
+    "facebookexternalhit",   # Facebook, Messenger
+    "facebookcatalog",
+    "Twitterbot",            # X
+    "LinkedInBot",
+    "Slackbot",
+    "Slackbot-LinkExpanding",
+    "WhatsApp",
+    "Discordbot",
+    "TelegramBot",
+    "redditbot",
+    "Applebot",              # iMessage previews
+    "SkypeUriPreview",
+    "Iframely",
+]
+
 ROBOTS = (
     "# Pre-launch. Replace this file the day the real site ships.\n"
-    "User-agent: *\n"
-    "Disallow: /\n"
+    "#\n"
+    "# Link-preview crawlers are allowed on purpose: this URL gets shared, and\n"
+    "# a preview with no image is a wasted share. Search engines are not.\n"
+    "\n"
+    + "".join(f"User-agent: {bot}\nAllow: /\n\n" for bot in PREVIEW_BOTS)
+    + "User-agent: *\n"
+      "Disallow: /\n"
 )
 
 

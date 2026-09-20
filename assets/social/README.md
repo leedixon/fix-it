@@ -48,3 +48,26 @@ After re-rendering, run `python3 prototype/build.py` so the holding page's copy
 is updated too, and re-scrape the URL in
 [Facebook's debugger](https://developers.facebook.com/tools/debug/) — it caches
 the old image for a long time otherwise.
+
+## When the preview shows no image
+
+```bash
+php bin/socialcheck.php https://fixlisted.com/
+```
+
+It fetches the URL with Facebook's own user agent and walks the causes in
+order, because "no image" looks identical from the outside whether it is
+robots.txt, a 403 on the file, a relative `og:image`, or an `index.html` that
+was never rebuilt.
+
+The one that bit first: **`robots.txt` said `Disallow: /`**, and
+`facebookexternalhit` obeys robots.txt. A disallowed page is never fetched at
+all, so the `og:` tags are never read and the file being present on disk makes
+no difference. The generated `robots.txt` now names the preview crawlers and
+allows them, while still keeping search engines out until launch — robots.txt
+resolution picks the most specific matching user-agent group, so a named
+crawler ignores the `*` catch-all entirely.
+
+Facebook then caches the bad result. After fixing anything, open the URL in the
+[sharing debugger](https://developers.facebook.com/tools/debug/) and press
+**Scrape Again**, twice — the first press often just re-reads the cache.

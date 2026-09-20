@@ -1,3 +1,46 @@
 # Pre-launch. Replace this file the day the real site ships.
+#
+# Link-preview crawlers are allowed on purpose: this URL gets shared, and
+# a preview with no image is a wasted share. Search engines are not.
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: facebookcatalog
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: Slackbot-LinkExpanding
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+User-agent: redditbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: SkypeUriPreview
+Allow: /
+
+User-agent: Iframely
+Allow: /
+
 User-agent: *
 Disallow: /

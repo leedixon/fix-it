@@ -70,6 +70,15 @@ $log = ini_get('error_log');
 echo '  php error_log: ' . ($log !== '' && $log !== false ? $log : '(not set — cPanel usually writes error_log in the document root)') . "\n";
 
 echo "\n";
-echo "'accepted' means PHP handed the message off successfully. If nothing arrives\n";
-echo "after that, the message was sent and is being filtered — check spam, and\n";
-echo "check that the from-address domain has an SPF record.\n\n";
+echo "'accepted' only means PHP handed the message off. It does NOT mean anyone\n";
+echo "received it. If nothing arrives, open cPanel > Email > Track Delivery and\n";
+echo "read the 'Delivered To' column for these addresses:\n\n";
+echo "  :blackhole:            the address is an ALIAS THAT DISCARDS MAIL, not a\n";
+echo "                         mailbox. Everything sent to it is accepted and then\n";
+echo "                         thrown away — including replies, which matters because\n";
+echo "                         the signup emails ask people to reply. Fix it in\n";
+echo "                         cPanel > Email Accounts by creating a real mailbox.\n";
+echo "  dovecot_virtual_delivery   a real mailbox. Check it via cPanel webmail.\n";
+echo "  mailchannels_smtp      it left the server for an outside provider. If it\n";
+echo "                         never arrives, it is spam filtering — check the spam\n";
+echo "                         folder, then SPF and DKIM for the sending domain.\n\n";

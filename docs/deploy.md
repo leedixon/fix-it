@@ -226,6 +226,20 @@ mysql -u leedixo_fixapp -p leedixo_fixlisted < database/schema.sql
 mysql -u leedixo_fixapp -p leedixo_fixlisted < database/seed.sql
 ```
 
+### Upgrading a database that already exists
+
+`schema.sql` builds a new database. It will not upgrade one that is already
+installed — it has no `IF NOT EXISTS`, so re-running it stops at the first table that
+exists. Schema changes ship as numbered files in `database/migrations/` instead:
+
+```bash
+mysql -u USER -p DBNAME < database/migrations/001_waitlist.sql
+mysql -u USER -p DBNAME < database/migrations/002_geography.sql
+```
+
+`php bin/check.php` reports the table count, so it tells you whether you are behind.
+A fresh install gets everything from `schema.sql` and needs only `001_waitlist.sql`.
+
 `schema.sql` is intentionally **one-shot** — no `CREATE TABLE IF NOT EXISTS`. Running it
 a second time fails with `ERROR 1050: Table 'markets' already exists`, which means the
 first run worked, not that anything is wrong. A silent run is a successful one; MySQL

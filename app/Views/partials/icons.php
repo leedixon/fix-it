@@ -24,6 +24,11 @@ function icon(string $name, int $size = 16): string
         'user'    => '<circle cx="12" cy="8" r="3.6"/><path d="M5 20c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4"/>',
         'phone'   => '<path d="M5 4h4l2 5-2.4 1.6a12 12 0 005.4 5.4L15.6 14l5 2v4a1 1 0 01-1.1 1A16.5 16.5 0 014 5.1 1 1 0 015 4z"/>',
         'mail'    => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.4 6.2L12 13l8.6-6.8"/>',
+        // Admin navigation.
+        'chart'     => '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M21 20H3"/>',
+        'inbox'     => '<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5 5h14l2 8v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5z"/>',
+        'clipboard' => '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5h6V7H9z"/><path d="M9 12h6M9 16h4"/>',
+        'megaphone' => '<path d="M4 10v4a1 1 0 001 1h3l6 4V5L8 9H5a1 1 0 00-1 1z"/><path d="M18 9.2a4 4 0 010 5.6"/>',
         'star'    => '<path d="M12 3.6l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 17l-5.3 2.8 1.1-5.9L3.5 9.8l5.9-.8z"/>',
 
         // The trades. trades.icon holds these names, so a new trade gets an

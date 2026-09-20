@@ -23,6 +23,16 @@ Roughly in order.
       actually does — the auto-refund sweep must exist before the promise ships.
 - [ ] A real business address and contact route, if Stripe asks for one.
 
+## Administration
+
+- [ ] **Make a real superadmin** — `php bin/admin.php`. The seeded one
+      (`owner@fixlisted.com`) is sample data and its password is published in
+      `database/seed.sql`, so anyone who has read this repository can sign in as
+      it. `bin/demo.php purge` refuses to run until a real admin exists, so this
+      is not optional.
+- [ ] Sign in at `/admin` and approve one application end to end, to confirm
+      the emails arrive.
+
 ## Technical
 
 - [ ] **Move the mount to the document root.** The app derives its base path

@@ -19,7 +19,7 @@ require_once __DIR__ . '/../partials/icons.php';
         later. A profile is free, quoting is free, and what the homeowner pays you is yours.
       </p>
       <div class="hero-cta">
-        <a class="btn btn-primary btn-lg" href="<?= e(url('/contact')) ?>">List your business</a>
+        <a class="btn btn-primary btn-lg" href="<?= e(url('/list-your-business')) ?>">List your business</a>
         <a class="btn btn-onink btn-lg" href="<?= e(url('/jobs')) ?>">See open jobs</a>
       </div>
       <div class="proof">
@@ -129,6 +129,6 @@ require_once __DIR__ . '/../partials/icons.php';
         profile checked and live.
       </p>
     </div>
-    <a class="btn btn-primary btn-lg" href="<?= e(url('/contact')) ?>">List your business</a>
+    <a class="btn btn-primary btn-lg" href="<?= e(url('/list-your-business')) ?>">List your business</a>
   </div>
 </section>

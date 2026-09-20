@@ -86,7 +86,7 @@ $count = count($pros);
                     . ($county['short_name'] ?? $market['name'])
                     . ', a profile is free and you would be the first one listed.';
       $emptyCta     = 'List your business — free';
-      $emptyCtaHref = url('/for-pros');
+      $emptyCtaHref = url('/list-your-business');
       require __DIR__ . '/../partials/empty.php';
       ?>
     <?php else: ?>

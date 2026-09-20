@@ -151,3 +151,45 @@ Cron jobs the install needs:
 job that goes that long with `quote_count = 0`. It is a real financial
 commitment, made per market so it can be tightened in a thin market. Block 8 of
 `verify.sql` is the exact sweep query the cron runs.
+
+
+## The back end
+
+`/admin`, gated in one place: `AdminController::guard()`. Every admin
+controller extends it and calls it first, so "is this person allowed" has one
+implementation rather than a check each new screen has to remember to make.
+
+Roles run narrowest to widest — homeowner, pro, market_admin, superadmin. A
+market admin sees their own market; only a superadmin may change pricing or
+see the market list. A signed-out visitor gets the login page; a signed-in
+tradesperson poking at `/admin` gets a 404, which does not confirm the URL
+exists.
+
+Screens: dashboard, the application queue, tradespeople, jobs, people (with
+the pre-launch waiting list), advertising, markets, and the activity log.
+
+**Reads for the back end live in `AdminRepository`, away from the public
+ones.** The admin deliberately ignores the filters the public repositories
+enforce — it exists to look at suspended profiles and jobs awaiting payment,
+which nothing public may ever show. Keeping both sets of queries in one class
+is how a `status` filter goes missing from a public page.
+
+**Every administrative write is recorded.** `AuditLog` is append-only:
+approvals, suspensions, removals, pricing changes, sign-ins. Nothing in the
+application updates or deletes a row in it. The point is answering "who took
+this listing down, when, and why" months later.
+
+### Applications
+
+A tradesperson applies at `/list-your-business` — no password, no account to
+set up, no email verification loop before they have seen whether it is worth
+it. The write spans four tables and runs as one transaction: a user with no
+profile is an account nobody can use, and a profile with no counties is
+invisible to the directory meant to show it.
+
+Profiles are created `pending_review` and are invisible everywhere public
+until an administrator approves them. Approval is two ticks, not one button:
+the profile carries a licence badge and an insurance badge, each a claim the
+site makes on the administrator's behalf, so each is confirmed separately.
+That is what makes "licence and insurance checked" true rather than
+decorative.

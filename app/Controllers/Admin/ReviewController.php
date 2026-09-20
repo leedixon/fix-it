@@ -1,0 +1,186 @@
+<?php
+declare(strict_types=1);
+
+namespace FixListed\Controllers\Admin;
+
+use FixListed\Core\AdminController;
+use FixListed\Core\Config;
+use FixListed\Core\Mailer;
+use FixListed\Core\NotFound;
+use FixListed\Core\Response;
+use FixListed\Core\Session;
+use FixListed\Core\View;
+use FixListed\Repositories\AdminRepository;
+use FixListed\Repositories\ProApplicationRepository;
+use FixListed\Repositories\ProRepository;
+
+/**
+ * The application queue — the screen this whole back end exists for.
+ *
+ * Approving is not a single button because it is not a single decision: the
+ * profile carries a "licence verified" badge and an "insurance verified"
+ * badge, and each is a claim the site makes on the administrator's behalf.
+ * They are ticked separately, so a pro with a licence but no certificate of
+ * insurance yet can go live honestly rather than with a badge nobody checked.
+ */
+final class ReviewController extends AdminController
+{
+    public function index(): Response
+    {
+        if ($denied = $this->guard()) {
+            return $denied;
+        }
+        $repo = new ProApplicationRepository($this->db, $this->scope);
+
+        return $this->page('admin/applications', [
+            'title'        => 'Applications — Fix Listed admin',
+            'applications' => $repo->pending(),
+            'pending'      => $repo->countPending(),
+        ]);
+    }
+
+    public function show(string $id): Response
+    {
+        if ($denied = $this->guard()) {
+            return $denied;
+        }
+        $repo = new ProApplicationRepository($this->db, $this->scope);
+        $pro  = $repo->find((int) $id);
+        if ($pro === null) {
+            throw new NotFound('application/' . $id);
+        }
+
+        $pros = new ProRepository($this->db, $this->scope);
+
+        return $this->page('admin/application', [
+            'title'       => 'Review: ' . ($pro['business_name'] ?: $pro['first_name'] . ' ' . $pro['last_name']),
+            'pro'         => $pro,
+            'skills'      => $pros->skills((int) $pro['id']),
+            'proCounties' => $pros->counties((int) $pro['id']),
+            'trades'      => $this->tradesFor((int) $pro['id']),
+            'pending'     => $repo->countPending(),
+        ]);
+    }
+
+    public function approve(string $id): Response
+    {
+        if ($denied = $this->guard()) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was changed.');
+            return Response::redirect('/admin/applications/' . (int) $id);
+        }
+
+        $repo = new ProApplicationRepository($this->db, $this->scope);
+        $pro  = $repo->find((int) $id);
+        if ($pro === null) {
+            throw new NotFound('application/' . $id);
+        }
+
+        $licence   = $this->request->input('licence_verified') === '1';
+        $insurance = $this->request->input('insurance_verified') === '1';
+
+        $repo->approve((int) $id, (int) $this->auth->id(), $licence, $insurance);
+        $this->record('pro.approved', 'pro_profile', (int) $id, [
+            'licence_verified'   => $licence,
+            'insurance_verified' => $insurance,
+            'slug'               => $pro['slug'],
+        ]);
+
+        $this->tell($pro, 'approved', '');
+
+        Session::flash('ok', ($pro['business_name'] ?: $pro['first_name'])
+            . ' is live. They have been emailed a link to their profile.');
+        return Response::redirect('/admin/applications');
+    }
+
+    public function reject(string $id): Response
+    {
+        if ($denied = $this->guard()) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was changed.');
+            return Response::redirect('/admin/applications/' . (int) $id);
+        }
+
+        $repo = new ProApplicationRepository($this->db, $this->scope);
+        $pro  = $repo->find((int) $id);
+        if ($pro === null) {
+            throw new NotFound('application/' . $id);
+        }
+
+        $note = trim((string) $this->request->input('note', ''));
+        $repo->reject((int) $id, (int) $this->auth->id(), $note);
+        $this->record('pro.rejected', 'pro_profile', (int) $id, ['note' => $note, 'slug' => $pro['slug']]);
+
+        if ($this->request->input('tell_them') === '1') {
+            $this->tell($pro, 'rejected', $note);
+        }
+
+        Session::flash('ok', 'Application declined and taken out of the queue.');
+        return Response::redirect('/admin/applications');
+    }
+
+    /** @return array<int,string> */
+    private function tradesFor(int $proId): array
+    {
+        return array_column($this->db->all(
+            'SELECT t.name FROM pro_trades pt JOIN trades t ON t.id = pt.trade_id
+              WHERE pt.pro_id = :id ORDER BY pt.is_primary DESC, t.sort_order',
+            ['id' => $proId],
+        ), 'name');
+    }
+
+    /**
+     * Tells the applicant what was decided.
+     *
+     * Wrapped, like every other send: the decision is already committed, and a
+     * mail failure must not leave an approved profile looking un-approved to
+     * the administrator who just approved it.
+     */
+    private function tell(array $pro, string $outcome, string $note): void
+    {
+        try {
+            $mailer = Mailer::fromConfig();
+            $view   = new View(BASE_PATH . '/app/Views');
+            $name   = $pro['business_name'] ?: trim($pro['first_name'] . ' ' . $pro['last_name']);
+
+            if ($outcome === 'approved') {
+                $mailer->send(
+                    (string) $pro['email'],
+                    'You are live on Fix Listed',
+                    $view->render('emails.pro_approved', [
+                        'title'      => 'You are live',
+                        'preheader'  => 'Your profile is published and homeowners can find you.',
+                        'name'       => (string) $pro['first_name'],
+                        'business'   => $name,
+                        'profileUrl' => abs_url('/pros/' . $pro['slug']),
+                        'jobsUrl'    => abs_url('/jobs'),
+                        'market'     => (string) $this->market['name'],
+                    ], 'emails.layout'),
+                    "Your Fix Listed profile is live: " . abs_url('/pros/' . $pro['slug']) . "\n\n"
+                    . "Open jobs in your counties: " . abs_url('/jobs') . "\n",
+                );
+                return;
+            }
+
+            $mailer->send(
+                (string) $pro['email'],
+                'About your Fix Listed application',
+                $view->render('emails.pro_rejected', [
+                    'title'     => 'About your application',
+                    'preheader' => 'We could not list you just yet.',
+                    'name'      => (string) $pro['first_name'],
+                    'note'      => $note,
+                    'replyTo'   => (string) Config::get('mail.reply_to', ''),
+                ], 'emails.layout'),
+                "We could not list you just yet.\n\n" . ($note !== '' ? $note . "\n\n" : '')
+                . "Reply to this email and we will go through it with you.\n",
+            );
+        } catch (\Throwable $e) {
+            error_log('Decision mail failed for pro ' . ($pro['id'] ?? '?') . ': ' . $e->getMessage());
+        }
+    }
+}

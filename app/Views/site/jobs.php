@@ -63,7 +63,7 @@ require_once __DIR__ . '/../partials/icons.php';
           ? 'Nothing in this trade at the moment. The board moves quickly — set up a profile and we will email you when one lands.'
           : 'The board is empty at the moment. Homeowners\' jobs appear here the minute they are posted.';
       $emptyCta     = 'List your business — free';
-      $emptyCtaHref = url('/for-pros');
+      $emptyCtaHref = url('/list-your-business');
       require __DIR__ . '/../partials/empty.php';
       ?>
     <?php else: ?>

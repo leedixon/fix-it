@@ -65,6 +65,24 @@ if ($command !== 'purge') {
 $before = $counts($db);
 $total  = array_sum(array_column($before, 'demo'));
 
+// The seeded superadmin is flagged as sample data, because it is: its password
+// is published in seed.sql. Deleting it is correct — but only once a real one
+// exists, or this command locks you out of your own back end.
+$realAdmins = (int) $db->value(
+    "SELECT COUNT(*) FROM users
+      WHERE role IN ('superadmin','market_admin') AND is_demo = 0 AND status = 'active'"
+);
+$demoAdmins = (int) $db->value(
+    "SELECT COUNT(*) FROM users WHERE role IN ('superadmin','market_admin') AND is_demo = 1"
+);
+
+if ($demoAdmins > 0 && $realAdmins === 0) {
+    fwrite(STDERR, "\nSTOPPED. The only administrator accounts are sample ones, and purging\n");
+    fwrite(STDERR, "would delete them — locking you out of /admin with no way back in.\n\n");
+    fwrite(STDERR, "Make a real one first:\n\n  php bin/admin.php\n\nThen run this again.\n\n");
+    exit(1);
+}
+
 if ($total === 0) {
     echo "Nothing to purge — no rows are flagged as sample data.\n";
     exit(0);

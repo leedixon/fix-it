@@ -171,4 +171,21 @@ final class Auth
         $this->user = null;
         $this->loaded = true;
     }
+
+    /**
+     * Signs the user out but keeps the session.
+     *
+     * For the case where a real account authenticates and then turns out not
+     * to be allowed here: they must not stay signed in, but something has to
+     * survive to tell them why. Session::destroy() throws away the flash
+     * message along with the login, so the person is bounced back to a blank
+     * form with no idea what happened.
+     */
+    public function forgetUser(): void
+    {
+        Session::forget(self::SESSION_KEY);
+        Session::regenerate();
+        $this->user = null;
+        $this->loaded = true;
+    }
 }

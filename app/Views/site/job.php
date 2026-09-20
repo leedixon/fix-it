@@ -77,7 +77,7 @@ $quotes = (int) $job['quote_count'];
       </div>
 
       <div style="padding:18px 20px">
-        <a class="btn btn-primary btn-block" href="<?= e(url('/for-pros')) ?>">Quote this job</a>
+        <a class="btn btn-primary btn-block" href="<?= e(url('/list-your-business')) ?>">Quote this job</a>
         <p class="tiny muted" style="margin-top:10px;text-align:center">
           Free. You need a profile covering this county.
         </p>

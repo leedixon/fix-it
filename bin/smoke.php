@@ -58,7 +58,19 @@ $pros = new ProRepository($db, TenantScope::market($marketId));
 $all  = $pros->directory();
 $slugs = array_column($all, 'slug');
 
-check('directory lists every active pro', count($all) === 10, count($all) . ' pros');
+// Counted, not hard-coded. An assertion against a literal 10 fails the moment
+// a real tradesperson is approved, which is the system working — and a test
+// that cries wolf on success gets ignored on the day it is right.
+$activeInMarket = (int) $db->value(
+    "SELECT COUNT(*) FROM pro_profiles p
+      WHERE p.status = 'active'
+        AND EXISTS (SELECT 1 FROM pro_county_areas a
+                     WHERE a.pro_id = p.id AND a.market_id = :m)",
+    ['m' => $marketId],
+);
+check('directory lists every active pro',
+    count($all) === $activeInMarket,
+    count($all) . ' listed, ' . $activeInMarket . ' active in this market');
 
 // Marcus covers four counties and Karin four. A join would list each of them
 // once per county; EXISTS asks the question the query actually means.
@@ -115,6 +127,64 @@ check('jobs carry their city for the landing pages',
 check('a city page shows only that city\'s jobs',
     count($jobs->inCity((int) $geo->findCity('rockford')['id'])) === 2,
     'Rockford has 2 open jobs');
+
+// --- the listing application, end to end ------------------------------------
+//
+// Creates a real application, checks it is invisible, approves it, checks it
+// is visible, then removes it. The rows are cleaned up in a finally block so a
+// failed assertion cannot leave a fake tradesperson in the directory.
+$applications = new \FixListed\Repositories\ProApplicationRepository($db, TenantScope::market($marketId));
+$probeEmail   = 'smoke-' . bin2hex(random_bytes(4)) . '@example.invalid';
+$created      = null;
+
+try {
+    $created = $applications->create([
+        'first_name' => 'Smoke', 'last_name' => 'Test', 'email' => $probeEmail,
+        'phone' => '(815) 555-0000', 'business_name' => 'Smoke Test Trades',
+        'headline' => 'Automated check', 'bio' => str_repeat('Checking the application path. ', 4),
+        'hourly_rate_cents' => 5000, 'years_experience' => 1,
+        'home_county_id' => $counties['winnebago-il'], 'zip' => '61103',
+        'license_number' => '', 'license_state' => 'IL', 'insurance_carrier' => '',
+        'trade_ids' => [1], 'county_ids' => [$counties['winnebago-il']],
+    ]);
+
+    check('an application lands as pending_review',
+        ($applications->find($created['pro_id'])['status'] ?? '') === 'pending_review');
+
+    check('a pending application is invisible in the directory',
+        !in_array($created['slug'], array_column($pros->directory(), 'slug'), true));
+
+    check('a pending application has no public profile page',
+        $pros->findBySlug($created['slug']) === null);
+
+    check('it is queued for review',
+        in_array($created['pro_id'], array_map('intval', array_column($applications->pending(), 'id')), true));
+
+    $applications->approve($created['pro_id'], 1, true, true);
+
+    check('approving publishes it',
+        in_array($created['slug'], array_column($pros->directory(), 'slug'), true));
+
+    $approved = $pros->findBySlug($created['slug']);
+    check('approving records who verified what',
+        $approved !== null && $approved['license_verified_at'] !== null
+            && $approved['insurance_verified_at'] !== null);
+
+    check('approving clears it from the queue',
+        !in_array($created['pro_id'], array_map('intval', array_column($applications->pending(), 'id')), true));
+
+    $applications->reject($created['pro_id'], 1, 'smoke test');
+    check('suspending takes it back off the directory',
+        !in_array($created['slug'], array_column($pros->directory(), 'slug'), true));
+} finally {
+    if ($created !== null) {
+        // pro_trades, pro_county_areas and moderation_items cascade from these.
+        $db->affected('DELETE FROM moderation_items WHERE subject_type = :t AND subject_id = :i',
+            ['t' => 'pro_profile', 'i' => $created['pro_id']]);
+        $db->affected('DELETE FROM pro_profiles WHERE id = :i', ['i' => $created['pro_id']]);
+        $db->affected('DELETE FROM users WHERE email = :e', ['e' => $probeEmail]);
+    }
+}
 
 // --- the boundary itself ----------------------------------------------------
 final class UnscopedRepo extends Repository

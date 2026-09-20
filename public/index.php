@@ -16,6 +16,12 @@ use FixListed\Controllers\DirectoryController;
 use FixListed\Controllers\HomeController;
 use FixListed\Controllers\JobsController;
 use FixListed\Controllers\PageController;
+use FixListed\Controllers\ProSignupController;
+use FixListed\Controllers\Admin\DashboardController;
+use FixListed\Controllers\Admin\ManageController;
+use FixListed\Controllers\Admin\ReviewController;
+use FixListed\Controllers\Admin\SessionController;
+use FixListed\Core\Auth;
 use FixListed\Core\Config;
 use FixListed\Core\Database;
 use FixListed\Core\NotFound;
@@ -48,6 +54,11 @@ try {
 
     $make = static fn (string $class): object => new $class($db, $scope, $market, $view, $request);
 
+    // Admin controllers take Auth as well; it is the only thing they need
+    // that the public side does not.
+    $auth  = new Auth($db);
+    $admin = static fn (string $class): object => new $class($db, $scope, $market, $view, $request, $auth);
+
     $router = new Router();
     $router->get('/',               static fn () => $make(HomeController::class)->index());
     $router->get('/pros',           static fn () => $make(DirectoryController::class)->index());
@@ -55,11 +66,39 @@ try {
     $router->get('/jobs',           static fn () => $make(JobsController::class)->index());
     $router->get('/jobs/{reference}', static fn (array $p) => $make(JobsController::class)->show($p['reference']));
     $router->get('/in/{slug}',      static fn (array $p) => $make(CityController::class)->show($p['slug']));
+    $router->get('/list-your-business',          static fn () => $make(ProSignupController::class)->form());
+    $router->post('/list-your-business',         static fn () => $make(ProSignupController::class)->submit());
+    $router->get('/list-your-business/received', static fn () => $make(ProSignupController::class)->received());
+
     $router->get('/pricing',        static fn () => $make(PageController::class)->pricing());
     $router->get('/for-pros',       static fn () => $make(PageController::class)->forPros());
     $router->get('/terms',          static fn () => $make(PageController::class)->legal('terms'));
     $router->get('/privacy',        static fn () => $make(PageController::class)->legal('privacy'));
     $router->get('/contact',        static fn () => $make(PageController::class)->contact());
+
+    // --- admin ---------------------------------------------------------
+    // Registered after the public routes but before the match, so nothing
+    // public can shadow them. /admin/login is the only one outside the gate.
+    $router->get('/admin/login',   static fn () => $admin(SessionController::class)->form());
+    $router->post('/admin/login',  static fn () => $admin(SessionController::class)->login());
+    $router->post('/admin/logout', static fn () => $admin(SessionController::class)->logout());
+
+    $router->get('/admin',          static fn () => $admin(DashboardController::class)->index());
+    $router->get('/admin/activity', static fn () => $admin(DashboardController::class)->activity());
+
+    $router->get('/admin/applications',      static fn () => $admin(ReviewController::class)->index());
+    $router->get('/admin/applications/{id}', static fn (array $p) => $admin(ReviewController::class)->show($p['id']));
+    $router->post('/admin/applications/{id}/approve', static fn (array $p) => $admin(ReviewController::class)->approve($p['id']));
+    $router->post('/admin/applications/{id}/reject',  static fn (array $p) => $admin(ReviewController::class)->reject($p['id']));
+
+    $router->get('/admin/pros',                static fn () => $admin(ManageController::class)->pros());
+    $router->post('/admin/pros/{id}/status',   static fn (array $p) => $admin(ManageController::class)->setProStatus($p['id']));
+    $router->get('/admin/jobs',                static fn () => $admin(ManageController::class)->jobs());
+    $router->post('/admin/jobs/{id}/remove',   static fn (array $p) => $admin(ManageController::class)->removeJob($p['id']));
+    $router->get('/admin/users',               static fn () => $admin(ManageController::class)->users());
+    $router->get('/admin/advertising',         static fn () => $admin(ManageController::class)->advertising());
+    $router->get('/admin/markets',             static fn () => $admin(ManageController::class)->markets());
+    $router->post('/admin/markets/{id}',       static fn (array $p) => $admin(ManageController::class)->updateMarket($p['id']));
 
     $matched = $router->match($request);
     if ($matched === null) {

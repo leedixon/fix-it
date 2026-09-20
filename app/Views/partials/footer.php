@@ -28,7 +28,7 @@ require_once __DIR__ . '/icons.php';
       <div>
         <h4>Tradespeople</h4>
         <ul>
-          <li><a href="<?= e(url('/for-pros')) ?>">List your business</a></li>
+          <li><a href="<?= e(url('/list-your-business')) ?>">List your business</a></li>
           <li><a href="<?= e(url('/jobs')) ?>">Open jobs</a></li>
           <li><a href="<?= e(url('/pricing')) ?>">Advertising</a></li>
         </ul>

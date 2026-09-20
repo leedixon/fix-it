@@ -207,7 +207,7 @@ $feeLabel = money($fee);
           : 'The directory is open for listings. If you run a trade business in ' . $market['name']
             . ', a profile is free and takes a few minutes.';
       $emptyCta     = 'List your business — free';
-      $emptyCtaHref = url('/for-pros');
+      $emptyCtaHref = url('/list-your-business');
       require __DIR__ . '/../partials/empty.php';
       ?>
     <?php else: ?>

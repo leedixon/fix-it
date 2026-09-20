@@ -437,3 +437,44 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .jobs-grid .job .btn{margin-left:auto}
 
 @media (max-width:980px){ .jobs-grid{grid-template-columns:1fr} }
+
+/* =========================================================================
+ * Admin.
+ *
+ * Deliberately plainer than the public site: this is a working surface, not
+ * a shop window. Same tokens, so it still looks like the same product, but
+ * denser type and no decoration competing with the data.
+ * ====================================================================== */
+.adm{display:grid;grid-template-columns:210px 1fr;min-height:100vh;align-items:start}
+.adm-side{position:sticky;top:0;height:100vh;background:var(--ink);color:var(--on-ink-2);
+  padding:20px 14px;display:flex;flex-direction:column;gap:22px;overflow-y:auto}
+.adm-side .logo{font-size:18px;color:var(--on-ink);padding-inline:8px}
+.adm-nav{display:flex;flex-direction:column;gap:2px}
+.adm-nav a{padding:8px 10px;border-radius:3px;font-size:14px;display:flex;align-items:center;gap:9px}
+.adm-nav a:hover{background:rgba(255,255,255,.06);color:var(--on-ink)}
+.adm-nav a.on{background:var(--brass-2);color:#0E1513;font-weight:600}
+.adm-nav .count{margin-left:auto;font-family:var(--mono);font-size:11px;background:var(--clay);
+  color:#fff;border-radius:99px;padding:1px 7px;font-weight:600}
+.adm-nav a.on .count{background:#0E1513;color:var(--brass-3)}
+.adm-side .who{margin-top:auto;border-top:1px solid var(--on-ink-line);padding-top:14px;font-size:12.5px}
+.adm-side .who b{display:block;color:var(--on-ink);font-weight:600}
+.adm-main{padding:26px 28px 60px;min-width:0}
+.adm-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.adm-h h1{font-size:27px}
+.adm-h p{color:var(--text-2);font-size:14px;margin-top:5px}
+.adm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.adm-empty{padding:40px 24px;text-align:center;color:var(--text-2);font-size:14.5px}
+td .btn{white-space:nowrap}
+td.wrap-cell{white-space:normal;min-width:220px}
+.adm-review{display:grid;grid-template-columns:1fr 330px;gap:26px;align-items:start}
+.adm-login{min-height:100vh;display:grid;place-items:center;background:var(--ink);padding:24px}
+.adm-login .box{width:100%;max-width:380px;background:var(--paper-3);border-radius:6px;
+  padding:32px;box-shadow:var(--shadow-lift)}
+@media (max-width:860px){
+  .adm{grid-template-columns:1fr}
+  .adm-side{position:static;height:auto;flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px}
+  .adm-nav{flex-direction:row;flex-wrap:wrap}
+  .adm-side .who{margin-top:0;border-top:0;padding-top:0;margin-left:auto}
+  .adm-stats{grid-template-columns:repeat(2,1fr)}
+  .adm-review{grid-template-columns:1fr}
+}

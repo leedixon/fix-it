@@ -122,6 +122,14 @@ A2 shared cPanel has no queue worker and no long-running processes, so:
 - **Mail and SMS go through the `notifications` table**, drained by a one-minute
   cron. A slow SMTP call never blocks a checkout, and a failed send retries
   instead of vanishing.
+- **Transactional mail is sent through the domain's real provider**, not
+  through the web server. Mail sent from this host claiming to come from a
+  domain hosted on Google Workspace fails SPF and DKIM; a domain with a DMARC
+  policy then has those messages **rejected silently** — no bounce, nothing in
+  the spam folder, and nothing on this end to indicate it happened. `Mailer`
+  therefore speaks authenticated SMTP (`app/Core/Smtp.php`) when
+  `mail.transport` is `smtp`, and falls back to `mail()` only where the
+  from-address is a mailbox on this same server.
 - **Counters are denormalised** (`rating_avg`, `quote_count`, `jobs_completed`)
   and rebuilt nightly. Reads stay cheap.
 - **The PDO connection must set `charset=utf8mb4`.** Without it the client

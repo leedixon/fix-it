@@ -15,6 +15,10 @@ declare(strict_types=1);
 
 $root = dirname(__DIR__);
 $target = $root . '/config/config.php';
+$failed = false;
+
+require_once $root . '/app/Core/Config.php';
+require_once $root . '/app/Core/Smtp.php';
 
 function ask(string $label, string $default = '', bool $hidden = false): string
 {
@@ -55,6 +59,32 @@ $url    = ask('Site URL', 'https://fixlisted.com');
 $mail   = ask('Send email from', 'lee@leedixon.com');
 $alert  = ask('Send signup alerts to', $mail);
 
+echo "\nMail sending\n";
+echo "If the from-address is on Google Workspace or Microsoft 365, answer yes.\n";
+echo "Sending such mail from this web server fails authentication and the\n";
+echo "recipient's provider drops it silently.\n\n";
+
+$useSmtp = strtolower(substr(ask('Send through SMTP? (y/n)', 'y'), 0, 1)) === 'y';
+$smtp = ['host' => 'smtp.gmail.com', 'port' => 587, 'encryption' => 'tls', 'username' => $mail, 'password' => ''];
+
+if ($useSmtp) {
+    $smtp['host']     = ask('SMTP host', 'smtp.gmail.com');
+    $smtp['port']     = (int) ask('SMTP port', '587');
+    // 465 is implicit TLS from the first byte; 587 upgrades with STARTTLS.
+    // Getting this backwards produces a timeout rather than a useful error.
+    $smtp['encryption'] = $smtp['port'] === 465 ? 'ssl' : 'tls';
+    $smtp['username'] = ask('SMTP username', $mail);
+    echo "\nFor Google this must be an App Password, not your normal password:\n";
+    echo "Google Account > Security > 2-Step Verification > App passwords.\n";
+    // Google shows App Passwords in groups of four; the spaces are cosmetic.
+    $smtp['password'] = str_replace(' ', '', ask('SMTP password (not shown as you type)', '', true));
+
+    if ($smtp['password'] === '') {
+        fwrite(STDERR, "\nSMTP was chosen but no password given. Nothing was written.\n");
+        exit(1);
+    }
+}
+
 if ($dbPass === '') {
     fwrite(STDERR, "\nA database password is required. Nothing was written.\n");
     exit(1);
@@ -87,6 +117,8 @@ $config = [
         'from_address' => $mail,
         'from_name'    => 'Fix Listed',
         'alert_to'     => $alert,
+        'transport'    => $useSmtp ? 'smtp' : 'mail',
+        'smtp'         => $smtp,
     ],
 ];
 
@@ -130,8 +162,38 @@ try {
         . "  mysql -u {$dbUser} -p {$dbName} < database/seed.sql\n"
         . "  php bin/check.php\n\n";
 } catch (Throwable $e) {
-    echo "\nThe file is valid, but the database refused those credentials:\n";
+    echo "\nThe database refused those credentials:\n";
     echo '  ' . $e->getMessage() . "\n";
     echo "Check the password, and that the user is added to the database with ALL PRIVILEGES.\n\n";
-    exit(1);
+    $failed = true;
 }
+
+// Checked separately from the database on purpose: a database problem must not
+// hide a mail problem, and either one alone is worth knowing about.
+if ($useSmtp) {
+    echo "Checking SMTP…\n";
+    try {
+        \FixListed\Core\Config::load($config);
+        $client = new \FixListed\Core\Smtp(
+            $smtp['host'], $smtp['port'], $smtp['username'], $smtp['password'], $smtp['encryption']
+        );
+        $probe = $client->send(
+            $mail,
+            $mail,
+            "To: {$mail}\r\nSubject: Fix Listed SMTP check\r\n\r\nSMTP is configured correctly.\r\n",
+        );
+        if ($probe) {
+            echo "SMTP works. A test message is on its way to {$mail}.\n\n";
+        } else {
+            echo "SMTP FAILED. The reason is in the error log. A 535 means the\n"
+               . "password was refused — with Google that means an App Password\n"
+               . "is required rather than your normal one.\n\n";
+            $failed = true;
+        }
+    } catch (Throwable $e) {
+        echo '  ' . $e->getMessage() . "\n\n";
+        $failed = true;
+    }
+}
+
+exit($failed ? 1 : 0);

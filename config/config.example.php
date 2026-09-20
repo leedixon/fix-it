@@ -37,13 +37,34 @@ return [
     ],
 
     'mail' => [
-        // Sending FROM a domain with no SPF record is the fastest route to a
-        // spam folder. fixlisted.com's DNS lives at the registrar, so cPanel's
-        // mail records do not apply to it — until an SPF TXT record exists
-        // there, send from a domain whose email is already established.
         'from_address' => 'lee@leedixon.com',
         'from_name'    => 'Fix Listed',
         // Where signup alerts go. Same address is fine.
         'alert_to'     => 'lee@leedixon.com',
+
+        // 'smtp' or 'mail'.
+        //
+        // Use 'smtp' whenever the from_address belongs to a domain whose email
+        // is hosted somewhere else — Google Workspace, Microsoft 365. Mail sent
+        // by this web server claiming to come from such a domain fails SPF and
+        // DKIM, and a domain with a DMARC policy has it rejected silently: no
+        // bounce, nothing in spam, and no way to tell from here that it
+        // happened. Sending through the provider fixes it properly.
+        //
+        // 'mail' is fine only when the from_address is a mailbox on this
+        // same server.
+        'transport' => 'smtp',
+
+        'smtp' => [
+            // Google Workspace / Gmail
+            'host'       => 'smtp.gmail.com',
+            'port'       => 587,
+            'encryption' => 'tls',             // tls (587) or ssl (465)
+            'username'   => 'lee@leedixon.com',
+            // NOT your normal password. Google requires an App Password:
+            // Google Account > Security > 2-Step Verification > App passwords.
+            // It is 16 characters; spaces in it are ignored.
+            'password'   => '',
+        ],
     ],
 ];

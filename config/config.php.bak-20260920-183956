@@ -1,0 +1,39 @@
+<?php
+/**
+ * Fix Listed — configuration.
+ *
+ * Written by bin/configure.php on 20 Sep 2026.
+ * Gitignored. Never commit this file. Re-run bin/configure.php to rebuild it.
+ */
+
+return array (
+  'app' => 
+  array (
+    'name' => 'Fix Listed',
+    'url' => 'http://localhost:8080',
+    'env' => 'production',
+    'timezone' => 'America/Chicago',
+    'key' => '3592150bf1192b81263c64912f6d5beb8ed469512ac507a8988016c2df30eb92',
+  ),
+  'db' => 
+  array (
+    'host' => 'localhost',
+    'port' => 3306,
+    'name' => 'fixlisted',
+    'user' => 'fixapp',
+    'pass' => 'localtest',
+    'charset' => 'utf8mb4',
+  ),
+  'stripe' => 
+  array (
+    'publishable_key' => '',
+    'secret_key' => '',
+    'webhook_secret' => '',
+  ),
+  'mail' => 
+  array (
+    'from_address' => 'lee@leedixon.com',
+    'from_name' => 'Fix Listed',
+    'alert_to' => 'lee@leedixon.com',
+  ),
+);

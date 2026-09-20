@@ -45,8 +45,9 @@ echo "\n--- 2. what addresses are configured? ---\n";
 printf("  from:     %s\n", (string) Config::get('mail.from_address'));
 printf("  alert to: %s\n", (string) Config::get('mail.alert_to'));
 printf("  testing:  %s\n", $to);
+printf("  transport: %s\n", Mailer::fromConfig()->transport());
 
-echo "\n--- 3. will PHP hand a message to the mail system? ---\n";
+echo "\n--- 3. will the message actually send? ---\n";
 $plain = @mail($to, 'Fix Listed plain test', "If you are reading this, mail() works.\n",
     'From: ' . Config::get('mail.from_address'));
 echo '  bare mail(): ' . ($plain ? 'accepted' : 'REFUSED — the local mail system rejected it') . "\n";

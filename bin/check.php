@@ -61,6 +61,18 @@ $from = (string) Config::get('mail.from_address', '');
 line($from !== '' && filter_var($from, FILTER_VALIDATE_EMAIL) !== false, 'mail.from_address is a valid address', $from);
 line((string) Config::get('mail.alert_to', '') !== '', 'mail.alert_to is set (signup alerts go here)', (string) Config::get('mail.alert_to', ''));
 
+$transport = (string) Config::get('mail.transport', 'mail');
+if ($transport === 'smtp') {
+    $host = (string) Config::get('mail.smtp.host', '');
+    $pass = (string) Config::get('mail.smtp.password', '');
+    line($host !== '' && $pass !== '', 'SMTP is configured', $host !== '' ? $host : 'no host set');
+} else {
+    // Sending as a domain hosted elsewhere is the failure that looks like
+    // nothing happening at all: no bounce, nothing in spam.
+    line(true, "mail.transport is 'mail'",
+        'fine only if ' . $from . ' is a mailbox on THIS server — otherwise use smtp');
+}
+
 // --- database ---------------------------------------------------------------
 try {
     $db = Database::fromConfig();

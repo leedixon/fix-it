@@ -19,6 +19,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/app/bootstrap.php';
 
 const UA_FACEBOOK = 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)';
+const UA_BROWSER  = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 
 $url = $argv[1] ?? 'https://fixlisted.com/';
 if (!filter_var($url, FILTER_VALIDATE_URL)) {
@@ -118,6 +119,10 @@ if ($robots['status'] === 404) {
 } elseif ($robots['status'] !== 200) {
     $say(false, 'robots.txt returned ' . $robots['status']);
 } else {
+    $named = str_contains(strtolower($robots['body']), 'facebookexternalhit');
+    $say($named, 'robots.txt names facebookexternalhit',
+        $named ? '' : 'this is the OLD file — the new one was not copied to the document root');
+
     $fb = robotsAllows($robots['body'], 'facebookexternalhit', $path);
     $say($fb !== false, 'facebookexternalhit may fetch ' . $path,
         $fb === false
@@ -129,10 +134,40 @@ if ($robots['status'] === 404) {
     }
 }
 
-// --- 2. the page ------------------------------------------------------------
+// --- 2. the page, as Facebook and as a browser ------------------------------
+//
+// Fetched twice on purpose. Facebook's debugger reports a robots.txt block and
+// a server-side refusal identically, as "Response Code 403" with a boilerplate
+// line suggesting robots.txt — so the only way to tell them apart from outside
+// is to ask the server the same question twice and change only the user agent.
+//
+//   both 200          nothing is refusing the crawler
+//   both 403          the server refuses everyone (permissions, or an .htaccess)
+//   browser 200, FB 403   the host is blocking the crawler by user agent,
+//                         which on a shared cPanel host is mod_security or
+//                         Imunify360, and no robots.txt edit will touch it
 echo "\n2. the page\n";
-$page = fetch($url);
-$say($page['status'] === 200, 'page returns 200', $page['status'] !== 200 ? 'got ' . $page['status'] : '');
+$page    = fetch($url);
+$browser = fetch($url, UA_BROWSER);
+
+$say($page['status'] === 200, 'page returns 200 to facebookexternalhit',
+    $page['status'] !== 200 ? 'got ' . $page['status'] : '');
+
+if ($page['status'] !== $browser['status']) {
+    echo "\n";
+    echo "       A browser gets {$browser['status']} and Facebook gets {$page['status']}.\n";
+    echo "       The server is treating the crawler differently by user agent.\n";
+    echo "       That is not robots.txt — it is a security rule on the host.\n";
+    echo "       On A2 this is mod_security or Imunify360. Ask support to\n";
+    echo "       allow facebookexternalhit for fixlisted.com, or find the\n";
+    echo "       triggered rule id in cPanel > Security > ModSecurity Tools.\n\n";
+} elseif ($page['status'] === 403) {
+    echo "\n";
+    echo "       Both a browser and the crawler get 403, so nothing is\n";
+    echo "       crawler-specific. Check that index.html is readable\n";
+    echo "       (chmod 644) and that .htaccess in the document root parses.\n\n";
+}
+
 if ($page['final'] !== $url) {
     echo "       redirected to {$page['final']}\n";
 }

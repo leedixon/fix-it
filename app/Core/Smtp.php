@@ -148,7 +148,17 @@ final class Smtp
         $last   = error_get_last();
         $detail = $last !== null ? trim(strip_tags($last['message'])) : '';
         $hint   = '';
-        if (str_contains($detail, 'certificate verify failed')) {
+        if (str_contains($detail, 'did not match expected CN')) {
+            // The server answered with a certificate for a hostname nobody
+            // asked for — almost always the host's own mail filter sitting on
+            // outbound port 587. A proxy cannot present the real provider's
+            // certificate, so the handshake can never succeed here. Nothing in
+            // the account is wrong; the route is.
+            $hint = ' — this host is intercepting outbound SMTP: the certificate belongs to the '
+                  . 'web host, not to ' . $this->host . '. No password or CA bundle change fixes that. '
+                  . 'Re-run php bin/configure.php and choose the HTTPS API transport, which goes out '
+                  . 'over port 443 and is not proxied.';
+        } elseif (str_contains($detail, 'certificate verify failed')) {
             $hint = ' — this server cannot verify the certificate chain, usually a missing or '
                   . 'stale CA bundle. Check openssl.cafile in php.ini, or ask the host to update ca-certificates.';
         } elseif (str_contains($detail, 'protocol') || str_contains($detail, 'version')) {

@@ -4,10 +4,14 @@ declare(strict_types=1);
 namespace FixListed\Core;
 
 /**
- * Sends multipart/alternative mail, either through authenticated SMTP or
- * through PHP's mail().
+ * Sends multipart/alternative mail through one of three transports: the
+ * provider's HTTPS API, authenticated SMTP, or PHP's mail().
  *
- * SMTP is strongly preferred. Mail sent by the web server claiming to come
+ * The API is preferred on this install, because the host intercepts outbound
+ * SMTP — see MailApi for the certificate mismatch that proves it. SMTP remains
+ * supported for a host that leaves port 587 alone.
+ *
+ * Either beats mail(). Mail sent by the web server claiming to come
  * from a domain hosted elsewhere fails SPF and DKIM, and a domain with a DMARC
  * policy has those messages rejected outright — with no bounce and nothing in
  * the spam folder, so it looks exactly like the code never ran. Sending
@@ -27,6 +31,7 @@ final class Mailer
         private readonly string $fromAddress,
         private readonly string $fromName,
         private readonly ?Smtp $smtp = null,
+        private readonly ?MailApi $api = null,
         // Where replies go, when it differs from the sending address. The
         // brand sends from hello@fixlisted.com; a person reads the replies
         // somewhere else. Without this, replying to a transactional email
@@ -42,13 +47,23 @@ final class Mailer
             $from,
             (string) Config::get('mail.from_name', 'Fix Listed'),
             Smtp::fromConfig(),
+            MailApi::fromConfig(),
             (string) Config::get('mail.reply_to', $from),
         );
     }
 
     public function transport(): string
     {
+        if ($this->api !== null) {
+            return 'api (https)';
+        }
         return $this->smtp !== null ? 'smtp' : 'mail()';
+    }
+
+    /** Why the last send failed, when the transport can say. */
+    public function lastError(): string
+    {
+        return $this->api?->lastError() ?? '';
     }
 
     public function send(
@@ -60,6 +75,19 @@ final class Mailer
     ): bool {
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
             return false;
+        }
+
+        // The API takes the message as fields and builds the MIME itself, so
+        // none of the assembly below applies to it.
+        if ($this->api !== null) {
+            return $this->api->send(
+                $this->encodeName($this->fromName) . ' <' . $this->fromAddress . '>',
+                [$to],
+                $subject,
+                $html,
+                $text,
+                $replyTo ?: ($this->replyToDefault ?: $this->fromAddress),
+            );
         }
 
         $boundary = 'fl_' . bin2hex(random_bytes(12));

@@ -19,6 +19,7 @@ $failed = false;
 
 require_once $root . '/app/Core/Config.php';
 require_once $root . '/app/Core/Smtp.php';
+require_once $root . '/app/Core/MailApi.php';
 
 function ask(string $label, string $default = '', bool $hidden = false): string
 {
@@ -61,12 +62,25 @@ $reply  = ask('Replies should go TO', 'lee@leedixon.com');
 $alert  = ask('Send signup alerts to', $reply);
 
 echo "\nMail sending\n";
-echo "If the from-address is on Google Workspace or Microsoft 365, answer yes.\n";
-echo "Sending such mail from this web server fails authentication and the\n";
-echo "recipient's provider drops it silently.\n\n";
+echo "Mail for fixlisted.com is not hosted on this server, so anything sent\n";
+echo "by the web server itself fails SPF and DKIM and is dropped silently.\n";
+echo "It has to go through the provider that holds the domain.\n\n";
+echo "  1. Resend, over its HTTPS API   (recommended — port 443)\n";
+echo "  2. SMTP                          (a provider and password)\n";
+echo "  3. This server's mail()          (only if the from-address is a mailbox here)\n\n";
+echo "Choose 1 unless you have a reason not to. This host intercepts outbound\n";
+echo "SMTP with its own mail filter, which breaks the TLS handshake before any\n";
+echo "password is even sent. Port 443 is not intercepted.\n\n";
 
-$useSmtp = strtolower(substr(ask('Send through SMTP? (y/n)', 'y'), 0, 1)) === 'y';
+$transport = ask('Which one', '1');
+$transport = match ($transport) {
+    '2'     => 'smtp',
+    '3'     => 'mail',
+    default => 'api',
+};
+
 $smtp = ['host' => '', 'port' => 587, 'encryption' => 'tls', 'username' => '', 'password' => ''];
+$api  = ['key' => ''];
 
 // Hosts for the providers worth using. Picking from the list avoids a typo in
 // a hostname producing a timeout that looks like a firewall problem.
@@ -79,7 +93,18 @@ $providers = [
     '6' => ['Something else', '', 587, null],
 ];
 
-if ($useSmtp) {
+if ($transport === 'api') {
+    echo "\nThe API key from resend.com/api-keys — it starts with re_ and needs\n";
+    echo "Sending access. This is not your Resend login password.\n";
+    $api['key'] = trim(ask('Resend API key (not shown as you type)', '', true));
+
+    if ($api['key'] === '') {
+        fwrite(STDERR, "\nThe API transport was chosen but no key given. Nothing was written.\n");
+        exit(1);
+    }
+}
+
+if ($transport === 'smtp') {
     echo "\n";
     foreach ($providers as $k => $p) {
         printf("  %s. %s%s\n", $k, $p[0], $p[1] !== '' ? '  (' . $p[1] . ')' : '');
@@ -140,8 +165,9 @@ $config = [
         'from_name'    => 'Fix Listed',
         'reply_to'     => $reply,
         'alert_to'     => $alert,
-        'transport'    => $useSmtp ? 'smtp' : 'mail',
+        'transport'    => $transport,
         'smtp'         => $smtp,
+        'api'          => $api,
     ],
 ];
 
@@ -193,10 +219,39 @@ try {
 
 // Checked separately from the database on purpose: a database problem must not
 // hide a mail problem, and either one alone is worth knowing about.
-if ($useSmtp) {
+if ($transport !== 'mail') {
+    // Smtp reads app.url for its HELO name, so the config has to be live
+    // before either probe runs.
+    \FixListed\Core\Config::load($config);
+}
+
+if ($transport === 'api') {
+    echo "Checking the Resend API…\n";
+    try {
+        $client = new \FixListed\Core\MailApi($api['key']);
+        $probe  = $client->send(
+            'Fix Listed <' . $mail . '>',
+            [$mail],
+            'Fix Listed API check',
+            '<p>The HTTPS API transport is configured correctly.</p>',
+            "The HTTPS API transport is configured correctly.\n",
+            $reply,
+        );
+        if ($probe) {
+            echo "The API works. A test message is on its way to {$mail}.\n\n";
+        } else {
+            echo "The API REFUSED the message:\n  " . $client->lastError() . "\n\n";
+            $failed = true;
+        }
+    } catch (Throwable $e) {
+        echo '  ' . $e->getMessage() . "\n\n";
+        $failed = true;
+    }
+}
+
+if ($transport === 'smtp') {
     echo "Checking SMTP…\n";
     try {
-        \FixListed\Core\Config::load($config);
         $client = new \FixListed\Core\Smtp(
             $smtp['host'], $smtp['port'], $smtp['username'], $smtp['password'], $smtp['encryption']
         );
@@ -212,7 +267,10 @@ if ($useSmtp) {
                . "  535 ............... the password was refused. For Resend the\n"
                . "                      username is the literal word 'resend' and the\n"
                . "                      password is the API key.\n"
-               . "  STARTTLS failed ... a TLS problem, not a password problem.\n"
+               . "  STARTTLS failed ... a TLS problem, not a password problem. If it\n"
+               . "                      names a certificate belonging to a2hosting.com,\n"
+               . "                      this host is proxying outbound SMTP: re-run this\n"
+               . "                      script and choose option 1, the HTTPS API.\n"
                . "  cannot reach ...... outbound port blocked, or wrong host.\n\n";
             $failed = true;
         }

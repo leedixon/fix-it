@@ -47,18 +47,31 @@ return [
         // Where signup alerts go.
         'alert_to'     => 'lee@leedixon.com',
 
-        // 'smtp' or 'mail'.
+        // 'api', 'smtp' or 'mail'.
         //
-        // Use 'smtp' whenever the from_address belongs to a domain whose email
-        // is hosted somewhere else — Google Workspace, Microsoft 365. Mail sent
-        // by this web server claiming to come from such a domain fails SPF and
-        // DKIM, and a domain with a DMARC policy has it rejected silently: no
-        // bounce, nothing in spam, and no way to tell from here that it
-        // happened. Sending through the provider fixes it properly.
+        // Use 'api' or 'smtp' whenever the from_address belongs to a domain
+        // whose email is hosted somewhere else — Google Workspace, Microsoft
+        // 365, or a sending provider. Mail sent by this web server claiming to
+        // come from such a domain fails SPF and DKIM, and a domain with a
+        // DMARC policy has it rejected silently: no bounce, nothing in spam,
+        // and no way to tell from here that it happened. Sending through the
+        // provider fixes it properly.
+        //
+        // 'api' is the one to use on this install. A2 intercepts outbound SMTP
+        // with its own mail filter, which answers the TLS handshake with A2's
+        // certificate instead of the provider's, so port 587 and 465 cannot
+        // work from here no matter what credentials are set. The API goes out
+        // over ordinary HTTPS on port 443, which is not proxied.
         //
         // 'mail' is fine only when the from_address is a mailbox on this
         // same server.
-        'transport' => 'smtp',
+        'transport' => 'api',
+
+        'api' => [
+            // resend.com/api-keys — starts with re_, needs Sending access.
+            // Not your Resend login password.
+            'key' => '',
+        ],
 
         'smtp' => [
             // Resend          smtp.resend.com        username: resend

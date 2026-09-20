@@ -65,6 +65,11 @@ $html = $view->render('emails.waitlist_pro', [
 
 $sent = $mailer->send($to, 'Fix Listed — delivery test', $html, "Delivery test.\n");
 echo '  templated send: ' . ($sent ? 'accepted' : 'REFUSED') . "\n";
+// The API transport knows why it was refused; SMTP puts its reason in the
+// error log. Printing it here saves a round trip through the log file.
+if (!$sent && $mailer->lastError() !== '') {
+    echo '  reason: ' . $mailer->lastError() . "\n";
+}
 
 echo "\n--- 4. where errors are recorded ---\n";
 $log = ini_get('error_log');

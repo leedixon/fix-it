@@ -25,11 +25,38 @@ to identify because every layer reported success.
 Sending through a provider that has verified your domain makes the message
 genuinely authentic rather than claiming to be.
 
+## Why not SMTP either, on this host
+
+**A2 intercepts outbound SMTP.** Connecting to `smtp.resend.com:587` from this
+server does not reach Resend: it reaches A2's own mail filter, which answers
+the `STARTTLS` upgrade with A2's certificate.
+
+```
+STARTTLS negotiation failed: Peer certificate CN=`az1-ts106.a2hosting.com'
+did not match expected CN=`smtp.resend.com'
+```
+
+That message is conclusive. A proxy has no way to present someone else's
+certificate, so the handshake cannot be made to succeed — not with a different
+password, not with a fresh CA bundle, not on port 465. It is also consistent
+with what Track Delivery showed earlier: outbound mail routed through
+`send_via_mailchannels`, A2's own relay.
+
+So this install sends over **Resend's HTTPS API on port 443**, which no host
+proxies — doing so would break every outbound HTTPS request the server makes.
+Same provider, same account, same API key, a route the host does not sit in the
+middle of. That is `app/Core/MailApi.php`, and `'transport' => 'api'`.
+
+`app/Core/Smtp.php` stays in the tree and still works. It is the right
+transport on a host that leaves port 587 alone, and this one may not always
+intercept it.
+
 ## Setting up a provider
 
-Any SMTP provider works — `app/Core/Smtp.php` is provider-agnostic. Resend,
-Brevo, MailerSend and Postmark all have free tiers well beyond what a launching
-directory sends.
+Resend is what this install uses, because of the API route above. Brevo,
+MailerSend and Postmark are all fine over SMTP on a host that permits it —
+`app/Core/Smtp.php` is provider-agnostic. All have free tiers well beyond what
+a launching directory sends.
 
 ### 1. Create an account and add the domain
 
@@ -46,12 +73,15 @@ Cloudflare).
 
 Then wait for the provider to show the domain as **Verified**. Usually minutes.
 
-### 3. Get the SMTP credentials
+### 3. Get the API key
 
-From the provider's dashboard. Note the username is not always your email
-address — Resend uses the literal string `resend` as the username, with the API
-key as the password. Getting that wrong produces an authentication failure that
-reads like a wrong password.
+Resend → **API Keys** → create one with **Sending access**. It starts with
+`re_`. It is shown once; if you lose it, make a new one rather than hunting for
+it.
+
+Over SMTP the same key is the password, and the username is the literal string
+`resend` — not your email address. Getting that wrong produces an
+authentication failure that reads like a wrong password.
 
 ### 4. Configure and test
 
@@ -60,9 +90,12 @@ cd ~/fixlisted
 php bin/configure.php
 ```
 
-It asks for the provider, the credentials, and three addresses, then **sends a
-test message and tells you whether it worked** before you find out from a
-failed signup.
+Choose **1 — Resend, over its HTTPS API** at the transport prompt. It then asks
+for the key and the three addresses, and **sends a test message and tells you
+whether it worked** before you find out from a failed signup.
+
+Nothing is typed into a config file by hand, and the key is never echoed to the
+screen or written to shell history.
 
 ## The three addresses, and why they differ
 
@@ -94,6 +127,11 @@ an alias configured to discard, not a mailbox.
 
 ## Known traps on this install
 
+- **Outbound SMTP is proxied** (above). Port 587 and 465 both terminate at
+  A2's filter, so any SMTP provider fails the TLS handshake here. Use the API
+  transport. `bin/configure.php` and `Smtp::startTls()` both name this
+  specifically when they see A2's certificate, so the failure does not read as
+  a password problem.
 - **`lee@leedixon.com` is Google Workspace**, not a cPanel mailbox. cPanel
   initially treated leedixon.com as a local domain and delivered mail to it
   internally, where no such mailbox existed, so it was discarded. Fixed by

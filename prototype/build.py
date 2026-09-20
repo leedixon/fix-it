@@ -114,7 +114,11 @@ RewriteRule . /index.html [L]
 </IfModule>
 
 ServerSignature Off
-Options -Indexes
+
+# -Indexes so a directory without an index file does not list its contents.
+# +SymLinksIfOwnerMatch so the /preview symlink resolves; it is the safe form,
+# following a link only when the link and its target share an owner.
+Options -Indexes +SymLinksIfOwnerMatch
 """
 
 HTACCESS_MAINTENANCE = """# Fix Listed — pre-launch holding page.
@@ -127,6 +131,13 @@ RewriteRule ^\\.well-known/ - [L]
 
 # The waitlist endpoint is a real script and must run, not be rewritten away.
 RewriteRule ^signup\\.php$ - [L]
+
+# /preview is the site being built, mounted here as a symlink to the app's
+# public/ directory. Its own .htaccess routes everything under it, so this
+# rule has to stop Apache rewriting those paths to the holding page first —
+# /preview/pros is not a file on disk, and without this it would be swallowed
+# by the catch-all below.
+RewriteRule ^preview(/|$) - [L]
 
 RewriteCond %{HTTPS} !=on
 RewriteCond %{HTTP:X-Forwarded-Proto} !https
@@ -149,7 +160,11 @@ RewriteRule . /index.html [L]
 </IfModule>
 
 ServerSignature Off
-Options -Indexes
+
+# -Indexes so a directory without an index file does not list its contents.
+# +SymLinksIfOwnerMatch so the /preview symlink resolves; it is the safe form,
+# following a link only when the link and its target share an owner.
+Options -Indexes +SymLinksIfOwnerMatch
 """
 
 ROBOTS = (

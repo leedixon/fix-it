@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FixListed\Repositories;
 
+use FixListed\Core\Demo;
 use FixListed\Core\Repository;
 
 final class JobRepository extends Repository
@@ -25,9 +26,10 @@ final class JobRepository extends Repository
     public function board(?int $tradeId = null, int $limit = 50): array
     {
         $tradeFilter = $tradeId !== null ? 'AND j.trade_id = :trade_id' : '';
+        $demoFilter  = Demo::filter('j');
 
         return $this->scopedAll(
-            "SELECT j.id, j.reference, j.title, j.description, j.zip, j.urgency,
+            "SELECT j.id, j.reference, j.title, j.description, j.zip, j.urgency, j.is_demo,
                     j.budget_min_cents, j.budget_max_cents, j.quote_count,
                     j.published_at, t.name AS trade_name, t.slug AS trade_slug,
                     ci.name AS city_name, ci.slug AS city_slug, co.short_name AS county_name
@@ -37,6 +39,7 @@ final class JobRepository extends Repository
                LEFT JOIN counties co ON co.id = j.county_id
               WHERE j.market_id = :market_id
                 AND j.status = 'active'
+                {$demoFilter}
                 {$tradeFilter}
               ORDER BY j.published_at DESC
               LIMIT {$limit}",
@@ -46,6 +49,8 @@ final class JobRepository extends Repository
 
     public function findByReference(string $reference): ?array
     {
+        $demoFilter = Demo::filter('j');
+
         return $this->scopedOne(
             "SELECT j.*, t.name AS trade_name
                FROM jobs j
@@ -53,6 +58,7 @@ final class JobRepository extends Repository
               WHERE j.market_id = :market_id
                 AND j.reference = :reference
                 AND j.status = 'active'
+                {$demoFilter}
               LIMIT 1",
             ['reference' => $reference],
         );
@@ -61,8 +67,10 @@ final class JobRepository extends Repository
     /** Open jobs in one city — what a city landing page shows. */
     public function inCity(int $cityId, int $limit = 20): array
     {
+        $demoFilter = Demo::filter('j');
+
         return $this->scopedAll(
-            "SELECT j.id, j.reference, j.title, j.zip, j.urgency, j.quote_count,
+            "SELECT j.id, j.reference, j.title, j.zip, j.urgency, j.quote_count, j.is_demo,
                     j.budget_min_cents, j.budget_max_cents, j.published_at,
                     t.name AS trade_name
                FROM jobs j
@@ -70,6 +78,7 @@ final class JobRepository extends Repository
               WHERE j.market_id = :market_id
                 AND j.city_id = :city_id
                 AND j.status = 'active'
+                {$demoFilter}
               ORDER BY j.published_at DESC
               LIMIT {$limit}",
             ['city_id' => $cityId],
@@ -78,8 +87,11 @@ final class JobRepository extends Repository
 
     public function countOpen(): int
     {
+        $demoFilter = Demo::filter('j');
+
         return (int) $this->scopedValue(
-            "SELECT COUNT(*) FROM jobs WHERE market_id = :market_id AND status = 'active'"
+            "SELECT COUNT(*) FROM jobs j
+              WHERE j.market_id = :market_id AND j.status = 'active' {$demoFilter}"
         );
     }
 }

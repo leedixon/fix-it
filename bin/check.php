@@ -39,6 +39,7 @@ require $root . '/app/bootstrap.php';
 
 use FixListed\Core\Config;
 use FixListed\Core\Database;
+use FixListed\Core\Demo;
 
 // --- values -----------------------------------------------------------------
 foreach (['db.name', 'db.user', 'app.url'] as $key) {
@@ -75,6 +76,15 @@ if ($transport === 'api') {
     line(true, "mail.transport is 'mail'",
         'fine only if ' . $from . ' is a mailbox on THIS server — otherwise use api');
 }
+
+// Seeded listings are invented businesses. Which mode is on decides whether a
+// visitor sees them, so it belongs in the pre-flight rather than only in
+// bin/demo.php.
+$demoMode = Demo::mode();
+line(true, "sample data is '" . $demoMode . "'",
+    $demoMode === 'label'
+        ? 'seed listings are shown, each labelled Sample — switch to hide at launch'
+        : 'seed listings are hidden from every page');
 
 // --- database ---------------------------------------------------------------
 try {

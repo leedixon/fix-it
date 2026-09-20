@@ -1,0 +1,42 @@
+# Fix Listed — front controller routing.
+#
+# Everything that is not a real file on disk goes to index.php, which reads
+# the path itself. Assets under /assets are real files and are served
+# directly, so they never pay for a PHP process.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # No RewriteBase on purpose. A per-directory rewrite resolves a relative
+  # substitution against the directory holding this file, so 'index.php'
+  # below is correct both at the document root and at /preview. Hard-coding
+  # RewriteBase / is what breaks the subdirectory mount.
+
+  # Let Let's Encrypt renew without being swallowed by the router.
+  RewriteRule ^\.well-known/ - [L]
+
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  RewriteRule ^ index.php [L]
+</IfModule>
+
+# Never serve a dotfile, whatever ends up in here.
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Stylesheet and images change rarely and are cache-busted by ?v=mtime.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+</IfModule>

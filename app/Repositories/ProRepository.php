@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FixListed\Repositories;
 
+use FixListed\Core\Demo;
 use FixListed\Core\Repository;
 
 final class ProRepository extends Repository
@@ -30,8 +31,9 @@ final class ProRepository extends Repository
      */
     public function directory(?int $tradeId = null, ?int $countyId = null, int $limit = 50): array
     {
-        $params = [];
-        $filters = '';
+        $params     = [];
+        $filters    = '';
+        $demoFilter = Demo::filter('p');
 
         if ($countyId !== null) {
             $filters .= ' AND a.county_id = :county_id';
@@ -45,7 +47,13 @@ final class ProRepository extends Repository
         }
 
         return $this->scopedAll(
-            "SELECT p.id, p.slug, p.business_name, p.headline, p.hourly_rate_cents,
+            "SELECT p.id, p.slug, p.business_name, p.headline, p.hourly_rate_cents, p.is_demo,
+                    -- Sole traders work under their own name and leave
+                    -- business_name empty, so the card has nothing to print.
+                    -- The fallback belongs here rather than in the template,
+                    -- because every page that lists a pro needs the same answer.
+                    COALESCE(NULLIF(p.business_name, ''),
+                             TRIM(CONCAT(u.first_name, ' ', u.last_name))) AS display_name,
                     p.years_experience, p.rating_avg, p.rating_count, p.jobs_completed,
                     p.response_minutes, p.license_verified_at, p.insurance_verified_at,
                     p.background_checked_at,
@@ -54,6 +62,7 @@ final class ProRepository extends Repository
                     (s.plan IS NOT NULL) AS is_ad,
                     pl.position AS ad_position
                FROM pro_profiles p
+               JOIN users u ON u.id = p.user_id
                LEFT JOIN cities   hc  ON hc.id  = p.home_city_id
                LEFT JOIN counties hco ON hco.id = p.home_county_id
                LEFT JOIN ad_placements pl
@@ -65,6 +74,7 @@ final class ProRepository extends Repository
                  ON s.id = pl.subscription_id
                 AND s.status = 'active'
               WHERE p.status = 'active'
+                {$demoFilter}
                 AND EXISTS (SELECT 1 FROM pro_county_areas a
                              WHERE a.pro_id = p.id
                                AND a.market_id = :market_id
@@ -82,8 +92,12 @@ final class ProRepository extends Repository
 
     public function findBySlug(string $slug): ?array
     {
+        $demoFilter = Demo::filter('p');
+
         return $this->scopedOne(
-            'SELECT p.*, u.first_name, u.last_name,
+            "SELECT p.*, u.first_name, u.last_name,
+                    COALESCE(NULLIF(p.business_name, ''),
+                             TRIM(CONCAT(u.first_name, ' ', u.last_name))) AS display_name,
                     hc.name AS home_city, hco.short_name AS home_county
                FROM pro_profiles p
                JOIN users u ON u.id = p.user_id
@@ -91,20 +105,23 @@ final class ProRepository extends Repository
                LEFT JOIN counties hco ON hco.id = p.home_county_id
               WHERE p.slug = :slug
                 AND p.status = :status
+                {$demoFilter}
                 AND EXISTS (SELECT 1 FROM pro_county_areas a
                              WHERE a.pro_id = p.id AND a.market_id = :market_id)
-              LIMIT 1',
+              LIMIT 1",
             ['slug' => $slug, 'status' => 'active'],
         );
     }
 
     public function countActive(?int $countyId = null): int
     {
-        $filter = $countyId !== null ? ' AND a.county_id = :county_id' : '';
+        $filter     = $countyId !== null ? ' AND a.county_id = :county_id' : '';
+        $demoFilter = Demo::filter('p');
         return (int) $this->scopedValue(
             "SELECT COUNT(*)
                FROM pro_profiles p
               WHERE p.status = :status
+                {$demoFilter}
                 AND EXISTS (SELECT 1 FROM pro_county_areas a
                              WHERE a.pro_id = p.id AND a.market_id = :market_id {$filter})",
             $countyId !== null ? ['status' => 'active', 'county_id' => $countyId] : ['status' => 'active'],

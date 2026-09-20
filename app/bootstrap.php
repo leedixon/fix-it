@@ -21,6 +21,8 @@ spl_autoload_register(static function (string $class): void {
     }
 });
 
+require BASE_PATH . '/app/helpers.php';
+
 use FixListed\Core\Config;
 
 $configFile = BASE_PATH . '/config/config.php';

@@ -78,6 +78,7 @@ CREATE TABLE users (
   last_name          VARCHAR(80)  NOT NULL DEFAULT '',
   phone              VARCHAR(32)  NOT NULL DEFAULT '',
   status             ENUM('active','suspended','deleted') NOT NULL DEFAULT 'active',
+  is_demo            TINYINT(1)   NOT NULL DEFAULT 0,   -- a seeded account, see pro_profiles.is_demo
   email_verified_at  DATETIME     NULL,
   phone_verified_at  DATETIME     NULL,
   sms_opt_in         TINYINT(1)   NOT NULL DEFAULT 0,
@@ -239,6 +240,13 @@ CREATE TABLE pro_profiles (
   response_minutes     INT UNSIGNED NULL,                -- median first reply
 
   status               ENUM('draft','pending_review','active','suspended') NOT NULL DEFAULT 'draft',
+
+  -- Seed data is invented: ten tradespeople who do not exist, their jobs and
+  -- their reviews. This flag is what lets every template say so, and what lets
+  -- one config switch hide them all at launch. Without it, the only way to
+  -- tell a fabricated listing from a real one later is to remember which ids
+  -- were which, which nobody will.
+  is_demo              TINYINT(1)   NOT NULL DEFAULT 0,
   hero_photo_id        BIGINT UNSIGNED NULL,             -- photo the ad unit leads with
   published_at         DATETIME     NULL,
   created_at           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -247,6 +255,7 @@ CREATE TABLE pro_profiles (
   UNIQUE KEY uq_pro_user (user_id),
   UNIQUE KEY uq_pro_market_slug (market_id, slug),
   KEY ix_pro_market_status (market_id, status, rating_avg),
+  KEY ix_pro_demo (is_demo, status),
   CONSTRAINT fk_pro_market FOREIGN KEY (market_id) REFERENCES markets (id) ON DELETE CASCADE,
   CONSTRAINT fk_pro_user   FOREIGN KEY (user_id)   REFERENCES users (id)   ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -332,6 +341,7 @@ CREATE TABLE jobs (
   -- Nothing in the public directory ever reads a row in pending_payment.
   status            ENUM('draft','pending_payment','active','expired','closed','removed')
                     NOT NULL DEFAULT 'draft',
+  is_demo           TINYINT(1)   NOT NULL DEFAULT 0,
   quote_count       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   view_count        INT UNSIGNED NOT NULL DEFAULT 0,
   hired_pro_id      BIGINT UNSIGNED NULL,
@@ -344,6 +354,7 @@ CREATE TABLE jobs (
   PRIMARY KEY (id),
   UNIQUE KEY uq_jobs_reference (reference),
   KEY ix_jobs_board (market_id, status, published_at),   -- the jobs board query
+  KEY ix_jobs_demo (market_id, is_demo, status),
   KEY ix_jobs_trade (market_id, trade_id, status),
   KEY ix_jobs_owner (user_id, status),
   KEY ix_jobs_expiry (status, expires_at),               -- cron: expire + refund sweep
@@ -425,6 +436,7 @@ CREATE TABLE reviews (
   body           TEXT     NULL,
   job_value_cents INT UNSIGNED NULL,                     -- "Slab leak repair · $640"
   status         ENUM('published','pending_review','removed') NOT NULL DEFAULT 'published',
+  is_demo        TINYINT(1)   NOT NULL DEFAULT 0,
   pro_reply      TEXT     NULL,
   pro_replied_at DATETIME NULL,
   created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

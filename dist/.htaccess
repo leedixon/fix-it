@@ -24,4 +24,8 @@ RewriteRule . /index.html [L]
 </IfModule>
 
 ServerSignature Off
-Options -Indexes
+
+# -Indexes so a directory without an index file does not list its contents.
+# +SymLinksIfOwnerMatch so the /preview symlink resolves; it is the safe form,
+# following a link only when the link and its target share an owner.
+Options -Indexes +SymLinksIfOwnerMatch

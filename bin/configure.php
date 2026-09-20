@@ -144,6 +144,16 @@ $config = [
         'env'      => 'production',
         'timezone' => 'America/Chicago',
         'key'      => bin2hex(random_bytes(32)),
+
+        // Every public page carries <meta name="robots" content="noindex">
+        // while this is true. Turning it off is a deliberate step in
+        // docs/launch.md, not something a template should decide.
+        'noindex'   => true,
+
+        // 'label' shows the seeded listings with a Sample badge on every card
+        // and a banner on every page. 'hide' filters them out of every query.
+        // There is no mode that shows them unlabelled — see app/Core/Demo.php.
+        'demo_data' => 'label',
     ],
     'db' => [
         'host'    => 'localhost',

@@ -376,3 +376,18 @@ INSERT INTO moderation_items (market_id, subject_type, subject_id, source, reaso
  (1,'job',10,'auto','Possible duplicate post — second from this user today',NULL,'open',NOW() - INTERVAL 11 MINUTE),
  (1,'pro_profile',8,'auto','Lists smart-home electrical with no licence on file',NULL,'open',NOW() - INTERVAL 1 HOUR),
  (1,'ad_creative',2,'admin','Headline needs a licence-claim check',1,'open',NOW() - INTERVAL 3 HOUR);
+
+-- --- mark all of it as demonstration data ----------------------------------
+--
+-- Unqualified on purpose. This file truncates every tenant table at the top,
+-- so once it has run, every row in these four tables came from this file and
+-- every one of them is invented. A WHERE clause here could only be wrong.
+--
+-- This is what makes the "Sample" labels appear in the UI, and what
+-- bin/demo.php purges. Never run this file against a database holding real
+-- signups — the truncates above would take them with it.
+
+UPDATE users        SET is_demo = 1;
+UPDATE pro_profiles SET is_demo = 1;
+UPDATE jobs         SET is_demo = 1;
+UPDATE reviews      SET is_demo = 1;

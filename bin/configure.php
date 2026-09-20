@@ -208,9 +208,12 @@ if ($useSmtp) {
         if ($probe) {
             echo "SMTP works. A test message is on its way to {$mail}.\n\n";
         } else {
-            echo "SMTP FAILED. The reason is in the error log. A 535 means the\n"
-               . "password was refused — with Google that means an App Password\n"
-               . "is required rather than your normal one.\n\n";
+            echo "SMTP FAILED. The reason is printed above and in the error log:\n"
+               . "  535 ............... the password was refused. For Resend the\n"
+               . "                      username is the literal word 'resend' and the\n"
+               . "                      password is the API key.\n"
+               . "  STARTTLS failed ... a TLS problem, not a password problem.\n"
+               . "  cannot reach ...... outbound port blocked, or wrong host.\n\n";
             $failed = true;
         }
     } catch (Throwable $e) {

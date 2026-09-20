@@ -99,9 +99,7 @@ final class Smtp
 
         if ($this->encryption === 'tls') {
             $this->command('STARTTLS', 220);
-            if (!@stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-                throw new RuntimeException('STARTTLS negotiation failed');
-            }
+            $this->startTls();
             // The server's capabilities can change after the upgrade, so the
             // handshake starts again on the encrypted channel.
             $this->command('EHLO ' . $this->heloName(), 250);
@@ -113,6 +111,53 @@ final class Smtp
         // with Google that usually means an ordinary password was used where
         // an App Password is required.
         $this->command(base64_encode($this->password), 235);
+    }
+
+    /**
+     * Upgrades the plain connection to TLS.
+     *
+     * STREAM_CRYPTO_METHOD_TLS_CLIENT does not include TLS 1.3, so a server
+     * offering only 1.3 fails against that constant alone — the newer methods
+     * are added here when the PHP build defines them.
+     *
+     * peer_name is set explicitly because the certificate is verified against
+     * the hostname, and SNI decides which certificate a shared relay presents
+     * in the first place.
+     */
+    private function startTls(): void
+    {
+        stream_context_set_option($this->socket, 'ssl', 'peer_name', $this->host);
+        stream_context_set_option($this->socket, 'ssl', 'SNI_enabled', true);
+
+        $method = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+        foreach (['STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT', 'STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT'] as $constant) {
+            if (defined($constant)) {
+                $method |= constant($constant);
+            }
+        }
+
+        error_clear_last();
+        if (@stream_socket_enable_crypto($this->socket, true, $method)) {
+            return;
+        }
+
+        // Without this detail the failure is unfixable: "negotiation failed"
+        // covers an expired certificate, a missing CA bundle and a protocol
+        // mismatch equally, and they need different fixes. OpenSSL's own
+        // message names which one it is.
+        $last   = error_get_last();
+        $detail = $last !== null ? trim(strip_tags($last['message'])) : '';
+        $hint   = '';
+        if (str_contains($detail, 'certificate verify failed')) {
+            $hint = ' — this server cannot verify the certificate chain, usually a missing or '
+                  . 'stale CA bundle. Check openssl.cafile in php.ini, or ask the host to update ca-certificates.';
+        } elseif (str_contains($detail, 'protocol') || str_contains($detail, 'version')) {
+            $hint = ' — TLS version mismatch between this PHP build and the server.';
+        }
+
+        throw new RuntimeException(
+            'STARTTLS negotiation failed' . ($detail !== '' ? ': ' . $detail : ' (OpenSSL gave no detail)') . $hint
+        );
     }
 
     private function heloName(): string

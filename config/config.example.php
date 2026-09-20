@@ -37,7 +37,13 @@ return [
     ],
 
     'mail' => [
-        'from_address' => 'noreply@fixlisted.com',
+        // Sending FROM a domain with no SPF record is the fastest route to a
+        // spam folder. fixlisted.com's DNS lives at the registrar, so cPanel's
+        // mail records do not apply to it — until an SPF TXT record exists
+        // there, send from a domain whose email is already established.
+        'from_address' => 'lee@leedixon.com',
         'from_name'    => 'Fix Listed',
+        // Where signup alerts go. Same address is fine.
+        'alert_to'     => 'lee@leedixon.com',
     ],
 ];

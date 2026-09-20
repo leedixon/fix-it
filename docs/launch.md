@@ -51,3 +51,6 @@ Roughly in order.
       Census file — hand-typed ZIP boundaries are wrong in ways nobody notices
       until a job is invisible to the pros who cover it.
 - [ ] Google Search Console and a sitemap, once `noindex` is off.
+- [ ] Re-scrape the link preview in Facebook's sharing debugger after the site
+      moves to the root, so the cached card picks up the new URL. The card
+      itself is `assets/social/` — re-render it there if the wording changes.

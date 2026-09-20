@@ -13,7 +13,7 @@ Outputs:
     maintenance/dist/   the pre-launch holding page
 """
 
-import pathlib, sys
+import pathlib, shutil, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -83,7 +83,12 @@ def head(page: str) -> str:
 <meta property="og:title" content="{meta['title']}">
 <meta property="og:description" content="{meta['description']}">
 <meta property="og:url" content="https://fixlisted.com/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://fixlisted.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Fix Listed — the trades directory that doesn't take a cut of your job.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://fixlisted.com/og.png">
 {RESET}
 """
 
@@ -201,6 +206,18 @@ def build(meta: dict) -> None:
         HTACCESS_MAINTENANCE if "maintenance" in meta["out"] else HTACCESS_PROTOTYPE,
         encoding="utf-8",
     )
+    # The holding page's link preview points at https://fixlisted.com/og.png,
+    # so the card has to sit in the document root beside index.html. It is the
+    # same file the app serves from /assets/social/ — rendered once by
+    # assets/social/render.js, copied here rather than drawn twice.
+    card = ROOT / "public" / "assets" / "social" / "og.png"
+    if "maintenance" in meta["out"]:
+        if card.is_file():
+            shutil.copyfile(card, out / "og.png")
+        else:
+            print("  WARNING: public/assets/social/og.png is missing — the link")
+            print("           preview will have no image. Run: node assets/social/render.js")
+
     kb = (out / "index.html").stat().st_size / 1024
     print(f"{meta['out']}/index.html  ({kb:.0f} KB)")
 

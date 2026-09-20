@@ -177,3 +177,24 @@ function urgency_label(string $urgency): string
         default      => 'Flexible',
     };
 }
+
+/**
+ * An absolute URL for a site path.
+ *
+ * Open Graph and Twitter both require absolute URLs — a relative og:image is
+ * silently ignored by every scraper, which looks exactly like no image at all.
+ * Built from app.url so it stays right whether the site is at /preview or at
+ * the root.
+ */
+function abs_url(string $path = '/'): string
+{
+    $base = rtrim((string) \FixListed\Core\Config::get('app.url', ''), '/');
+    return $base . Url::to($path);
+}
+
+/** The same, for a static file, carrying asset()'s cache-busting stamp. */
+function abs_asset(string $path): string
+{
+    $base = rtrim((string) \FixListed\Core\Config::get('app.url', ''), '/');
+    return $base . asset($path);
+}

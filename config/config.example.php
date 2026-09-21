@@ -42,9 +42,24 @@ return [
     ],
 
     'stripe' => [
+        // A restricted key (rk_...) is preferred over a standard secret key
+        // (sk_...) — it does everything this site needs and nothing else, so
+        // a leaked one is worth far less. See docs/payments.md for the exact
+        // permission set.
         'publishable_key' => '',
         'secret_key'      => '',
         'webhook_secret'  => '',
+
+        // Leave empty. API responses then come back in the same version your
+        // webhooks are serialised in, which is the account's default.
+        //
+        // Pinning a version here that differs from the event destination's
+        // version means two shapes of the same object arriving in one
+        // codebase — Stripe moved subscription billing periods onto the
+        // subscription's items in 2025-03-31, so a mismatch is how a paid
+        // placement ends up with no period on it. If you pin, set the event
+        // destination to the same version.
+        'api_version'     => '',
     ],
 
     'mail' => [

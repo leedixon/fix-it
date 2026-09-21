@@ -258,18 +258,42 @@ final class WebhookController
             if ($stripe === null) {
                 return [null, null];
             }
-            $sub = $stripe->retrieveSubscription($stripeSubscriptionId);
 
-            return [
-                isset($sub['current_period_start'])
-                    ? gmdate('Y-m-d H:i:s', (int) $sub['current_period_start']) : null,
-                isset($sub['current_period_end'])
-                    ? gmdate('Y-m-d H:i:s', (int) $sub['current_period_end']) : null,
-            ];
+            return self::subscriptionPeriod($stripe->retrieveSubscription($stripeSubscriptionId));
         } catch (\Throwable $e) {
             error_log('Could not read the period for ' . $stripeSubscriptionId . ': ' . $e->getMessage());
             return [null, null];
         }
+    }
+
+    /**
+     * When a subscription's current period starts and ends.
+     *
+     * Read from two places, because Stripe moved it. Up to API version
+     * 2025-03-31 it was `current_period_start` / `current_period_end` on the
+     * subscription itself; from that version on, billing periods live on the
+     * subscription's *items*, and the old fields are gone.
+     *
+     * Both are read rather than either being picked, because the version a
+     * payload arrives in is not this code's to decide: webhook bodies are
+     * serialised at whatever version the event destination is set to, which
+     * can differ from the version an API request asks for, and both can be
+     * changed in the dashboard by somebody who has never seen this file.
+     * Handling both shapes costs four lines and removes the whole class of
+     * problem.
+     *
+     * @param array<string,mixed> $sub
+     * @return array{0:?string,1:?string}
+     */
+    public static function subscriptionPeriod(array $sub): array
+    {
+        $start = $sub['current_period_start'] ?? ($sub['items']['data'][0]['current_period_start'] ?? null);
+        $end   = $sub['current_period_end']   ?? ($sub['items']['data'][0]['current_period_end']   ?? null);
+
+        return [
+            is_numeric($start) ? gmdate('Y-m-d H:i:s', (int) $start) : null,
+            is_numeric($end)   ? gmdate('Y-m-d H:i:s', (int) $end)   : null,
+        ];
     }
 
     /**
@@ -394,14 +418,24 @@ final class WebhookController
 
         $ads    = new AdvertisingRepository($this->db, TenantScope::market($marketId));
         $market = $this->db->one('SELECT * FROM markets WHERE id = :id', ['id' => $marketId]) ?? [];
+        // The invoice line carries the period it billed for. If it is missing
+        // or an unfamiliar shape, ask Stripe for the subscription instead —
+        // the money arrived either way, and a placement is never withheld
+        // over a date.
         $period = $invoice['lines']['data'][0]['period'] ?? [];
+        $start  = is_numeric($period['start'] ?? null) ? gmdate('Y-m-d H:i:s', (int) $period['start']) : null;
+        $end    = is_numeric($period['end'] ?? null)   ? gmdate('Y-m-d H:i:s', (int) $period['end'])   : null;
+
+        if ($start === null || $end === null) {
+            [$start, $end] = $this->periodOf($stripeId);
+        }
 
         $ads->activate(
             (int) $row['id'],
             $stripeId,
             (string) ($invoice['customer'] ?? ''),
-            isset($period['start']) ? gmdate('Y-m-d H:i:s', (int) $period['start']) : null,
-            isset($period['end'])   ? gmdate('Y-m-d H:i:s', (int) $period['end'])   : null,
+            $start,
+            $end,
             (int) ($market[(string) $row['plan'] . '_slots'] ?? 0),
         );
 

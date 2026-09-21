@@ -42,6 +42,11 @@ final class Stripe
          * API and is never set in production config.
          */
         private readonly string $apiBase = self::BASE,
+        /**
+         * Empty means "whatever this account's default is", which is what
+         * webhook payloads use. See the request headers for why that matters.
+         */
+        private readonly string $apiVersion = '',
     ) {
     }
 
@@ -56,6 +61,7 @@ final class Stripe
             (string) Config::get('stripe.webhook_secret', ''),
             20,
             (string) Config::get('stripe.api_base', self::BASE),
+            (string) Config::get('stripe.api_version', ''),
         );
     }
 
@@ -383,10 +389,20 @@ final class Stripe
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => $this->timeout,
             CURLOPT_CONNECTTIMEOUT => $this->timeout,
-            CURLOPT_HTTPHEADER     => array_merge([
-                'Authorization: Bearer ' . $this->secretKey,
-                'Stripe-Version: 2024-06-20',
-            ], $headers),
+            CURLOPT_HTTPHEADER     => array_merge(
+                ['Authorization: Bearer ' . $this->secretKey],
+                // Unset by default, so API responses come back in the same
+                // version the account's webhooks are serialised in. A pinned
+                // request version that disagrees with the event destination's
+                // version means two shapes of the same object arriving in one
+                // codebase, which is worse than not pinning at all — that is
+                // exactly how a live subscription ends up with no period on it.
+                //
+                // Set stripe.api_version to pin deliberately, having first
+                // set the event destination to the same version.
+                $this->apiVersion !== '' ? ['Stripe-Version: ' . $this->apiVersion] : [],
+                $headers,
+            ),
         ]);
         if ($body !== null) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);

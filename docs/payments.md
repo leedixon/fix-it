@@ -143,6 +143,30 @@ missing.
 While the site is at `/preview`, the endpoint is
 `https://fixlisted.com/preview/webhooks/stripe`. It moves with the site.
 
+### A note on API versions
+
+Leave `stripe.api_version` empty. API responses then come back in the same
+version your webhooks arrive in — whatever the account's default is — and
+there is one shape of each object in the codebase rather than two.
+
+This is not hypothetical. Stripe moved subscription billing periods in version
+`2025-03-31`: `current_period_start` and `current_period_end` came off the
+subscription and onto its **items**. A request pinned to an older version
+would return the old shape while the webhook for the same subscription arrived
+in the new one, and the placement would go live with no period on it — no
+error, just an empty renewal date on the admin screen.
+
+The readers handle both shapes anyway, which is the actual defence: the
+version an event arrives in is set in the Stripe dashboard, by somebody who
+has never seen this code.
+
+Where the shapes differ, and both are read:
+
+| Field | Up to 2025-03-31 | From 2025-03-31 |
+| --- | --- | --- |
+| Subscription period | `current_period_start` / `_end` | `items.data[0].current_period_start` / `_end` |
+| Invoice's subscription | `invoice.subscription` | `invoice.parent.subscription_details.subscription` |
+
 ## What the webhook does
 
 1. **Verifies the signature before reading the body.** Without this the

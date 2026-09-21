@@ -592,6 +592,47 @@ $dupes = (int) $db->value(
 );
 check('the daily rollup holds one row per placement per day', $dupes === 0);
 
+// --- subscription billing periods, across API versions ----------------------
+// Stripe moved these in version 2025-03-31: up to then they sat on the
+// subscription, from then on they sit on its items. A webhook body arrives in
+// whatever version the event destination is set to, which nothing in this
+// codebase controls, so both shapes are read.
+$periodOf = static fn (array $sub): array =>
+    \FixListed\Controllers\WebhookController::subscriptionPeriod($sub);
+
+check('the pre-2025-03-31 shape is read',
+    $periodOf(['current_period_start' => 1790000000, 'current_period_end' => 1792592000])
+    === ['2026-09-21 14:13:20', '2026-10-21 14:13:20']);
+
+check('the 2025-03-31-and-later item shape is read',
+    $periodOf(['items' => ['data' => [[
+        'current_period_start' => 1790000000, 'current_period_end' => 1792592000,
+    ]]]])
+    === ['2026-09-21 14:13:20', '2026-10-21 14:13:20']);
+
+// A subscription with neither must not blow up the webhook that carried it.
+// The money arrived; a missing date is never a reason to withhold what was
+// bought.
+check('a shape with no period at all yields nulls, not an error',
+    $periodOf([]) === [null, null]);
+check('a malformed period is treated as absent',
+    $periodOf(['current_period_start' => 'soon', 'current_period_end' => null]) === [null, null]);
+
+// The invoice payload names its subscription in one of two places for the
+// same reason — 'subscription' was removed from the invoice in the same
+// version bump.
+$refl = new ReflectionMethod(\FixListed\Controllers\WebhookController::class, 'subscriptionIdOf');
+$refl->setAccessible(true);
+$hook = new \FixListed\Controllers\WebhookController(
+    $db, FixListed\Core\Request::capture(), new FixListed\Core\View(BASE_PATH . '/app/Views')
+);
+check('the old invoice.subscription is read',
+    $refl->invoke($hook, ['subscription' => 'sub_old']) === 'sub_old');
+check('the new invoice.parent.subscription_details is read',
+    $refl->invoke($hook, ['parent' => ['subscription_details' => ['subscription' => 'sub_new']]]) === 'sub_new');
+check('an invoice naming no subscription is not mistaken for one',
+    $refl->invoke($hook, []) === '');
+
 // --- Stripe key shapes ------------------------------------------------------
 // A restricted key is rk_live_…, not sk_live_…. Matching the whole 'sk_live_'
 // prefix read a live restricted key as test mode — and told somebody no real

@@ -27,6 +27,7 @@ use FixListed\Controllers\Account\PromoteController;
 use FixListed\Controllers\Account\QuoteController;
 use FixListed\Controllers\Account\SessionController as AccountSession;
 use FixListed\Controllers\Admin\DashboardController;
+use FixListed\Controllers\Admin\MaintenanceController;
 use FixListed\Controllers\Admin\ManageController;
 use FixListed\Controllers\Admin\ReviewController;
 use FixListed\Controllers\Admin\SessionController;
@@ -35,6 +36,7 @@ use FixListed\Core\Auth;
 use FixListed\Core\Config;
 use FixListed\Core\Database;
 use FixListed\Core\HaltWith;
+use FixListed\Core\Maintenance;
 use FixListed\Core\NotFound;
 use FixListed\Core\Request;
 use FixListed\Core\Response;
@@ -67,6 +69,30 @@ try {
     // their chrome when somebody is signed in, and the account and admin areas
     // are gated on it.
     $auth  = new Auth($db);
+
+    /*
+     * Maintenance mode. Everything above this line had to run first, because
+     * working out whether *you* are an administrator needs the session and
+     * the database. When the database is the thing that is broken, this check
+     * is never reached at all — the catch at the bottom covers that case, and
+     * it is the case this feature exists for.
+     *
+     * Admins pass straight through and see the whole site as normal, which is
+     * the point: you take it down, deploy, check your work, put it back up.
+     * /admin/login stays open so you can become an admin while it is down —
+     * without that, signing out during maintenance locks you out of your own
+     * site until you SSH in.
+     *
+     * Everything else, webhooks included, gets 503. A webhook answered 200
+     * during a migration is a payment Stripe will never send again; answered
+     * 503 it comes back, with backoff, for about three days.
+     */
+    if (Maintenance::isOn()
+        && !$auth->is(Auth::ROLE_ADMIN, Auth::ROLE_SUPER)
+        && !str_starts_with($request->path, '/admin/login')) {
+        Maintenance::response($view)->send();
+        exit;
+    }
     $make  = static fn (string $class): object => new $class($db, $scope, $market, $view, $request, $auth);
     $admin = $make;
 
@@ -145,6 +171,8 @@ try {
     $router->get('/admin/licensing',           static fn () => $admin(ManageController::class)->licensing());
     $router->post('/admin/licensing',          static fn () => $admin(ManageController::class)->saveLicensing());
     $router->post('/admin/licensing/{id}/delete', static fn (array $p) => $admin(ManageController::class)->deleteLicensing($p['id']));
+    $router->get('/admin/maintenance',         static fn () => $admin(MaintenanceController::class)->index());
+    $router->post('/admin/maintenance',        static fn () => $admin(MaintenanceController::class)->update());
     $router->get('/admin/markets',             static fn () => $admin(ManageController::class)->markets());
     $router->post('/admin/markets/{id}',       static fn (array $p) => $admin(ManageController::class)->updateMarket($p['id']));
 
@@ -174,6 +202,32 @@ try {
     // The message can name the database, a file path or a credential, so it
     // goes to the log and never to the visitor.
     error_log('Unhandled: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+
+    /*
+     * The case this whole feature is for.
+     *
+     * If the site is down for maintenance and something above threw — the
+     * database is mid-migration, a table is missing, a connection is refused
+     * — then the failure is expected and the honest answer is the maintenance
+     * page with its 503, not a 500 that says something is wrong. It is also
+     * checked before the development re-throw, so taking the site down means
+     * taking it down in every environment.
+     *
+     * Maintenance::state() reads a file and touches nothing else, which is
+     * what makes it safe to call from inside a failure.
+     */
+    if (Maintenance::isOn()) {
+        try {
+            Maintenance::response($view)->send();
+            exit;
+        } catch (Throwable) {
+            // Even the template failed. Say the one thing that matters.
+            http_response_code(503);
+            header('Retry-After: 1800');
+            header('Content-Type: text/plain; charset=UTF-8');
+            exit("Fix Listed is down for maintenance. Please try again shortly.\n");
+        }
+    }
 
     if (Config::get('app.env') !== 'production') {
         throw $e;

@@ -30,6 +30,11 @@ Roughly in order.
 - [ ] **Stripe's customer portal switched on**, with cancellation allowed
       (Settings → Billing → Customer portal). It is the only way a pro can
       cancel a placement or change a card, and the link fails without it.
+- [ ] **You have taken the site down and put it back up once, in anger.**
+      `php bin/maintenance.php on` then `off`, and check that a signed-out
+      browser really does get the maintenance page while yours does not. The
+      day you need it is a bad day to find out it does not work. See
+      [maintenance.md](maintenance.md).
 - [ ] **The sweep is on cron.** The automatic refund is a written promise; it
       does not happen on its own.
       `7 6 * * * cd ~/fixlisted && php bin/sweep.php >> storage/logs/sweep.log 2>&1`

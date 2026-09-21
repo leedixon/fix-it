@@ -44,6 +44,25 @@ final class Response
         return new self('', $status, ['Location' => Url::to($location)]);
     }
 
+    /**
+     * 503, with Retry-After.
+     *
+     * The status matters more than the page. A search engine reads 503 as
+     * "temporarily unavailable, keep what you have indexed and come back";
+     * serving the same words with a 200 tells it this URL is now a
+     * maintenance notice, which is how a site comes back up having lost its
+     * rankings. Retry-After says how long to wait, and Stripe honours it too.
+     */
+    public static function unavailable(string $body, int $retryAfterSeconds = 1800): self
+    {
+        return new self($body, 503, [
+            'Content-Type'  => 'text/html; charset=UTF-8',
+            'Retry-After'   => (string) $retryAfterSeconds,
+            // Nothing about a maintenance page should outlive the maintenance.
+            'Cache-Control' => 'no-store, must-revalidate',
+        ]);
+    }
+
     public function send(): void
     {
         http_response_code($this->status);

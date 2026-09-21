@@ -9,6 +9,10 @@ storage/logs/*
 !storage/logs/.gitkeep
 storage/cache/*
 
+# The maintenance switch. Per-server state, never per-repository: committing it
+# would mean a git pull could take a site down, or bring one up mid-migration.
+storage/maintenance.json
+
 # Local
 .DS_Store
 *.log

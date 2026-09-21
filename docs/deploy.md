@@ -430,6 +430,25 @@ cd ~/fixlisted && git pull
 That's it, once the document root points at `public/`. Schema changes get their own
 migration file; run it the same way you ran the import.
 
+### A deploy that changes the schema
+
+Put the site down first. A migration that runs while visitors are mid-request
+is how half-applied data happens.
+
+```bash
+php bin/maintenance.php on --message="Back in ten minutes."
+git pull
+php bin/migrate.php
+php bin/check.php            # everything should pass
+                             # then click through the site — you still see it
+php bin/maintenance.php off
+```
+
+You keep full access to the site while it is down, so the click-through is a
+real check rather than a hope. If the migration goes wrong, the site stays
+down until you say otherwise, and visitors get a 503 rather than a broken page
+— see [maintenance.md](maintenance.md).
+
 ---
 
 ## If something breaks
@@ -437,6 +456,7 @@ migration file; run it the same way you ran the import.
 | Symptom | Cause |
 | --- | --- |
 | 500 error, blank page | PHP version too old, or a missing extension. Check cPanel → **Errors**. |
+| Every page says "Back shortly" | Maintenance mode is on. `php bin/maintenance.php off`, or delete `storage/maintenance.json`. |
 | "Access denied for user" | The DB user was created but never **added to the database** with ALL PRIVILEGES. |
 | Em-dashes show as `?` or `â€"` | The connection isn't `utf8mb4`. Check the DSN, not the tables. |
 | AutoSSL fails | DNS hasn't propagated. `dig +short NS fixlisted.com` and wait. |

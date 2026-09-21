@@ -47,6 +47,7 @@ $nav = static function (string $href, string $label, string $icon, string $curre
       <?php if ($isSuper): ?>
         <?= $nav('/admin/licensing', 'Licensing', 'shield', $path) ?>
         <?= $nav('/admin/markets', 'Markets', 'pin', $path) ?>
+        <?= $nav('/admin/maintenance', 'Maintenance', 'lock', $path) ?>
       <?php endif; ?>
       <?= $nav('/admin/activity', 'Activity log', 'clock', $path) ?>
     </nav>
@@ -63,6 +64,26 @@ $nav = static function (string $href, string $label, string $icon, string $curre
   </aside>
 
   <main class="adm-main">
+    <?php if (\FixListed\Core\Maintenance::isOn()): ?>
+      <!--
+        Standing, on every admin page, not just the maintenance screen. The
+        way this goes wrong is not turning it on — it is forgetting it is on,
+        because an administrator sees the site working perfectly the whole
+        time. This is the only thing that tells you the public does not.
+      -->
+      <div class="maint-bar">
+        <?= icon('alert', 15) ?>
+        <span><strong>The site is down for visitors</strong> — you are seeing it because you are
+          signed in as an administrator<?php
+            $for = \FixListed\Core\Maintenance::runningFor();
+            echo $for !== '' ? ', for ' . e($for) : '';
+          ?>.</span>
+        <?php if ($isSuper): ?>
+          <a href="<?= e(url('/admin/maintenance')) ?>">Put it back up →</a>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
     <?php foreach ($flashes as $f): ?>
       <div class="flash flash-<?= $f['type'] === 'ok' ? 'ok' : 'bad' ?>">
         <?= icon($f['type'] === 'ok' ? 'check' : 'alert', 17) ?>

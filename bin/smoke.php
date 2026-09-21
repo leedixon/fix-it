@@ -15,6 +15,7 @@ require __DIR__ . '/../app/bootstrap.php';
 
 use FixListed\Core\Auth;
 use FixListed\Core\Database;
+use FixListed\Core\Maintenance;
 use FixListed\Core\Repository;
 use FixListed\Core\TenantScope;
 use FixListed\Repositories\AdvertisingRepository;
@@ -588,6 +589,56 @@ $dupes = (int) $db->value(
      ) d'
 );
 check('the daily rollup holds one row per placement per day', $dupes === 0);
+
+// --- the maintenance switch -------------------------------------------------
+// It is a file rather than a row precisely so it works when the database does
+// not, which also means these run without touching one.
+$wasDown = Maintenance::isOn();
+$restore = $wasDown ? Maintenance::state() : null;
+
+Maintenance::off();
+check('the site starts up', !Maintenance::isOn());
+
+Maintenance::on('Back by 3pm.', 'smoke test');
+check('the switch takes the site down', Maintenance::isOn());
+check('the switch records what to tell visitors',
+    (Maintenance::state()['message'] ?? '') === 'Back by 3pm.');
+check('the switch records who threw it',
+    (Maintenance::state()['by'] ?? '') === 'smoke test');
+
+// A visitor must never see a 200 on a maintenance page: a search engine reads
+// that as the URL having become a maintenance notice, and drops the ranking.
+$response = Maintenance::response(new FixListed\Core\View(BASE_PATH . '/app/Views'));
+check('visitors get 503, not 200', $response->status === 503);
+check('and a Retry-After, so crawlers come back',
+    ($response->headers['Retry-After'] ?? '') !== '');
+check('the maintenance page is not cached',
+    str_contains($response->headers['Cache-Control'] ?? '', 'no-store'));
+check('the page says what the switch was told',
+    str_contains($response->body, 'Back by 3pm.'));
+
+// Rendered without the site layout on purpose: the layout needs a market, a
+// county list and a trade list, and "the database is down" is exactly when
+// this page has to work.
+check('the maintenance page carries no site chrome',
+    !str_contains($response->body, 'All counties') && !str_contains($response->body, 'Jobs board'));
+
+// A truncated or hand-edited file must still count as down. Staying up
+// because the flag had a stray comma in it is the one failure nobody forgives.
+file_put_contents(Maintenance::file(), '{ not json at all');
+$reread = new ReflectionClass(Maintenance::class);
+$reread->setStaticPropertyValue('loaded', false);
+check('an unreadable switch still counts as down', Maintenance::isOn());
+check('and falls back to a sensible message',
+    str_contains((string) (Maintenance::state()['message'] ?? ''), 'back shortly'));
+
+Maintenance::off();
+check('the switch puts the site back up', !Maintenance::isOn());
+
+if ($restore !== null) {
+    Maintenance::on($restore['message'], $restore['by']);
+}
+check('the smoke test left the site as it found it', Maintenance::isOn() === $wasDown);
 
 // --- authentication ---------------------------------------------------------
 $auth = new Auth($db);

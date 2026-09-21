@@ -21,16 +21,26 @@ final class View
         return $this->capture($layout, $data + ['content' => $content]);
     }
 
-    private function capture(string $template, array $data): string
+    /**
+     * The locals here are deliberately named __-prefixed.
+     *
+     * extract() with EXTR_SKIP refuses to overwrite a variable that already
+     * exists in scope — so a template passed `file` or `template` as data
+     * silently received *this method's* value for it instead, and rendered
+     * the path of the template itself. That is a bug with no error message,
+     * and it found us once already. Prefixed names cannot collide with
+     * anything a template would sensibly be passed.
+     */
+    private function capture(string $__template, array $__data): string
     {
-        $file = $this->viewPath . '/' . str_replace('.', '/', $template) . '.php';
-        if (!is_file($file)) {
-            throw new RuntimeException("View not found: {$template} (looked in {$file})");
+        $__file = $this->viewPath . '/' . str_replace('.', '/', $__template) . '.php';
+        if (!is_file($__file)) {
+            throw new RuntimeException("View not found: {$__template} (looked in {$__file})");
         }
-        extract($data, EXTR_SKIP);
+        extract($__data, EXTR_SKIP);
         ob_start();
         try {
-            require $file;
+            require $__file;
         } catch (\Throwable $e) {
             ob_end_clean();
             throw $e;

@@ -163,5 +163,26 @@ foreach (['storage/logs', 'storage/uploads'] as $dir) {
     line(is_writable($root . '/' . $dir), "{$dir} is writable");
 }
 
+// The maintenance switch is written into storage/ itself, so the directory
+// has to be writable or the admin screen's button silently cannot work.
+line(is_writable($root . '/storage'), 'storage is writable',
+    is_writable($root . '/storage') ? 'the maintenance switch can be set from the admin screen'
+        : 'maintenance mode could only be toggled over SSH');
+
+// --- is the site currently down? -------------------------------------------
+//
+// Last, and loudly. Everything above can pass on a site no visitor can reach,
+// and leaving maintenance on is the way this feature goes wrong.
+if (\FixListed\Core\Maintenance::isOn()) {
+    $state = \FixListed\Core\Maintenance::state();
+    echo "\n";
+    line(false, 'THE SITE IS DOWN FOR MAINTENANCE',
+        'on for ' . \FixListed\Core\Maintenance::runningFor()
+        . ($state['by'] !== '' ? ', by ' . $state['by'] : '')
+        . ' — run: php bin/maintenance.php off');
+} else {
+    line(true, 'the site is not in maintenance mode');
+}
+
 printf("\n%d passed, %d failed\n", $ok, $bad);
 exit($bad === 0 ? 0 : 1);

@@ -347,6 +347,52 @@ foreach (['superadmin' => 'superadmin', 'market_admin' => 'market_admin', 'homeo
     }
 }
 
+// --- licensing guidance -----------------------------------------------------
+//
+// The rule worth protecting: a state nobody has entered guidance for must read
+// as UNKNOWN, never as "no licence needed". A reassuring default here would put
+// a verified badge on a profile nobody actually checked.
+$licences = new \FixListed\Repositories\LicenceRepository($db);
+
+$plumbing = $licences->forTrade('IL', 1);
+check('a state-licensed trade resolves to its authority',
+    $plumbing['known'] === true && (int) $plumbing['licensed'] === 1,
+    $plumbing['authority']);
+
+check('plumbing points at Public Health, not IDFPR',
+    !str_contains(mb_strtolower((string) $plumbing['lookup_url']), 'idfpr'),
+    'an IDFPR search for a plumber finds nothing');
+
+$electrical = $licences->forTrade('IL', 2);
+check('a municipally licensed trade is marked not-state-licensed',
+    $electrical['known'] === true && (int) $electrical['licensed'] === 0,
+    'no statewide electrician licence exists in Illinois');
+
+$carpentry = $licences->forTrade('IL', 3);
+check('a trade with no rule of its own falls back within its state',
+    $carpentry['known'] === true && (int) $carpentry['trade_id'] === 0);
+
+$unknownState = $licences->forTrade('ZZ', 1);
+check('an unknown state reads as unknown, not as unlicensed',
+    $unknownState['known'] === false && $unknownState['licensed'] === null,
+    'licensed is null, so nothing can mistake it for "no"');
+
+check('an unknown state says so in words',
+    str_contains($unknownState['guidance'], 'No licensing guidance'));
+
+$noState = $licences->forTrade('', 1);
+check('a missing state is handled without guessing', $noState['known'] === false);
+
+// Two trades sharing one fallback row should produce one paragraph, not two.
+$grouped = $licences->forApplication('IL', [
+    ['id' => 3, 'name' => 'Carpentry'],
+    ['id' => 10, 'name' => 'Odd Jobs'],
+    ['id' => 1, 'name' => 'Plumbing'],
+]);
+check('guidance is grouped rather than repeated per trade',
+    count($grouped) === 2,
+    count($grouped) . ' blocks for 3 trades');
+
 // --- the money path ---------------------------------------------------------
 //
 // The rule being protected: a job is invisible until a verified webhook says

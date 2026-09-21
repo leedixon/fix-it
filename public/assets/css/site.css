@@ -357,6 +357,11 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .flash svg{flex:none;margin-top:2px}
 .flash-ok{background:var(--jade-wash);color:var(--jade);border:1px solid color-mix(in srgb,var(--jade) 28%,transparent)}
 .flash-bad{background:var(--clay-wash);color:var(--clay);border:1px solid color-mix(in srgb,var(--clay) 28%,transparent)}
+/* A standing note, not the result of an action. Distinct from flash-ok so a
+   permanent explanation cannot be mistaken for "your change was saved" — and
+   so a test looking for the confirmation does not match the wallpaper. */
+.flash-note{background:var(--paper-2);color:var(--text-2);border:1px solid var(--line)}
+.flash-note strong{color:var(--text)}
 
 /* ---- errors on fields ---- */
 .field .err{display:block;color:var(--clay);font-size:12.5px;margin-top:5px;font-family:var(--sans);letter-spacing:0;text-transform:none}

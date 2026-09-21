@@ -21,7 +21,7 @@ $bar = static function (int $sold, int $cap): string {
   </div>
 </div>
 
-<div class="flash flash-ok" style="background:var(--paper-2);color:var(--text-2);border-color:var(--line)">
+<div class="flash flash-note">
   <?= icon('info', 17) ?>
   <span>
     <strong style="color:var(--text)">Where this is up to.</strong>

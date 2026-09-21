@@ -12,6 +12,7 @@ use FixListed\Core\Response;
 use FixListed\Core\Session;
 use FixListed\Core\View;
 use FixListed\Repositories\AdminRepository;
+use FixListed\Repositories\LicenceRepository;
 use FixListed\Repositories\ProApplicationRepository;
 use FixListed\Repositories\ProRepository;
 
@@ -59,6 +60,8 @@ final class ReviewController extends AdminController
             'skills'      => $pros->skills((int) $pro['id']),
             'proCounties' => $pros->counties((int) $pro['id']),
             'trades'      => $this->tradesFor((int) $pro['id']),
+            'guides'      => (new LicenceRepository($this->db))
+                                ->forApplication((string) $pro['license_state'], $this->tradesFor((int) $pro['id'])),
             'pending'     => $repo->countPending(),
         ]);
     }
@@ -124,14 +127,22 @@ final class ReviewController extends AdminController
         return Response::redirect('/admin/applications');
     }
 
-    /** @return array<int,string> */
+    /**
+     * The trades on an application, with ids — the licensing lookup needs
+     * both: the id to find the right authority, the name to show.
+     *
+     * @return array<int,array{id:int,name:string}>
+     */
     private function tradesFor(int $proId): array
     {
-        return array_column($this->db->all(
-            'SELECT t.name FROM pro_trades pt JOIN trades t ON t.id = pt.trade_id
-              WHERE pt.pro_id = :id ORDER BY pt.is_primary DESC, t.sort_order',
-            ['id' => $proId],
-        ), 'name');
+        return array_map(
+            static fn (array $r): array => ['id' => (int) $r['id'], 'name' => (string) $r['name']],
+            $this->db->all(
+                'SELECT t.id, t.name FROM pro_trades pt JOIN trades t ON t.id = pt.trade_id
+                  WHERE pt.pro_id = :id ORDER BY pt.is_primary DESC, t.sort_order',
+                ['id' => $proId],
+            ),
+        );
     }
 
     /**

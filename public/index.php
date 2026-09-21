@@ -131,6 +131,9 @@ try {
     $router->post('/admin/jobs/{id}/remove',   static fn (array $p) => $admin(ManageController::class)->removeJob($p['id']));
     $router->get('/admin/users',               static fn () => $admin(ManageController::class)->users());
     $router->get('/admin/advertising',         static fn () => $admin(ManageController::class)->advertising());
+    $router->get('/admin/licensing',           static fn () => $admin(ManageController::class)->licensing());
+    $router->post('/admin/licensing',          static fn () => $admin(ManageController::class)->saveLicensing());
+    $router->post('/admin/licensing/{id}/delete', static fn (array $p) => $admin(ManageController::class)->deleteLicensing($p['id']));
     $router->get('/admin/markets',             static fn () => $admin(ManageController::class)->markets());
     $router->post('/admin/markets/{id}',       static fn (array $p) => $admin(ManageController::class)->updateMarket($p['id']));
 

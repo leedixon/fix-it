@@ -7,7 +7,9 @@ use FixListed\Core\AdminController;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
 use FixListed\Repositories\AdminRepository;
+use FixListed\Repositories\LicenceRepository;
 use FixListed\Repositories\MarketRepository;
+use FixListed\Repositories\TradeRepository;
 
 /** The list screens, and the few actions that act on a row. */
 final class ManageController extends AdminController
@@ -139,6 +141,94 @@ final class ManageController extends AdminController
             'sold'       => $sold,
             'pending'    => $admin->counts()['applications'],
         ]);
+    }
+
+    /**
+     * Licensing guidance, per state and trade.
+     *
+     * Superadmin only: what this table says decides whether a verified badge
+     * appears on a public profile, which is a claim the site makes on
+     * somebody's behalf.
+     */
+    public function licensing(): Response
+    {
+        if ($denied = $this->guardSuper()) {
+            return $denied;
+        }
+        $licences = new LicenceRepository($this->db);
+
+        return $this->page('admin/licensing', [
+            'title'   => 'Licensing — Fix Listed admin',
+            'rules'   => $licences->all(),
+            'trades'  => (new TradeRepository($this->db))->all(),
+            'edit'    => $this->request->input('edit') !== null
+                            ? $licences->find((int) $this->request->input('edit'))
+                            : null,
+            'pending' => (new AdminRepository($this->db, $this->scope))->counts()['applications'],
+        ]);
+    }
+
+    public function saveLicensing(): Response
+    {
+        if ($denied = $this->guardSuper()) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was saved.');
+            return Response::redirect('/admin/licensing');
+        }
+
+        $state = mb_strtoupper(trim((string) $this->request->input('state', '')));
+        if (!preg_match('/^[A-Z]{2}$/', $state)) {
+            Session::flash('bad', 'A state is two letters, like IL. Nothing was saved.');
+            return Response::redirect('/admin/licensing');
+        }
+
+        $url = trim((string) $this->request->input('lookup_url', ''));
+        if ($url !== '' && !preg_match('#^https://#i', $url)) {
+            // Only https: this link is opened by an administrator from a page
+            // that talks about verification, and a plain-http register is not
+            // one to send them to.
+            Session::flash('bad', 'The lookup link has to start with https://. Nothing was saved.');
+            return Response::redirect('/admin/licensing');
+        }
+
+        $id = $this->request->input('id') !== null && $this->request->input('id') !== ''
+            ? (int) $this->request->input('id')
+            : null;
+
+        (new LicenceRepository($this->db))->save($id, [
+            'state'     => $state,
+            'trade'     => (int) $this->request->input('trade_id', '0'),
+            'licensed'  => $this->request->input('licensed') === '1' ? 1 : 0,
+            'authority' => mb_substr(trim((string) $this->request->input('authority', '')), 0, 120),
+            'url'       => mb_substr($url, 0, 255),
+            'format'    => mb_substr(trim((string) $this->request->input('number_format', '')), 0, 60),
+            'guidance'  => mb_substr(trim((string) $this->request->input('guidance', '')), 0, 600),
+        ]);
+
+        $this->record('licensing.saved', 'licence_authority', $id, ['state' => $state]);
+        Session::flash('ok', 'Saved. The review screen will use this from the next application.');
+        return Response::redirect('/admin/licensing');
+    }
+
+    public function deleteLicensing(string $id): Response
+    {
+        if ($denied = $this->guardSuper()) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was changed.');
+            return Response::redirect('/admin/licensing');
+        }
+
+        (new LicenceRepository($this->db))->delete((int) $id);
+        $this->record('licensing.deleted', 'licence_authority', (int) $id);
+
+        // Deleting is not neutral: the review screen then says it has no
+        // guidance rather than falling back to something reassuring.
+        Session::flash('ok', 'Removed. Applications for that trade now show "no guidance yet" until it is replaced.');
+        return Response::redirect('/admin/licensing');
     }
 
     public function markets(): Response

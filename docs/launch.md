@@ -40,6 +40,13 @@ Roughly in order.
 - [ ] Sign in at `/admin` and approve one application end to end, to confirm
       the emails arrive.
 
+## Licensing
+
+- [ ] Guidance entered for every state you operate in, at **/admin/licensing**.
+      A state with no rows shows reviewers "no guidance yet" — which is the
+      correct thing to show, but it means every application there needs
+      research before it can be approved. See [licensing.md](licensing.md).
+
 ## Technical
 
 - [ ] **Move the mount to the document root.** The app derives its base path

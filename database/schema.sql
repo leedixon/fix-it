@@ -709,6 +709,45 @@ CREATE TABLE notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Applied migration tracker, so a later schema change can be applied safely.
+-- ===========================================================================
+-- LICENSING  (global reference data)
+--
+-- Trade licensing has no national registry and no agreement about which
+-- trades need a licence. Illinois alone splits it three ways: plumbers are
+-- licensed by Public Health, roofers by IDFPR, and electricians by individual
+-- cities with no state licence existing at all.
+--
+-- So it lives in data. The review screen looks up whoever licenses this
+-- applicant's trade in their state and says what to check. Opening a market
+-- in another state is rows an administrator types, not a deploy.
+-- ===========================================================================
+
+CREATE TABLE licence_authorities (
+  id            SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  state         CHAR(2)      NOT NULL,
+
+  -- 0 means 'every other trade in this state' — the fallback row. Deliberately
+  -- 0 and not NULL: MySQL treats NULLs as distinct in a unique index, so NULL
+  -- would allow several conflicting fallbacks for one state. No foreign key
+  -- for the same reason; the trade taxonomy is fixed and nothing deletes it.
+  trade_id      SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+
+  -- Whether the state licenses this trade at all. False is a real answer, not
+  -- a missing one: an Illinois electrician has no state licence, and treating
+  -- that as a red flag would be wrong.
+  licensed      TINYINT(1)   NOT NULL DEFAULT 1,
+
+  authority     VARCHAR(120) NOT NULL DEFAULT '',
+  lookup_url    VARCHAR(255) NOT NULL DEFAULT '',
+  number_format VARCHAR(60)  NOT NULL DEFAULT '',
+  guidance      VARCHAR(600) NOT NULL DEFAULT '',
+
+  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_licence_state_trade (state, trade_id),
+  KEY ix_licence_state (state)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE migrations (
   id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
   filename   VARCHAR(191) NOT NULL,

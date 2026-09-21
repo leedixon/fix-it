@@ -45,6 +45,7 @@ $nav = static function (string $href, string $label, string $icon, string $curre
       <?= $nav('/admin/users', 'People', 'user', $path) ?>
       <?= $nav('/admin/advertising', 'Advertising', 'megaphone', $path) ?>
       <?php if ($isSuper): ?>
+        <?= $nav('/admin/licensing', 'Licensing', 'shield', $path) ?>
         <?= $nav('/admin/markets', 'Markets', 'pin', $path) ?>
       <?php endif; ?>
       <?= $nav('/admin/activity', 'Activity log', 'clock', $path) ?>

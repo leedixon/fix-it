@@ -96,7 +96,7 @@ $rate = $profile['hourly_rate_cents'] !== null
 
     <hr class="hr" style="margin:22px 0">
     <h3 style="font-size:17px">Licence and insurance</h3>
-    <div class="flash flash-bad" style="margin-top:12px;background:var(--paper-2);color:var(--text-2);border-color:var(--line)">
+    <div class="flash flash-note" style="margin-top:12px">
       <?= icon('info', 17) ?>
       <span>Changing your licence number takes the verified badge off your profile and sends it back
       for a quick re-check. That is what makes the badge worth anything.</span>

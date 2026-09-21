@@ -377,6 +377,30 @@ INSERT INTO moderation_items (market_id, subject_type, subject_id, source, reaso
  (1,'pro_profile',8,'auto','Lists smart-home electrical with no licence on file',NULL,'open',NOW() - INTERVAL 1 HOUR),
  (1,'ad_creative',2,'admin','Headline needs a licence-claim check',1,'open',NOW() - INTERVAL 3 HOUR);
 
+-- --- who licenses what, in Illinois ----------------------------------------
+-- Real reference data, not demonstration data: it is licensing law rather
+-- than invented listings, so it is not flagged is_demo and bin/demo.php
+-- leaves it alone.
+
+INSERT INTO licence_authorities (state, trade_id, licensed, authority, lookup_url, number_format, guidance)
+VALUES
+ ('IL', 1, 1, 'Illinois Department of Public Health',
+  'https://dph.illinois.gov/topics-services/environmental-health-protection/plumbing.html',
+  '058-xxxxxx',
+  'Plumbers are licensed by Public Health, not IDFPR. Searching the IDFPR register for a plumber finds nothing and means nothing. Check the number is current and in this person''s name.'),
+ ('IL', 7, 1, 'IDFPR — Division of Professional Regulation',
+  'https://idfpr.illinois.gov/licenselookup/licenselookup.asp',
+  '104-xxxxxx',
+  'Roofing contractors are licensed by IDFPR under the Roofing Industry Licensing Act. Use the Professional Regulation lookup and search by business name or licence number.'),
+ ('IL', 2, 0, 'The city or county', '', '',
+  'Illinois has no statewide electrician licence. Electricians are licensed municipally — Rockford and Freeport each run their own. Ask which municipality issued it and check with that office. No state number is normal here, not a red flag.'),
+ ('IL', 0, 0, 'Not licensed at state level', '', '',
+  'Illinois does not license this trade at state level. Insurance is what matters: ask for a certificate of liability insurance, check it is current and in the business name. Some towns register contractors, so it is worth asking which.')
+ON DUPLICATE KEY UPDATE
+  licensed = VALUES(licensed), authority = VALUES(authority),
+  lookup_url = VALUES(lookup_url), number_format = VALUES(number_format),
+  guidance = VALUES(guidance);
+
 -- --- mark all of it as demonstration data ----------------------------------
 --
 -- Unqualified on purpose. This file truncates every tenant table at the top,

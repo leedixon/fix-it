@@ -18,7 +18,7 @@ $name = $pro['business_name'] ?: trim($pro['first_name'] . ' ' . $pro['last_name
       <div class="kv"><span class="k">Person</span><span><?= e($pro['first_name'] . ' ' . $pro['last_name']) ?></span></div>
       <div class="kv"><span class="k">Email</span><span><a href="mailto:<?= e($pro['email']) ?>"><?= e($pro['email']) ?></a></span></div>
       <div class="kv"><span class="k">Phone</span><span><a href="tel:<?= e($pro['phone']) ?>"><?= e($pro['phone']) ?></a></span></div>
-      <div class="kv"><span class="k">Trades</span><span><?= e(implode(', ', $trades) ?: '—') ?></span></div>
+      <div class="kv"><span class="k">Trades</span><span><?= e(implode(', ', array_column($trades, 'name')) ?: '—') ?></span></div>
       <div class="kv"><span class="k">Counties</span><span><?= e(implode(', ', array_column($proCounties, 'short_name')) ?: '—') ?></span></div>
       <div class="kv"><span class="k">Years</span><span><?= (int) $pro['years_experience'] ?></span></div>
       <div class="kv"><span class="k">Hourly rate</span><span><?= $pro['hourly_rate_cents'] ? e(money((int) $pro['hourly_rate_cents'])) : 'not given' ?></span></div>

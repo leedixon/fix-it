@@ -629,7 +629,12 @@ CREATE TABLE ad_stats_daily (
   quotes_sent  INT UNSIGNED NOT NULL DEFAULT 0,          -- attribution: click -> quote
   jobs_won     INT UNSIGNED NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_stats_day (stat_date, placement_id, creative_id),
+  -- Keyed on the placement and the day, not the creative: ads here are
+  -- derived from the pro's own profile so creative_id is always NULL, and
+  -- MySQL treats NULLs as distinct in a unique index — the key would never
+  -- match and the rollup would insert a row per impression instead of
+  -- incrementing one.
+  UNIQUE KEY uq_stats_placement_day (stat_date, placement_id),
   KEY ix_stats_pro (pro_id, stat_date),
   KEY ix_stats_market (market_id, stat_date),
   CONSTRAINT fk_st_market FOREIGN KEY (market_id)    REFERENCES markets (id)       ON DELETE CASCADE,

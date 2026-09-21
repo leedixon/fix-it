@@ -112,6 +112,113 @@ final class Stripe
         ], $idempotencyKey);
     }
 
+    /**
+     * Creates a Checkout session for a monthly placement subscription.
+     *
+     * Built from inline price_data like the one-off above, so there are no
+     * Product or Price objects to create in the dashboard and keep in step
+     * with the market's own pricing. The market row is the single source of
+     * what a plan costs; Stripe is told the number at checkout.
+     *
+     * customer_creation is left to Stripe: a subscription always produces a
+     * customer, and that id is what later opens the billing portal.
+     *
+     * @param array<string,mixed> $metadata carried onto the subscription, so
+     *        every invoice webhook that follows can be traced back to a pro
+     *        without a lookup table.
+     * @return array<string,mixed>
+     */
+    public function createSubscriptionSession(
+        int $amountCents,
+        string $planName,
+        string $description,
+        string $successUrl,
+        string $cancelUrl,
+        string $customerEmail,
+        array $metadata,
+        string $idempotencyKey,
+        string $existingCustomerId = '',
+    ): array {
+        $params = [
+            'mode' => 'subscription',
+            'success_url' => $successUrl,
+            'cancel_url'  => $cancelUrl,
+            'line_items' => [[
+                'quantity' => 1,
+                'price_data' => [
+                    'currency' => 'usd',
+                    'unit_amount' => $amountCents,
+                    'recurring' => ['interval' => 'month'],
+                    'product_data' => [
+                        'name' => $planName,
+                        'description' => mb_substr($description, 0, 200),
+                    ],
+                ],
+            ]],
+            'metadata' => $metadata,
+            'subscription_data' => ['metadata' => $metadata],
+        ];
+
+        // A pro who cancelled and came back already has a customer. Reusing it
+        // keeps one billing history and one portal, instead of a second
+        // customer with the same email that nobody can reconcile later.
+        if ($existingCustomerId !== '') {
+            $params['customer'] = $existingCustomerId;
+        } else {
+            $params['customer_email'] = $customerEmail;
+        }
+
+        return $this->post('checkout/sessions', $params, $idempotencyKey);
+    }
+
+    /**
+     * A link into Stripe's own billing portal.
+     *
+     * Cancelling, changing a card and downloading invoices all happen there.
+     * Building those screens here would mean holding card details, PCI scope
+     * and a second implementation of everything Stripe already does.
+     *
+     * @return array<string,mixed>
+     */
+    public function billingPortalSession(string $customerId, string $returnUrl): array
+    {
+        return $this->post('billing_portal/sessions', [
+            'customer'   => $customerId,
+            'return_url' => $returnUrl,
+        ]);
+    }
+
+    /** @return array<string,mixed> */
+    public function retrieveSubscription(string $subscriptionId): array
+    {
+        return $this->get('subscriptions/' . rawurlencode($subscriptionId));
+    }
+
+    /** @return array<string,mixed> */
+    public function retrieveInvoice(string $invoiceId): array
+    {
+        return $this->get('invoices/' . rawurlencode($invoiceId));
+    }
+
+    /**
+     * Ends a subscription now, not at the end of the period.
+     *
+     * Used for one thing: undoing a placement that was paid for but could not
+     * be granted because the last slot sold first. Everything a pro chooses to
+     * cancel goes through Stripe's own portal instead.
+     *
+     * @return array<string,mixed>
+     */
+    public function cancelSubscription(string $subscriptionId): array
+    {
+        return $this->request(
+            'DELETE',
+            'subscriptions/' . rawurlencode($subscriptionId),
+            null,
+            [],
+        );
+    }
+
     /** @return array<string,mixed> */
     public function retrieveSession(string $sessionId): array
     {

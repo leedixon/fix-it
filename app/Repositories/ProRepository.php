@@ -60,6 +60,7 @@ final class ProRepository extends Repository
                     hc.name AS home_city, hco.short_name AS home_county,
                     s.plan AS ad_plan,
                     (s.plan IS NOT NULL) AS is_ad,
+                    pl.id AS placement_id,
                     pl.position AS ad_position
                FROM pro_profiles p
                JOIN users u ON u.id = p.user_id
@@ -70,9 +71,15 @@ final class ProRepository extends Repository
                 AND pl.market_id = :market_id
                 AND pl.slot = 'directory_top'
                 AND pl.status = 'active'
+               -- past_due counts as paying. Stripe retries a declined card
+               -- for two weeks and usually wins; taking a tradesperson off
+               -- the page in the meantime is how you lose the customer rather
+               -- than collect the payment. It also keeps this in step with
+               -- the webhook, which leaves the placement up for the same
+               -- reason.
                LEFT JOIN subscriptions s
                  ON s.id = pl.subscription_id
-                AND s.status = 'active'
+                AND s.status IN ('active','trialing','past_due')
               WHERE p.status = 'active'
                 {$demoFilter}
                 AND EXISTS (SELECT 1 FROM pro_county_areas a
@@ -80,9 +87,14 @@ final class ProRepository extends Repository
                                AND a.market_id = :market_id
                                {$filters})
                 {$tradeFilter}
+              -- A placement whose subscription is not paying must not move
+              -- anybody: position is read only when a plan came with it.
+              -- Otherwise a lapsed row quietly reorders the page, and an
+              -- unbadged listing sitting above earned ones is the one thing
+              -- this directory cannot afford to do.
               ORDER BY (s.plan = 'spotlight') DESC,
                        (s.plan = 'boost') DESC,
-                       pl.position ASC,
+                       CASE WHEN s.plan IS NULL THEN 9999 ELSE pl.position END ASC,
                        p.rating_avg DESC,
                        p.rating_count DESC
               LIMIT {$limit}",

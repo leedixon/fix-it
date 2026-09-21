@@ -24,12 +24,12 @@ $bar = static function (int $sold, int $cap): string {
 <div class="flash flash-note">
   <?= icon('info', 17) ?>
   <span>
-    <strong style="color:var(--text)">Where this is up to.</strong>
-    The inventory, the caps, the paid ordering in the directory and the labelling are all built and
-    working — a placement with an active subscription already lifts a listing and shows as
-    <em>Featured</em>. What does not exist yet is the part that sells one: the checkout, the
-    Stripe subscription and the self-serve screen a tradesperson uses. That lands with the
-    money path.
+    <strong style="color:var(--text)">How this sells itself.</strong>
+    A tradesperson buys a plan from <em>Get seen first</em> in their own account, pays through
+    Stripe Checkout, and the webhook grants the placement. Cancelling, card changes and invoices
+    all happen in Stripe's billing portal, so there is nothing here you have to do by hand. If
+    the last slot sells twice in the same moment, the second payment is cancelled and refunded
+    automatically and you get an email to follow it up.
   </span>
 </div>
 
@@ -66,7 +66,7 @@ $bar = static function (int $sold, int $cap): string {
   <?php else: ?>
     <div class="tablewrap">
       <table>
-        <thead><tr><th>Business</th><th>Plan</th><th>Slot</th><th>Subscription</th><th>Impressions 30d</th><th>Clicks 30d</th><th>CTR</th></tr></thead>
+        <thead><tr><th>Business</th><th>Plan</th><th>Position</th><th>Subscription</th><th>Renews</th><th>Impressions 30d</th><th>Clicks 30d</th><th>CTR</th></tr></thead>
         <tbody>
         <?php foreach ($placements as $p): ?>
           <?php $imp = (int) $p['impressions_30d']; $clk = (int) $p['clicks_30d']; ?>
@@ -75,9 +75,14 @@ $bar = static function (int $sold, int $cap): string {
               <?= e($p['pro_name']) ?>
               <?php if ($p['is_demo']): ?><span class="badge b-sample">Sample</span><?php endif; ?>
             </td>
-            <td><span class="badge <?= $p['plan'] === 'spotlight' ? 'b-featured' : 'b-flat' ?>"><?= e($p['plan'] ?? '—') ?></span></td>
-            <td class="tiny"><?= e(str_replace('_', ' ', (string) $p['slot'])) ?> #<?= (int) $p['position'] ?></td>
+            <!-- The same badge the public card wears, so what an administrator
+                 reads here matches what a visitor sees on the listing. -->
+            <td><span class="badge <?= $p['plan'] === 'spotlight' ? 'b-featured' : 'b-promoted' ?>"><?= e($p['plan'] ?? '—') ?></span></td>
+            <td class="tiny">#<?= (int) $p['position'] ?></td>
             <td class="tiny"><?= e($p['sub_status'] ?? 'none') ?></td>
+            <td class="tiny"><?= $p['current_period_end'] !== null
+                ? e(date('j M', strtotime((string) $p['current_period_end'])))
+                : '—' ?></td>
             <td class="num"><?= number_format($imp) ?></td>
             <td class="num"><?= number_format($clk) ?></td>
             <td class="num"><?= $imp > 0 ? number_format($clk / $imp * 100, 1) . '%' : '—' ?></td>

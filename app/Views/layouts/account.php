@@ -58,6 +58,7 @@ $status = (string) ($profile['status'] ?? '');
       <?= $nav('/my', 'Jobs for you', 'clipboard', $path) ?>
       <?= $nav('/my/quotes', 'Your quotes', 'inbox', $path) ?>
       <?= $nav('/my/listing', 'Your listing', 'tools', $path) ?>
+      <?= $nav('/my/promote', 'Get seen first', 'megaphone', $path) ?>
     </nav>
 
     <?php if ($profile !== null): ?>

@@ -17,6 +17,7 @@ use FixListed\Core\Auth;
 use FixListed\Core\Database;
 use FixListed\Core\Repository;
 use FixListed\Core\TenantScope;
+use FixListed\Repositories\AdvertisingRepository;
 use FixListed\Repositories\GeographyRepository;
 use FixListed\Repositories\JobRepository;
 use FixListed\Repositories\MarketRepository;
@@ -521,6 +522,72 @@ try {
 $superadminView = TenantScope::crossMarket('superadmin revenue rollup spans every market');
 check('cross-market scope is available deliberately',
     $superadminView->crossMarket && !$superadminView->isBound());
+
+// --- paid placement: capacity, tracking, and the click redirect -------------
+// The money side of advertising is only as good as its refusal to oversell,
+// so these check the boundary rather than the happy path.
+$adScope = TenantScope::market($marketId);
+$ads     = new AdvertisingRepository($db, $adScope);
+$plans = $ads->plans($nwi);
+
+check('both plans are priced from the market row',
+    $plans['boost']['price_cents'] === (int) $nwi['boost_price_cents']
+    && $plans['spotlight']['price_cents'] === (int) $nwi['spotlight_price_cents'],
+    money($plans['boost']['price_cents']) . ' / ' . money($plans['spotlight']['price_cents']) . ' a month');
+
+check('sold slots are counted against the cap',
+    $plans['boost']['available'] === max(0, $plans['boost']['slots'] - $plans['boost']['sold'])
+    && $plans['spotlight']['available'] === max(0, $plans['spotlight']['slots'] - $plans['spotlight']['sold']),
+    $plans['spotlight']['sold'] . ' of ' . $plans['spotlight']['slots'] . ' spotlight sold');
+
+// A cap of zero must never read as "unlimited" — it is the switch that takes
+// a plan off sale, and an off-by-one here sells something that does not exist.
+check('a plan with no slots cannot be sold',
+    !$ads->hasCapacity(['boost_slots' => 0] + $nwi, 'boost'));
+
+check('capacity refuses once the cap is reached',
+    !$ads->hasCapacity(['spotlight_slots' => $plans['spotlight']['sold']] + $nwi, 'spotlight'));
+
+$paidPro = null;
+foreach ($pros->directory(null, null, 60) as $row) {
+    if (!empty($row['placement_id'])) {
+        $paidPro = $row;
+        break;
+    }
+}
+check('a paid listing carries the placement its click is counted against',
+    $paidPro !== null && (int) $paidPro['placement_id'] > 0);
+
+$placement = $paidPro !== null ? $ads->placement((int) $paidPro['placement_id']) : null;
+check('a placement resolves to a profile on this site',
+    $placement !== null && $placement['slug'] === $paidPro['slug'],
+    '/go/' . ($paidPro['placement_id'] ?? '?') . ' → /pros/' . ($placement['slug'] ?? '?'));
+
+// The whole defence against /go/ becoming an open redirect is that it only
+// ever looks an id up. An id from another market must find nothing.
+$qc = $markets->findBySlug('quad-cities');
+$otherScope = TenantScope::market((int) $qc['id']);
+check('a placement in another market is invisible',
+    $paidPro !== null
+    && (new AdvertisingRepository($db, $otherScope))->placement((int) $paidPro['placement_id']) === null);
+
+check('an unknown placement resolves to nothing', $ads->placement(999999) === null);
+
+$before = $ads->totalsFor($paidPro !== null ? (int) $paidPro['id'] : 0, 30);
+check('a pro can be told what their placement delivered',
+    $before['impressions'] >= 0 && $before['clicks'] >= 0 && $before['days'] === 30);
+
+// The daily rollup is keyed on (date, placement). If that key stops matching,
+// every impression inserts its own row and the totals a pro is invoiced
+// against silently become nonsense.
+$dupes = (int) $db->value(
+    'SELECT COUNT(*) FROM (
+        SELECT stat_date, placement_id FROM ad_stats_daily
+         WHERE placement_id IS NOT NULL
+         GROUP BY stat_date, placement_id HAVING COUNT(*) > 1
+     ) d'
+);
+check('the daily rollup holds one row per placement per day', $dupes === 0);
 
 // --- authentication ---------------------------------------------------------
 $auth = new Auth($db);

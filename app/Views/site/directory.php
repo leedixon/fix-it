@@ -76,7 +76,11 @@ $count = count($pros);
           <?= $county !== null ? 'covering ' . e($county['short_name']) : '' ?>
         <?php endif; ?>
       </div>
-      <div class="tiny muted">Ranked by rating, then reviews. Featured listings are paid and labelled.</div>
+      <!-- Names both paid tiers. "Featured listings" alone left Promoted
+           cards looking like they earned their position. -->
+      <div class="tiny muted">Ranked by rating, then reviews.
+        <span class="badge b-featured">Featured</span> and
+        <span class="badge b-promoted">Promoted</span> listings are paid placement.</div>
     </div>
 
     <?php if ($pros === []): ?>

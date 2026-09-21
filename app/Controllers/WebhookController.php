@@ -11,6 +11,7 @@ use FixListed\Core\Response;
 use FixListed\Core\Stripe;
 use FixListed\Core\TenantScope;
 use FixListed\Core\View;
+use FixListed\Repositories\AdvertisingRepository;
 use FixListed\Repositories\JobPostingRepository;
 
 /**
@@ -77,9 +78,13 @@ final class WebhookController
 
         try {
             $handled = match ($type) {
-                'checkout.session.completed' => $this->sessionCompleted($event),
-                'charge.refunded'            => $this->chargeRefunded($event),
-                default                      => null,
+                'checkout.session.completed'    => $this->sessionCompleted($event),
+                'charge.refunded'               => $this->chargeRefunded($event),
+                'invoice.paid'                  => $this->invoicePaid($event),
+                'invoice.payment_failed'        => $this->invoiceFailed($event),
+                'customer.subscription.updated' => $this->subscriptionUpdated($event),
+                'customer.subscription.deleted' => $this->subscriptionDeleted($event),
+                default                         => null,
             };
         } catch (\Throwable $e) {
             // Recorded as failed and answered 200. A retry would hit the
@@ -114,6 +119,16 @@ final class WebhookController
         // Stripe allows an unpaid session to complete when a payment method
         // settles later. Only 'paid' publishes anything.
         if (($session['payment_status'] ?? '') !== 'paid') {
+            return null;
+        }
+
+        // Two different things arrive on this event: a homeowner paying the
+        // listing fee, and a tradesperson starting a monthly placement. The
+        // mode tells them apart, and metadata confirms it — neither alone,
+        // because a future product would break whichever we trusted.
+        if (($session['mode'] ?? '') === 'subscription'
+            || ($session['metadata']['kind'] ?? '') === 'placement') {
+            $this->placementStarted($session);
             return null;
         }
 
@@ -177,6 +192,335 @@ final class WebhookController
         }
 
         return null;
+    }
+
+    /**
+     * A tradesperson has paid for placement.
+     *
+     * The capacity check happens here, inside the activation transaction,
+     * rather than only on the page that sold it: two pros can reach Stripe
+     * for the last slot within the same second, and both will be charged. The
+     * one who loses gets their money back automatically — an apology and a
+     * refund beats a slot that was already gone.
+     *
+     * @param array<string,mixed> $session
+     */
+    private function placementStarted(array $session): void
+    {
+        $meta     = $session['metadata'] ?? [];
+        $localId  = (int) ($meta['subscription_id'] ?? 0);
+        $marketId = (int) ($meta['market_id'] ?? 0);
+        $stripeId = (string) ($session['subscription'] ?? '');
+
+        if ($localId < 1 || $marketId < 1 || $stripeId === '') {
+            throw new \RuntimeException('Placement session ' . ($session['id'] ?? '?') . ' is missing metadata.');
+        }
+
+        $market = $this->db->one('SELECT * FROM markets WHERE id = :id', ['id' => $marketId]);
+        if ($market === null) {
+            throw new \RuntimeException('Placement session names market ' . $marketId . ', which does not exist.');
+        }
+
+        $plan = (string) ($meta['plan'] ?? 'boost');
+        $ads  = new AdvertisingRepository($this->db, TenantScope::market($marketId));
+
+        // The session says nothing about what was paid for through when, so
+        // the subscription is read back for its period. If that call fails
+        // the placement still goes live with an unknown period — the money
+        // arrived, and a missing date is not a reason to withhold what was
+        // bought. invoice.paid fills it in at the first renewal regardless.
+        [$periodStart, $periodEnd] = $this->periodOf($stripeId);
+
+        $granted = $ads->activate(
+            $localId,
+            $stripeId,
+            (string) ($session['customer'] ?? ''),
+            $periodStart,
+            $periodEnd,
+            (int) ($market[$plan . '_slots'] ?? 0),
+        );
+
+        if (!$granted) {
+            $ads->abandon($localId, 'no ' . $plan . ' slot was free');
+            $this->undoOversold($session, $stripeId, $plan, $marketId);
+        }
+    }
+
+    /**
+     * What a subscription is paid up through, asked of Stripe directly.
+     *
+     * @return array{0:?string,1:?string}
+     */
+    private function periodOf(string $stripeSubscriptionId): array
+    {
+        try {
+            $stripe = Stripe::fromConfig();
+            if ($stripe === null) {
+                return [null, null];
+            }
+            $sub = $stripe->retrieveSubscription($stripeSubscriptionId);
+
+            return [
+                isset($sub['current_period_start'])
+                    ? gmdate('Y-m-d H:i:s', (int) $sub['current_period_start']) : null,
+                isset($sub['current_period_end'])
+                    ? gmdate('Y-m-d H:i:s', (int) $sub['current_period_end']) : null,
+            ];
+        } catch (\Throwable $e) {
+            error_log('Could not read the period for ' . $stripeSubscriptionId . ': ' . $e->getMessage());
+            return [null, null];
+        }
+    }
+
+    /**
+     * Money taken for a slot that was gone. Cancel and refund, in that order.
+     *
+     * Cancelling first stops the next month being billed even if the refund
+     * fails; a failed refund is a line in the log that a person can act on,
+     * a subscription nobody cancelled is a charge every month forever.
+     *
+     * @param array<string,mixed> $session
+     */
+    private function undoOversold(
+        array $session,
+        string $stripeSubscriptionId,
+        string $plan,
+        int $marketId,
+    ): void {
+        error_log(sprintf(
+            'Placement oversold: %s paid for %s but no slot was free. Cancelling and refunding.',
+            $session['id'] ?? '?',
+            $plan,
+        ));
+
+        $stripe = Stripe::fromConfig();
+        if ($stripe === null) {
+            return;
+        }
+
+        try {
+            $stripe->cancelSubscription($stripeSubscriptionId);
+        } catch (\Throwable $e) {
+            error_log('Could not cancel oversold subscription ' . $stripeSubscriptionId . ': ' . $e->getMessage());
+        }
+
+        try {
+            $invoiceId = (string) ($session['invoice'] ?? '');
+            if ($invoiceId === '') {
+                return;
+            }
+            $invoice = $stripe->retrieveInvoice($invoiceId);
+            $intent  = (string) ($invoice['payment_intent'] ?? '');
+            if ($intent !== '') {
+                $stripe->refund(
+                    $intent,
+                    'Placement slot was already taken',
+                    'oversold-' . $stripeSubscriptionId,
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log('Could not refund oversold subscription ' . $stripeSubscriptionId . ': ' . $e->getMessage());
+        }
+
+        $this->alertOperator($session, $plan, $marketId);
+    }
+
+    /**
+     * Tells a person that somebody's money came back.
+     *
+     * The refund is automatic; the apology is not. Whoever runs the market
+     * should be the one to reach the tradesperson, before the tradesperson
+     * reaches them wondering what happened.
+     *
+     * @param array<string,mixed> $session
+     */
+    private function alertOperator(array $session, string $plan, int $marketId): void
+    {
+        $to = (string) Config::get('mail.alert_to', '');
+        if ($to === '') {
+            return;
+        }
+
+        $pro = $this->db->one(
+            'SELECT u.email, u.first_name, u.last_name, p.business_name
+               FROM pro_profiles p JOIN users u ON u.id = p.user_id
+              WHERE p.id = :id AND p.market_id = :market LIMIT 1',
+            ['id' => (int) ($session['metadata']['pro_id'] ?? 0), 'market' => $marketId],
+        ) ?? [];
+
+        $who = trim((string) ($pro['business_name'] ?? '')) !== ''
+            ? (string) $pro['business_name']
+            : trim(($pro['first_name'] ?? '') . ' ' . ($pro['last_name'] ?? ''));
+
+        $text = "A tradesperson paid for a {$plan} placement and every slot was already taken.\n\n"
+              . 'Who: ' . ($who !== '' ? $who : 'unknown') . ' <' . ($pro['email'] ?? 'unknown') . ">\n"
+              . 'Stripe session: ' . ($session['id'] ?? '?') . "\n\n"
+              . "The subscription has been cancelled and the payment refunded automatically.\n"
+              . "Please get in touch with them before they get in touch with you.\n";
+
+        try {
+            Mailer::fromConfig()->send(
+                $to,
+                'Placement oversold — refunded automatically',
+                '<pre style="font:14px/1.6 monospace">' . e($text) . '</pre>',
+                $text,
+            );
+        } catch (\Throwable $e) {
+            error_log('Could not send the oversold alert: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * A monthly invoice was paid: the first one, or a renewal.
+     *
+     * This is what actually keeps a placement up. The checkout event grants
+     * it once; every month after that, this is the only proof the money
+     * arrived, and a subscription that went past_due comes back here.
+     *
+     * @param array<string,mixed> $event
+     */
+    private function invoicePaid(array $event): ?array
+    {
+        $invoice  = $event['data']['object'] ?? [];
+        $stripeId = $this->subscriptionIdOf($invoice);
+        if ($stripeId === '') {
+            return null;
+        }
+
+        [$marketId, $row] = $this->placementFor($stripeId);
+        if ($row === null) {
+            return null;
+        }
+
+        $ads    = new AdvertisingRepository($this->db, TenantScope::market($marketId));
+        $market = $this->db->one('SELECT * FROM markets WHERE id = :id', ['id' => $marketId]) ?? [];
+        $period = $invoice['lines']['data'][0]['period'] ?? [];
+
+        $ads->activate(
+            (int) $row['id'],
+            $stripeId,
+            (string) ($invoice['customer'] ?? ''),
+            isset($period['start']) ? gmdate('Y-m-d H:i:s', (int) $period['start']) : null,
+            isset($period['end'])   ? gmdate('Y-m-d H:i:s', (int) $period['end'])   : null,
+            (int) ($market[(string) $row['plan'] . '_slots'] ?? 0),
+        );
+
+        return null;
+    }
+
+    /**
+     * A card was declined. The listing stays up.
+     *
+     * Stripe retries a failed payment for two weeks, and most of those
+     * succeed. Pulling a paying tradesperson off the page over an expired
+     * card is how you lose the customer rather than collect the payment —
+     * customer.subscription.deleted is what ends a placement.
+     *
+     * @param array<string,mixed> $event
+     */
+    private function invoiceFailed(array $event): ?array
+    {
+        $stripeId = $this->subscriptionIdOf($event['data']['object'] ?? []);
+        if ($stripeId === '') {
+            return null;
+        }
+
+        [$marketId, $row] = $this->placementFor($stripeId);
+        if ($row !== null) {
+            (new AdvertisingRepository($this->db, TenantScope::market($marketId)))->markPastDue($stripeId);
+        }
+
+        return null;
+    }
+
+    /**
+     * Something changed in Stripe's portal. The one thing worth recording
+     * here is a pending cancellation, so the pro's own screen agrees with
+     * what they just did.
+     *
+     * @param array<string,mixed> $event
+     */
+    private function subscriptionUpdated(array $event): ?array
+    {
+        $sub      = $event['data']['object'] ?? [];
+        $stripeId = (string) ($sub['id'] ?? '');
+        if ($stripeId === '') {
+            return null;
+        }
+
+        [$marketId, $row] = $this->placementFor($stripeId);
+        if ($row === null) {
+            return null;
+        }
+
+        $ads = new AdvertisingRepository($this->db, TenantScope::market($marketId));
+        $ads->markCancelAtPeriodEnd($stripeId, !empty($sub['cancel_at_period_end']));
+
+        // Stripe can exhaust its retries and mark a subscription unpaid
+        // without deleting it. That is the end of the placement too.
+        if (in_array((string) ($sub['status'] ?? ''), ['canceled', 'unpaid'], true)) {
+            $ads->endSubscription($stripeId);
+        }
+
+        return null;
+    }
+
+    /**
+     * The subscription is over. The slot goes back on sale.
+     *
+     * @param array<string,mixed> $event
+     */
+    private function subscriptionDeleted(array $event): ?array
+    {
+        $stripeId = (string) ($event['data']['object']['id'] ?? '');
+        if ($stripeId === '') {
+            return null;
+        }
+
+        [$marketId, $row] = $this->placementFor($stripeId);
+        if ($row !== null) {
+            (new AdvertisingRepository($this->db, TenantScope::market($marketId)))->endSubscription($stripeId);
+        }
+
+        return null;
+    }
+
+    /**
+     * An invoice names its subscription in one of two places depending on the
+     * API version, so both are read.
+     *
+     * @param array<string,mixed> $invoice
+     */
+    private function subscriptionIdOf(array $invoice): string
+    {
+        $direct = $invoice['subscription'] ?? null;
+        if (is_string($direct) && $direct !== '') {
+            return $direct;
+        }
+        if (is_array($direct) && isset($direct['id'])) {
+            return (string) $direct['id'];
+        }
+        return (string) ($invoice['parent']['subscription_details']['subscription'] ?? '');
+    }
+
+    /**
+     * Finds the local subscription behind a Stripe id, and the market it is in.
+     *
+     * The market is read from the row rather than resolved from the request,
+     * because a webhook has no request to resolve one from — the same reason
+     * every other lookup in this class works this way.
+     *
+     * @return array{0:int,1:array<string,mixed>|null}
+     */
+    private function placementFor(string $stripeSubscriptionId): array
+    {
+        $row = $this->db->one(
+            'SELECT id, market_id, pro_id, plan FROM subscriptions
+              WHERE stripe_subscription_id = :sub LIMIT 1',
+            ['sub' => $stripeSubscriptionId],
+        );
+
+        return [$row === null ? 0 : (int) $row['market_id'], $row];
     }
 
     /** Which market a session belongs to, via the job its metadata names. */

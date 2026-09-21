@@ -92,9 +92,12 @@ without re-applying the charge.
 
 ## Advertising: profile-derived, not an ad builder
 
-An ad unit assembles itself from the pro's live profile. `ad_creatives` stores
-only the three fields a pro may override — `headline`, `offer_line`,
-`hero_photo_id` (plus `cta_label`) — and a moderation state.
+An ad unit assembles itself from the pro's live profile. **As built, an ad *is*
+the pro's listing card, lifted** — there is no separate ad unit to render and
+nothing for an advertiser to write. `ad_creatives` exists for the day a pro
+wants to override the three fields that are theirs to override — `headline`,
+`offer_line`, `hero_photo_id` (plus `cta_label`) — and carries a moderation
+state for them. Nothing writes to it yet, and a placement does not need it.
 
 **A NULL override means "inherit from the profile."** A row with every override
 NULL is still a complete, live ad, so every paying advertiser has working
@@ -111,9 +114,28 @@ variables. `ad_creatives.variant` supports two live variants per pro for exactly
 that.
 
 Ad events are written raw to `ad_events` (with IP and session hashed, not
-stored) and rolled up nightly into `ad_stats_daily`, which is what the dashboard
-reads. Raw events are pruned at 45 days — shared hosting does not want an
-unbounded event log.
+stored) and counted into `ad_stats_daily` in the same write, which is what both
+dashboards read. There is no nightly rollup: without a queue worker, the
+alternative to counting inline is a cron job that can silently stop, and a
+counter a tradesperson is invoiced against should not be able to fall behind
+without anyone noticing. Both writes happen after the response has been sent
+(`fastcgi_finish_request`), so they cost a visitor nothing.
+
+The dedupe key is `(stat_date, placement_id)` and deliberately excludes
+`creative_id`: it is always NULL here, MySQL treats NULLs as distinct in a
+unique index, so including it means the key never matches and every impression
+inserts its own row. Migration `005` repaired that.
+
+Raw events are pruned at 45 days by `bin/sweep.php` — shared hosting does not
+want an unbounded event log, and the daily totals are the permanent record, so
+a tradesperson's history survives the pruning of the rows that produced it. The
+same sweep takes down any placement that outlived its subscription: the
+webhooks do that already, and this catches the event that never arrived.
+
+Clicks are routed through `/go/{placement}`, which resolves the destination
+from the database. It never accepts a URL: a redirector that forwards to
+whatever is in the query string is an open redirect, and the only thing this
+one can reach is a profile on this site.
 
 ## Shared-hosting constraints
 

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
+use FixListed\Controllers\AdController;
 use FixListed\Controllers\CityController;
 use FixListed\Controllers\DirectoryController;
 use FixListed\Controllers\HomeController;
@@ -22,12 +23,14 @@ use FixListed\Controllers\WebhookController;
 use FixListed\Controllers\Account\DashboardController as AccountDashboard;
 use FixListed\Controllers\Account\PasswordController;
 use FixListed\Controllers\Account\ProfileController;
+use FixListed\Controllers\Account\PromoteController;
 use FixListed\Controllers\Account\QuoteController;
 use FixListed\Controllers\Account\SessionController as AccountSession;
 use FixListed\Controllers\Admin\DashboardController;
 use FixListed\Controllers\Admin\ManageController;
 use FixListed\Controllers\Admin\ReviewController;
 use FixListed\Controllers\Admin\SessionController;
+use FixListed\Core\AdTracker;
 use FixListed\Core\Auth;
 use FixListed\Core\Config;
 use FixListed\Core\Database;
@@ -78,6 +81,10 @@ try {
     $router->post('/list-your-business',         static fn () => $make(ProSignupController::class)->submit());
     $router->get('/list-your-business/received', static fn () => $make(ProSignupController::class)->received());
 
+    // A click on a paid listing, counted and then sent on. It takes an id
+    // and resolves the destination itself — see AdController.
+    $router->get('/go/{id}', static fn (array $p) => $make(AdController::class)->go($p['id']));
+
     $router->get('/pricing',        static fn () => $make(PageController::class)->pricing());
     $router->get('/for-pros',       static fn () => $make(PageController::class)->forPros());
     $router->get('/terms',          static fn () => $make(PageController::class)->legal('terms'));
@@ -105,6 +112,10 @@ try {
 
     $router->get('/my',            static fn () => $make(AccountDashboard::class)->index());
     $router->get('/my/quotes',     static fn () => $make(AccountDashboard::class)->quotes());
+    $router->get('/my/promote',    static fn () => $make(PromoteController::class)->index());
+    $router->post('/my/promote',   static fn () => $make(PromoteController::class)->subscribe());
+    $router->get('/my/promote/done', static fn () => $make(PromoteController::class)->done());
+    $router->post('/my/billing',   static fn () => $make(PromoteController::class)->billing());
     $router->get('/my/listing',    static fn () => $make(ProfileController::class)->edit());
     $router->post('/my/listing',   static fn () => $make(ProfileController::class)->update());
     $router->get('/my/quote/{reference}',  static fn (array $p) => $make(QuoteController::class)->form($p['reference']));
@@ -171,3 +182,19 @@ try {
 }
 
 $response->send();
+
+/*
+ * Everything below runs with the visitor already served.
+ *
+ * fastcgi_finish_request closes the connection and lets PHP carry on, so
+ * counting an impression costs the person reading the page nothing. Without
+ * it (CLI server, some FPM setups) the work still happens — it is two small
+ * writes — it just is not free.
+ */
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+}
+
+if (isset($scope, $auth)) {
+    AdTracker::flush($db, $request, $scope->marketId, $auth->id());
+}

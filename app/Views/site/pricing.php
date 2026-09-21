@@ -71,7 +71,14 @@ $tick = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="cur
         <li><?= $tick ?> Always labelled as paid placement</li>
         <li><?= $tick ?> Cancel any month</li>
       </ul>
-      <a class="btn btn-ghost btn-block" href="<?= e(url('/for-pros')) ?>">How placement works</a>
+      <?php
+        // A tradesperson already signed in does not want the explainer again,
+        // they want the buy screen.
+        $placementHref = in_array($me['role'] ?? '', ['pro', 'market_admin', 'superadmin'], true)
+            ? '/my/promote' : '/for-pros';
+      ?>
+      <a class="btn btn-ghost btn-block" href="<?= e(url($placementHref)) ?>">
+        <?= $placementHref === '/my/promote' ? 'See your numbers' : 'How placement works' ?></a>
       <p class="tiny muted" style="text-align:center">Placement changes order. It never changes a rating or a badge.</p>
     </div>
   </div>

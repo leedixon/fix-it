@@ -22,6 +22,14 @@ Roughly in order.
 - [ ] **Live-mode webhook endpoint added in Stripe** — test and live have
       separate endpoints and separate signing secrets, and a job cannot go live
       without one. See [payments.md](payments.md).
+- [ ] **All six events subscribed on that endpoint**:
+      `checkout.session.completed`, `charge.refunded`, `invoice.paid`,
+      `invoice.payment_failed`, `customer.subscription.updated`,
+      `customer.subscription.deleted`. Without the last four a placement goes
+      up and never comes down — including one nobody is paying for any more.
+- [ ] **Stripe's customer portal switched on**, with cancellation allowed
+      (Settings → Billing → Customer portal). It is the only way a pro can
+      cancel a placement or change a card, and the link fails without it.
 - [ ] **The sweep is on cron.** The automatic refund is a written promise; it
       does not happen on its own.
       `7 6 * * * cd ~/fixlisted && php bin/sweep.php >> storage/logs/sweep.log 2>&1`
@@ -29,6 +37,9 @@ Roughly in order.
 - [ ] The refund promise on `/pricing` and in `/terms` matches what the code
       actually does — the auto-refund sweep must exist before the promise ships.
 - [ ] A real business address and contact route, if Stripe asks for one.
+- [ ] **Placement caps set per market** — `markets.boost_slots` and
+      `markets.spotlight_slots`, editable at `/admin/markets`. Scarcity is the
+      product; a cap of `0` takes a plan off sale.
 
 ## Administration
 

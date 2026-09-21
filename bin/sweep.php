@@ -132,7 +132,40 @@ $abandoned = $dryRun
     ? (int) $db->value("SELECT COUNT(*) FROM jobs WHERE status = 'pending_payment' AND created_at <= NOW() - INTERVAL 7 DAY")
     : $db->affected("UPDATE jobs SET status = 'removed' WHERE status = 'pending_payment' AND created_at <= NOW() - INTERVAL 7 DAY");
 
-echo "3. Abandoned checkouts older than a week: {$abandoned}" . ($dryRun ? ' (would tidy)' : ' tidied') . "\n\n";
+echo "3. Abandoned checkouts older than a week: {$abandoned}" . ($dryRun ? ' (would tidy)' : ' tidied') . "\n";
+
+// --- 4. prune the raw ad event log ------------------------------------------
+//
+// ad_events exists to deduplicate an impression within a day and to give a
+// person something to look at when a number seems wrong. Neither needs six
+// months of it, and shared hosting does not want an unbounded log. The daily
+// totals in ad_stats_daily are the permanent record and are untouched — so a
+// tradesperson's history survives the pruning of the rows that produced it.
+$pruned = $dryRun
+    ? (int) $db->value('SELECT COUNT(*) FROM ad_events WHERE created_at <= NOW() - INTERVAL 45 DAY')
+    : $db->affected('DELETE FROM ad_events WHERE created_at <= NOW() - INTERVAL 45 DAY');
+
+echo "4. Ad events older than 45 days: {$pruned}" . ($dryRun ? ' (would prune)' : ' pruned') . "\n";
+
+// --- 5. take down placements nobody is paying for ---------------------------
+//
+// A safety net, not the mechanism: Stripe's webhooks end a placement the
+// moment a subscription does. This catches the one that was missed — an event
+// that never arrived, an endpoint that was down — because the failure mode is
+// somebody sitting at the top of the page for free while a paying pro sits
+// below them.
+$stale = $dryRun
+    ? (int) $db->value(
+        "SELECT COUNT(*) FROM ad_placements pl
+           JOIN subscriptions s ON s.id = pl.subscription_id
+          WHERE pl.status = 'active' AND s.status IN ('canceled','unpaid')")
+    : $db->affected(
+        "UPDATE ad_placements pl
+           JOIN subscriptions s ON s.id = pl.subscription_id
+            SET pl.status = 'expired', pl.ends_at = NOW()
+          WHERE pl.status = 'active' AND s.status IN ('canceled','unpaid')");
+
+echo "5. Placements outliving their subscription: {$stale}" . ($dryRun ? ' (would expire)' : ' expired') . "\n\n";
 
 /** Tells the homeowner the money is on its way back, before they ask. */
 function tell(View $view, string $email, string $name, array $job): void

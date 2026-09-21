@@ -124,10 +124,13 @@ final class AdminRepository extends Repository
                     s.plan, s.status AS sub_status, s.current_period_end,
                     COALESCE(NULLIF(p.business_name,''), TRIM(CONCAT(u.first_name,' ',u.last_name))) AS pro_name,
                     p.slug, p.is_demo,
+                    -- Per placement, not per pro. Summing by pro repeated one
+                    -- pro's whole total on every row they hold, which reads as
+                    -- each placement having delivered all of it.
                     (SELECT COALESCE(SUM(impressions),0) FROM ad_stats_daily d
-                      WHERE d.pro_id = p.id AND d.stat_date >= CURDATE() - INTERVAL 30 DAY) AS impressions_30d,
+                      WHERE d.placement_id = pl.id AND d.stat_date >= CURDATE() - INTERVAL 30 DAY) AS impressions_30d,
                     (SELECT COALESCE(SUM(clicks),0) FROM ad_stats_daily d
-                      WHERE d.pro_id = p.id AND d.stat_date >= CURDATE() - INTERVAL 30 DAY) AS clicks_30d
+                      WHERE d.placement_id = pl.id AND d.stat_date >= CURDATE() - INTERVAL 30 DAY) AS clicks_30d
                FROM ad_placements pl
                JOIN pro_profiles p ON p.id = pl.pro_id
                JOIN users u ON u.id = p.user_id
@@ -137,15 +140,21 @@ final class AdminRepository extends Repository
         );
     }
 
-    /** How much inventory is sold, against the caps the market sets. */
+    /**
+     * How much inventory is sold, against the caps the market sets.
+     *
+     * Counted in subscriptions, because that is the unit the cap is written
+     * in and the unit a pro buys. Counting placements instead showed "7 of 3
+     * spotlight sold" the moment one subscription held more than one row —
+     * a market that looks oversold when it is not.
+     */
     public function adInventory(): array
     {
         return $this->scopedAll(
             "SELECT s.plan, COUNT(*) AS sold
-               FROM ad_placements pl
-               JOIN subscriptions s ON s.id = pl.subscription_id
-              WHERE pl.market_id = :market_id
-                AND pl.status = 'active' AND s.status = 'active'
+               FROM subscriptions s
+              WHERE s.market_id = :market_id
+                AND s.status IN ('active','trialing','past_due')
               GROUP BY s.plan"
         );
     }

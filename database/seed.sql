@@ -342,26 +342,38 @@ INSERT INTO ad_creatives (id, market_id, pro_id, variant, headline, offer_line, 
  (4,1,3,'A','Your whole honey-do list, one visit',NULL,NULL,NULL,'approved',2,NOW() - INTERVAL 20 DAY),
  (5,1,7,'A',NULL,'Cedar fences and deck rebuilds. Every post below the frost line.',NULL,6,'pending_review',NULL,NULL);
 
+-- One placement per subscription, in the slot the public pages actually read.
+-- directory_top is what the directory, the home page and every town page all
+-- select from, so buying once lifts a listing everywhere it appears and there
+-- is exactly one row to revoke when payment stops. Position orders within a
+-- plan by who bought first.
+--
+-- The past_due one stays active on purpose: Stripe retries a declined card for
+-- two weeks and usually wins, and the webhook leaves the placement up for that
+-- reason. Seeding it paused would have the sample data contradict the code.
 INSERT INTO ad_placements (id, market_id, pro_id, subscription_id, slot, trade_id, position, status) VALUES
  (1,1,1,1,'directory_top',NULL,1,'active'),
- (2,1,1,1,'home_featured',NULL,1,'active'),
- (3,1,1,1,'category_top',   1,1,'active'),
- (4,1,1,1,'jobs_native',  NULL,1,'active'),
- (5,1,2,2,'directory_top',NULL,2,'active'),
- (6,1,2,2,'home_featured',NULL,2,'active'),
- (7,1,2,2,'category_top',   3,1,'active'),
- (8,1,3,3,'directory_top',NULL,3,'active'),
- (9,1,3,3,'category_top',  10,1,'active'),
- (10,1,7,4,'directory_top',NULL,4,'active'),
- (11,1,5,5,'directory_top',NULL,5,'paused');   -- past_due subscription pauses the slot
+ (2,1,2,2,'directory_top',NULL,2,'active'),
+ (3,1,3,3,'directory_top',NULL,1,'active'),
+ (4,1,7,4,'directory_top',NULL,2,'active'),
+ (5,1,5,5,'directory_top',NULL,3,'active');
 
+-- Fourteen days of history, one row per placement per day — the shape the
+-- live counter writes, so the admin screens are exercised against data that
+-- looks like production rather than a shape nothing produces.
+--
+-- creative_id stays NULL: ads here are assembled from the pro's own profile.
+-- It must not go in the unique key either — MySQL treats NULLs as distinct,
+-- so a key containing it never matches and the daily rollup inserts a row per
+-- impression instead of incrementing one. See migration 005.
 INSERT INTO ad_stats_daily (market_id, pro_id, placement_id, creative_id, stat_date, impressions, clicks, quotes_sent, jobs_won)
-SELECT 1, 1, 1, c.id, d.dt,
-       FLOOR(120 + RAND(d.n * c.id) * 90),
-       FLOOR(6  + RAND(d.n * c.id + 7) * 12),
-       FLOOR(RAND(d.n * c.id + 3) * 3),
-       FLOOR(RAND(d.n * c.id + 5) * 1.4)
-FROM (SELECT 1 AS id UNION SELECT 2) c
+SELECT 1, pl.pro_id, pl.id, NULL, d.dt,
+       FLOOR(40 + RAND(d.n * pl.id + 11) * (CASE WHEN s.plan = 'spotlight' THEN 150 ELSE 60 END)),
+       FLOOR(2  + RAND(d.n * pl.id + 7)  * (CASE WHEN s.plan = 'spotlight' THEN 12  ELSE 5  END)),
+       FLOOR(RAND(d.n * pl.id + 3) * 3),
+       FLOOR(RAND(d.n * pl.id + 5) * 1.4)
+FROM ad_placements pl
+JOIN subscriptions s ON s.id = pl.subscription_id
 CROSS JOIN (
   SELECT 0 n, CURDATE() dt UNION SELECT 1, CURDATE()-INTERVAL 1 DAY UNION SELECT 2, CURDATE()-INTERVAL 2 DAY
   UNION SELECT 3, CURDATE()-INTERVAL 3 DAY UNION SELECT 4, CURDATE()-INTERVAL 4 DAY
@@ -370,7 +382,8 @@ CROSS JOIN (
   UNION SELECT 9, CURDATE()-INTERVAL 9 DAY UNION SELECT 10, CURDATE()-INTERVAL 10 DAY
   UNION SELECT 11, CURDATE()-INTERVAL 11 DAY UNION SELECT 12, CURDATE()-INTERVAL 12 DAY
   UNION SELECT 13, CURDATE()-INTERVAL 13 DAY
-) d;
+) d
+WHERE pl.market_id = 1;
 
 INSERT INTO moderation_items (market_id, subject_type, subject_id, source, reason, reported_by, status, created_at) VALUES
  (1,'job',10,'auto','Possible duplicate post — second from this user today',NULL,'open',NOW() - INTERVAL 11 MINUTE),

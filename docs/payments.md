@@ -47,9 +47,14 @@ is not available. Payments are still fully reported, and the application's own
 `payments` table is the better record anyway — it knows which *job* each charge
 belongs to, which Stripe never will.
 
-The one place real Products will earn their keep is **subscriptions** for Boost
-and Spotlight, which are recurring, fixed-price, and genuinely the same thing
-every month. That is not built yet.
+Subscriptions for Boost and Spotlight work the same way — inline `price_data`
+with `recurring: {interval: month}` and no Product object. The argument for
+real Products was that a subscription is fixed-price and identical every month;
+the argument against won, and it is the same one: the price lives in the market
+row, a market can change it, and a Stripe Price that quietly disagrees with the
+page is worse than an empty Products list. Existing subscribers are unaffected
+by a price change either way, because `subscriptions.price_cents` captures what
+they agreed to.
 
 ## Setting it up
 
@@ -63,7 +68,12 @@ In the Stripe dashboard, **Developers → Webhooks → Add endpoint**:
 | | |
 | --- | --- |
 | URL | `https://fixlisted.com/webhooks/stripe` |
-| Events | `checkout.session.completed`, `charge.refunded` |
+| Events | `checkout.session.completed`, `charge.refunded`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted` |
+
+The first two carry job postings. The last four carry monthly placement — a
+subscription that renews, fails, is changed in the billing portal, or ends.
+Leaving them off the endpoint does not break checkout; it means a placement
+goes up and never comes down again.
 
 Copy the signing secret it shows you into `bin/configure.php`. **Without it no
 payment can ever be confirmed and no job will ever go live** — everything else
@@ -95,6 +105,93 @@ Every event is kept in `webhook_events` with its payload and outcome —
 because a retry would hit the duplicate check and do nothing; what is useful is
 a row someone can look at.
 
+## Monthly placement
+
+A tradesperson buys Boost or Spotlight from **Get seen first** in their own
+account (`/my/promote`). The flow mirrors job posting deliberately:
+
+1. A row is written to `subscriptions` as `incomplete` **before** the redirect,
+   so the webhook has something to find. It holds no slot and grants nothing.
+2. Stripe Checkout runs in `mode=subscription`.
+3. `checkout.session.completed` grants the placement; `invoice.paid` keeps it.
+
+### Inventory, and what happens when it runs out
+
+Each market caps each plan (`markets.boost_slots`, `markets.spotlight_slots`).
+The cap is counted in **subscriptions**, not placements, because that is the
+unit a pro buys.
+
+Capacity is checked twice: on the page that sells the plan, and again inside
+the transaction that grants it, with the count taken `FOR UPDATE`. The second
+check is the one that matters — two pros can reach Stripe for the last slot
+within the same second and both will be charged. The loser's subscription is
+cancelled and their payment refunded automatically, and `mail.alert_to` gets an
+email so a person can reach them first. A cap of `0` takes a plan off sale, and
+is refused by both checks rather than read as "unlimited".
+
+### What each event does
+
+| Event | Effect |
+| --- | --- |
+| `checkout.session.completed` (mode `subscription`) | Grants the placement, or refunds if the slot went |
+| `invoice.paid` | Renews the period; brings a `past_due` placement back |
+| `invoice.payment_failed` | Marks `past_due`. **The listing stays up** |
+| `customer.subscription.updated` | Records `cancel_at_period_end`; ends it if Stripe says `canceled` or `unpaid` |
+| `customer.subscription.deleted` | Ends the placement, frees the slot |
+
+A declined card does not pull a tradesperson off the page. Stripe retries for
+about two weeks and usually wins; removing a paying customer over an expired
+card loses the customer instead of collecting the payment. Only
+`customer.subscription.deleted` — or Stripe giving up — ends a placement.
+
+### Cancelling, cards and invoices
+
+All in **Stripe's billing portal**, reached from the same screen. Nothing here
+holds card details or reimplements what Stripe already does, and a pro who
+cannot find a cancel button calls their bank rather than quietly keeps paying.
+
+### One placement, every page
+
+A subscription grants exactly one `ad_placements` row in the `directory_top`
+slot. The directory, the home page and every town page all select from that
+slot, so buying once lifts the listing everywhere it appears — and there is one
+row to revoke when payment stops. `position` is assigned once and kept, so a
+pro who has paid since January does not slide down because somebody joined in
+March.
+
+### Labelling
+
+Every paid lift is labelled: Spotlight shows **Featured**, Boost shows
+**Promoted**, and the directory says so above the results. An earlier version
+lifted Boost with no badge at all, which reads to a visitor as an earned
+ranking — the exact undisclosed paid placement this directory's credibility
+depends on not doing. A placement whose subscription is not paying does not
+move anyone at all: position is only read when a plan came with it.
+
+## What placement actually delivered
+
+`AdTracker` counts impressions and clicks for every paid listing, and has done
+since before anything was for sale — a tradesperson paying monthly will ask
+what they got, and the only honest answer is one backed by numbers that were
+already being collected.
+
+- Templates call `AdTracker::seen()` while rendering, which only appends to an
+  array. The writes happen after `$response->send()` and
+  `fastcgi_finish_request()`, so a visitor never waits on a counter.
+- A click goes through `/go/{placement}`, which takes an **id** and looks the
+  destination up. It never takes a URL — a redirector that forwards to whatever
+  is in the query string is an open redirect, and the only thing this one can
+  reach is a profile on this site.
+- One session counts at most one impression per placement per day. Crawlers are
+  skipped by user agent, and a pro refreshing their own listing is skipped. A
+  number that flatters the product is worse than no number, because it will be
+  quoted back at a price.
+- `ad_stats_daily` is keyed on `(stat_date, placement_id)`. It must not include
+  `creative_id`: ads are assembled from the pro's own profile so that column is
+  always NULL, MySQL treats NULLs as distinct in a unique index, and the key
+  would never match — the rollup would insert a row per impression instead of
+  incrementing one. Migration `005` fixed exactly that.
+
 ## Refunds
 
 The promise on the pricing page and in the terms: no quotes within the refund
@@ -106,8 +203,10 @@ somebody remembers to run something is not a promise, so:
 ```
 
 `bin/sweep.php --dry-run` says what it would do and changes nothing. It also
-expires listings past their run and tidies away checkouts abandoned over a week
-ago.
+expires listings past their run, tidies away checkouts abandoned over a week
+ago, prunes raw ad events past 45 days, and takes down any placement that
+outlived its subscription — the webhooks do that already, and this catches the
+one whose event never arrived.
 
 The refund call is keyed on the payment id, so a second run cannot refund
 twice even if the first died between the Stripe call and the database update. A
@@ -155,3 +254,9 @@ in the `webhook_events` table with its payload and outcome.
 - Post a real job with a real card and confirm the money arrives, the job goes
   live, and the receipt reads correctly.
 - Then test a refund, not just a charge.
+- Buy a placement with a real card, confirm the badge appears and the billing
+  portal opens, then cancel it in the portal and confirm the listing drops back
+  and the slot frees up.
+- Enable the Stripe **customer portal** (Settings → Billing → Customer portal)
+  and allow cancellation there. The link is generated per pro at request time;
+  nothing needs configuring in the code.

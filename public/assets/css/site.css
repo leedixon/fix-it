@@ -557,3 +557,36 @@ td.wrap-cell{white-space:normal;min-width:220px}
 .grid > .field > input,
 .grid > .field > select,
 .grid > .field > textarea{margin-top:auto}
+
+/* Boost is a quieter treatment than Spotlight, but it is still labelled.
+   An unlabelled paid lift reads as an earned ranking, which is the one thing
+   a directory selling placement must not do. */
+.pro.promoted{border-color:var(--line-2);box-shadow:inset 3px 0 0 var(--brass-2)}
+.b-promoted{background:var(--brass-wash);color:var(--brass);border:1px solid color-mix(in srgb,var(--brass) 26%,transparent)}
+
+/* ---- placement plans (/my/promote) ---- */
+/* A taller sparkline than the admin one: this is the number a tradesperson is
+   deciding whether to pay against, so it gets room to be read. */
+.spark-tall{height:96px;gap:2px}
+.spark-tall i{opacity:.5}
+.spark-tall i:last-child{opacity:1}
+
+.plans{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.plan{border:1px solid var(--line);border-radius:5px;padding:22px;background:var(--paper);display:flex;flex-direction:column}
+/* The top tier is visibly the top tier, but not by hiding the other one. */
+.plan-top{border-color:color-mix(in srgb,var(--brass) 40%,transparent);background:var(--paper-2)}
+.plan-mine{border-color:color-mix(in srgb,var(--jade) 45%,transparent)}
+.plan-h{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.plan-h h3{font-family:var(--serif);font-size:21px;margin:0}
+.plan-p{font-size:30px;font-weight:600;letter-spacing:-.02em;margin-bottom:16px}
+.plan-p span{font-size:14px;font-weight:400;color:var(--text-2);letter-spacing:0}
+.plan-l{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:9px;font-size:14px}
+.plan-l li{display:flex;align-items:center;gap:8px;color:var(--text-2)}
+.plan-l li svg{flex:none;color:var(--jade)}
+/* Pushes the button to the bottom so two cards of different length still line
+   their buttons up. */
+.plan-s{margin:auto 0 12px}
+
+@media (max-width:720px){
+  .plans{grid-template-columns:1fr}
+}

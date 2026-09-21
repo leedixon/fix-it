@@ -28,7 +28,7 @@ $feeLabel = money($fee);
       </p>
 
       <div class="hero-cta">
-        <a class="btn btn-primary btn-lg" href="<?= e(url('/pricing')) ?>">Post a job — <?= e($feeLabel) ?> flat</a>
+        <a class="btn btn-primary btn-lg" href="<?= e(url('/post-a-job')) ?>">Post a job — <?= e($feeLabel) ?> flat</a>
         <a class="btn btn-onink btn-lg" href="<?= e(url('/pros')) ?>">
           <?= $proCount > 0 ? 'Browse ' . $proCount . ' pro' . ($proCount === 1 ? '' : 's') : 'Browse the directory' ?>
         </a>
@@ -268,7 +268,7 @@ $feeLabel = money($fee);
       $emptyTitle   = 'No jobs open yet';
       $emptyBody    = 'This is where homeowners\' jobs appear the moment they are posted. Be the first.';
       $emptyCta     = 'Post a job — ' . money($fee);
-      $emptyCtaHref = url('/pricing');
+      $emptyCtaHref = url('/post-a-job');
       require __DIR__ . '/../partials/empty.php';
       ?>
     <?php else: ?>

@@ -137,7 +137,7 @@ $verified = !empty($pro['license_verified_at']) && !empty($pro['insurance_verifi
       <?php endif; ?>
 
       <div style="padding:18px 20px">
-        <a class="btn btn-primary btn-block" href="<?= e(url('/pricing')) ?>">Post your job</a>
+        <a class="btn btn-primary btn-block" href="<?= e(url('/post-a-job')) ?>">Post your job</a>
         <p class="tiny muted" style="margin-top:10px;text-align:center">
           Describe the job once and every pro covering your county can quote it — including this one.
         </p>

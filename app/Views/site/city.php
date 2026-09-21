@@ -37,7 +37,7 @@ require_once __DIR__ . '/../partials/icons.php';
     </p>
 
     <div class="hero-cta" style="margin-top:24px">
-      <a class="btn btn-primary btn-lg" href="<?= e(url('/pricing')) ?>">Post a job</a>
+      <a class="btn btn-primary btn-lg" href="<?= e(url('/post-a-job')) ?>">Post a job</a>
       <a class="btn btn-ghost btn-lg" href="<?= e(url_q('/pros', ['county' => $city['county_slug']])) ?>">
         Browse <?= e($city['county']) ?>
       </a>

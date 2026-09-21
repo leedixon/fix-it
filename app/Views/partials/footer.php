@@ -20,7 +20,7 @@ require_once __DIR__ . '/icons.php';
         <h4>Homeowners</h4>
         <ul>
           <li><a href="<?= e(url('/pros')) ?>">Find a tradesperson</a></li>
-          <li><a href="<?= e(url('/pricing')) ?>">Post a job — $10</a></li>
+          <li><a href="<?= e(url('/post-a-job')) ?>">Post a job — $10</a></li>
           <li><a href="<?= e(url('/pricing')) ?>">What the fee covers</a></li>
         </ul>
       </div>

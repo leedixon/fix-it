@@ -16,7 +16,9 @@ use FixListed\Controllers\DirectoryController;
 use FixListed\Controllers\HomeController;
 use FixListed\Controllers\JobsController;
 use FixListed\Controllers\PageController;
+use FixListed\Controllers\PostJobController;
 use FixListed\Controllers\ProSignupController;
+use FixListed\Controllers\WebhookController;
 use FixListed\Controllers\Account\DashboardController as AccountDashboard;
 use FixListed\Controllers\Account\PasswordController;
 use FixListed\Controllers\Account\ProfileController;
@@ -81,6 +83,16 @@ try {
     $router->get('/terms',          static fn () => $make(PageController::class)->legal('terms'));
     $router->get('/privacy',        static fn () => $make(PageController::class)->legal('privacy'));
     $router->get('/contact',        static fn () => $make(PageController::class)->contact());
+
+    // --- posting a job, and paying for it --------------------------------
+    $router->get('/post-a-job',         static fn () => $make(PostJobController::class)->form());
+    $router->post('/post-a-job',        static fn () => $make(PostJobController::class)->submit());
+    $router->get('/post-a-job/thanks',  static fn () => $make(PostJobController::class)->thanks());
+    $router->get('/post-a-job/resume',  static fn () => $make(PostJobController::class)->resume());
+
+    // Stripe talks to this one. No session, no market from the request, no
+    // chrome — see WebhookController for why it stands apart.
+    $router->post('/webhooks/stripe', static fn () => (new WebhookController($db, $request, $view))->stripe());
 
     // --- signing in, and the tradesperson's own area ---------------------
     $router->get('/sign-in',          static fn () => $make(AccountSession::class)->form());

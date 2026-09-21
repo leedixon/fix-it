@@ -19,6 +19,13 @@ Roughly in order.
       reviewed by anyone qualified. Stripe's underwriting reads them, and so do
       people deciding whether to hand over a card.
 - [ ] Stripe account out of sandbox, live keys in via `bin/configure.php`.
+- [ ] **Live-mode webhook endpoint added in Stripe** — test and live have
+      separate endpoints and separate signing secrets, and a job cannot go live
+      without one. See [payments.md](payments.md).
+- [ ] **The sweep is on cron.** The automatic refund is a written promise; it
+      does not happen on its own.
+      `7 6 * * * cd ~/fixlisted && php bin/sweep.php >> storage/logs/sweep.log 2>&1`
+- [ ] `stripe.api_base` is absent from the config.
 - [ ] The refund promise on `/pricing` and in `/terms` matches what the code
       actually does — the auto-refund sweep must exist before the promise ships.
 - [ ] A real business address and contact route, if Stripe asks for one.

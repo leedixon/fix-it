@@ -108,6 +108,6 @@ $count = count($pros);
         to you.
       </p>
     </div>
-    <a class="btn btn-primary btn-lg" href="<?= e(url('/pricing')) ?>">Post a job</a>
+    <a class="btn btn-primary btn-lg" href="<?= e(url('/post-a-job')) ?>">Post a job</a>
   </div>
 </section>

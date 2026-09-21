@@ -51,7 +51,7 @@ $navItem = static function (string $href, string $label, string $current): strin
       <?php else: ?>
         <a class="btn btn-ghost btn-sm" href="<?= e(url('/sign-in')) ?>">Sign in</a>
       <?php endif; ?>
-      <a class="btn btn-primary btn-sm" href="<?= e(url('/pricing')) ?>">Post a job — $10</a>
+      <a class="btn btn-primary btn-sm" href="<?= e(url('/post-a-job')) ?>">Post a job — $10</a>
     </div>
   </div>
 </header>

@@ -54,7 +54,7 @@ $name      = (string) ($pro['display_name'] ?? $pro['business_name']);
 
   <div class="pro-foot">
     <a class="btn btn-dark btn-sm" href="<?= e(url('/pros/' . $pro['slug'])) ?>">View profile</a>
-    <a class="btn btn-ghost btn-sm" href="<?= e(url('/pricing')) ?>">Request a quote</a>
+    <a class="btn btn-ghost btn-sm" href="<?= e(url('/post-a-job')) ?>">Request a quote</a>
     <?php if (!empty($pro['response_minutes'])): ?>
       <span class="resp">Replies in <?= e(response_time((int) $pro['response_minutes'])) ?></span>
     <?php endif; ?>

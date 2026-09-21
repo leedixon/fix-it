@@ -86,6 +86,36 @@ line(true, "sample data is '" . $demoMode . "'",
         ? 'seed listings are shown, each labelled Sample — switch to hide at launch'
         : 'seed listings are hidden from every page');
 
+// --- payments ---------------------------------------------------------------
+$secretKey  = (string) Config::get('stripe.secret_key', '');
+$webhookKey = (string) Config::get('stripe.webhook_secret', '');
+$apiBase    = (string) Config::get('stripe.api_base', '');
+
+if ($secretKey === '') {
+    line(true, 'Stripe is not configured',
+        'job posting will say payments are off rather than half-working');
+} else {
+    $live = str_starts_with($secretKey, 'sk_live_');
+    line(str_starts_with($secretKey, 'sk_'), 'Stripe secret key looks like a key',
+        $live ? 'LIVE — real cards will be charged' : 'test mode');
+
+    // Without this, a payment can never be confirmed and no job ever goes
+    // live. Everything else about Stripe can be right and nothing will work.
+    line($webhookKey !== '', 'Stripe webhook secret is set',
+        $webhookKey !== '' ? '' : 'no payment can be confirmed without it — see docs/payments.md');
+
+    // A test override left in production would send real checkouts to a stub,
+    // which is why it is a failure with live keys rather than a note.
+    if ($apiBase === '') {
+        line(true, 'Stripe requests go to api.stripe.com');
+    } else {
+        line(!$live, 'Stripe API base is overridden',
+            $live
+                ? 'LIVE KEYS pointed at ' . $apiBase . ' — remove stripe.api_base from config'
+                : 'pointed at ' . $apiBase . ' for testing; remove it before going live');
+    }
+}
+
 // --- database ---------------------------------------------------------------
 try {
     $db = Database::fromConfig();

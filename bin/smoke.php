@@ -127,16 +127,31 @@ $jobs  = new JobRepository($db, TenantScope::market($marketId));
 $board = $jobs->board();
 $refs  = array_column($board, 'reference');
 
-check('jobs board is scoped and active-only', count($board) === 9, count($board) . ' jobs');
+// Counted, not hard-coded: the board's size changes every time a real job is
+// posted, paid for, refunded or expires, which is the system working.
+$activeJobs = (int) $db->value(
+    "SELECT COUNT(*) FROM jobs WHERE market_id = :m AND status = 'active'",
+    ['m' => $marketId],
+);
+check('jobs board is scoped and active-only',
+    count($board) === $activeJobs,
+    count($board) . ' listed, ' . $activeJobs . ' active');
 check('a job awaiting payment stays invisible',
     !in_array('NWI-1D6G3Z', $refs, true), 'NWI-1D6G3Z absent');
 check('a paid job is visible', in_array('NWI-4K2P9M', $refs, true));
 check('jobs carry their city for the landing pages',
     $board[0]['city_name'] !== null && $board[0]['county_name'] !== null,
     $board[0]['city_name'] . ', ' . $board[0]['county_name'] . ' County');
+$rockford = (int) $geo->findCity('rockford')['id'];
+$rockfordJobs = $jobs->inCity($rockford);
+$rockfordActive = (int) $db->value(
+    "SELECT COUNT(*) FROM jobs WHERE market_id = :m AND city_id = :c AND status = 'active'",
+    ['m' => $marketId, 'c' => $rockford],
+);
 check('a city page shows only that city\'s jobs',
-    count($jobs->inCity((int) $geo->findCity('rockford')['id'])) === 2,
-    'Rockford has 2 open jobs');
+    count($rockfordJobs) === $rockfordActive
+        && array_reduce($rockfordJobs, static fn (bool $ok, array $j): bool => $ok, true),
+    count($rockfordJobs) . ' in Rockford');
 
 // --- the listing application, end to end ------------------------------------
 //
@@ -293,6 +308,101 @@ try {
         $db->affected('UPDATE jobs SET quote_count = quote_count - 1 WHERE id = :id', ['id' => $openJob['id']]);
     }
 }
+
+// --- the money path ---------------------------------------------------------
+//
+// The rule being protected: a job is invisible until a verified webhook says
+// it was paid for. Everything here is about the ways that could stop being
+// true.
+$posting = new \FixListed\Repositories\JobPostingRepository($db, TenantScope::market($marketId));
+$city    = $geo->findCity('freeport');
+$probeJob = null;
+
+try {
+    $probeJob = $posting->create([
+        'first_name' => 'Smoke', 'last_name' => 'Payer',
+        'email' => 'smoke-pay-' . bin2hex(random_bytes(4)) . '@example.invalid',
+        'phone' => '(815) 555-0000', 'trade_id' => 1,
+        'city_id' => (int) $city['id'], 'county_id' => (int) $city['county_id'],
+        'title' => 'Smoke test listing', 'description' => str_repeat('Checking the payment path. ', 3),
+        'zip' => '61032', 'urgency' => 'flexible',
+        'budget_min_cents' => 10000, 'budget_max_cents' => 20000,
+        'market_code' => 'NWI',
+    ]);
+
+    $fresh = $posting->findByReference($probeJob['reference']);
+    check('a new job starts as pending_payment', ($fresh['status'] ?? '') === 'pending_payment');
+
+    check('an unpaid job is invisible on the board',
+        !in_array($probeJob['reference'], array_column($jobs->board(null, 200), 'reference'), true));
+
+    check('an unpaid job has no public page',
+        $jobs->findByReference($probeJob['reference']) === null);
+
+    check('a reference is readable and unambiguous',
+        preg_match('/^NWI-[23456789BCDFGHJKLMNPQRSTVWXYZ]{6}$/', $probeJob['reference']) === 1,
+        $probeJob['reference'] . ' — no vowels, no 0/O or 1/I');
+
+    $session = 'cs_smoke_' . bin2hex(random_bytes(6));
+    $posting->startPayment($probeJob['job_id'], $probeJob['user_id'], 1000, $session);
+
+    $published = $posting->completePayment($session, 'pi_smoke_1', 1000);
+    check('a completed payment publishes the job', $published !== null);
+    check('the published job is on the board',
+        in_array($probeJob['reference'], array_column($jobs->board(null, 200), 'reference'), true));
+
+    $live = $posting->findByReference($probeJob['reference']);
+    check('publishing sets a run length',
+        $live['published_at'] !== null && $live['expires_at'] !== null,
+        'live until ' . $live['expires_at']);
+
+    // Stripe retries. Twice through must not publish twice or email twice.
+    check('completing the same payment again does nothing',
+        $posting->completePayment($session, 'pi_smoke_1', 1000) === null);
+
+    check('an unknown session completes nothing',
+        $posting->completePayment('cs_never_existed', 'pi_x', 1000) === null);
+
+    // The promise on the pricing page: every pro covering that county who
+    // works that trade hears about it.
+    $told = $posting->prosToNotify((int) $city['county_id'], 1);
+    check('the right tradespeople would be told', is_array($told),
+        count($told) . ' pro(s) cover ' . $city['name'] . ' for that trade');
+} finally {
+    if ($probeJob !== null) {
+        $db->affected('DELETE FROM payments WHERE job_id = :j', ['j' => $probeJob['job_id']]);
+        $db->affected('DELETE FROM jobs WHERE id = :j', ['j' => $probeJob['job_id']]);
+        $db->affected('DELETE FROM users WHERE id = :u', ['u' => $probeJob['user_id']]);
+    }
+}
+
+// --- webhook signatures -----------------------------------------------------
+//
+// The only thing between a public URL and "mark this job paid".
+$secret = 'whsec_smoke_secret';
+$stripeCheck = new \FixListed\Core\Stripe('sk_test_smoke', $secret);
+$body = json_encode(['id' => 'evt_smoke', 'type' => 'checkout.session.completed', 'data' => ['object' => []]]);
+$signed = static fn (int $when, string $payload, string $key): string =>
+    't=' . $when . ',v1=' . hash_hmac('sha256', $when . '.' . $payload, $key);
+
+$accepts = static function (string $payload, string $header) use ($stripeCheck): bool {
+    try { $stripeCheck->verifyWebhook($payload, $header); return true; }
+    catch (Throwable) { return false; }
+};
+
+check('a correctly signed event is accepted', $accepts($body, $signed(time(), $body, $secret)));
+check('a wrong secret is refused', !$accepts($body, $signed(time(), $body, 'whsec_wrong')));
+check('a tampered payload is refused',
+    !$accepts(str_replace('evt_smoke', 'evt_forged', $body), $signed(time(), $body, $secret)));
+check('a replayed event is refused', !$accepts($body, $signed(time() - 3600, $body, $secret)));
+check('an unsigned request is refused', !$accepts($body, ''));
+check('an unconfigured secret trusts nothing',
+    !(static function () use ($body, $signed): bool {
+        try {
+            (new \FixListed\Core\Stripe('sk_test_x', ''))->verifyWebhook($body, $signed(time(), $body, ''));
+            return true;
+        } catch (Throwable) { return false; }
+    })());
 
 // --- the boundary itself ----------------------------------------------------
 final class UnscopedRepo extends Repository

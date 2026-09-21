@@ -37,7 +37,7 @@ $tick = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="cur
         <li><?= $tick ?> Your number stays private until you share it</li>
         <li><?= $tick ?> Refunded in full if nobody quotes within <?= $refundHours ?> hours</li>
       </ul>
-      <a class="btn btn-primary btn-block" href="<?= e(url('/pros')) ?>">Post a job</a>
+      <a class="btn btn-primary btn-block" href="<?= e(url('/post-a-job')) ?>">Post a job</a>
       <p class="tiny muted" style="text-align:center">
         Card handled by Stripe. Fix Listed never sees the number.
       </p>

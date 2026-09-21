@@ -7,6 +7,7 @@ use FixListed\Core\AdminController;
 use FixListed\Core\Config;
 use FixListed\Core\Mailer;
 use FixListed\Core\NotFound;
+use FixListed\Core\PasswordReset;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
 use FixListed\Core\View;
@@ -148,6 +149,13 @@ final class ReviewController extends AdminController
             $name   = $pro['business_name'] ?: trim($pro['first_name'] . ' ' . $pro['last_name']);
 
             if ($outcome === 'approved') {
+                // The invite link is issued here and nowhere else. Before
+                // this, an approved tradesperson had a live profile and no
+                // way to sign in at all — the email told them they were live
+                // and then stopped. It lasts a fortnight, because approval
+                // emails sit unread over a weekend.
+                $token = (new PasswordReset($this->db))->issue((int) $pro['user_id'], true);
+
                 $mailer->send(
                     (string) $pro['email'],
                     'You are live on Fix Listed',
@@ -158,9 +166,11 @@ final class ReviewController extends AdminController
                         'business'   => $name,
                         'profileUrl' => abs_url('/pros/' . $pro['slug']),
                         'jobsUrl'    => abs_url('/jobs'),
+                        'setUpUrl'   => abs_url('/set-password/' . $token),
                         'market'     => (string) $this->market['name'],
                     ], 'emails.layout'),
                     "Your Fix Listed profile is live: " . abs_url('/pros/' . $pro['slug']) . "\n\n"
+                    . "Set your password and start quoting: " . abs_url('/set-password/' . $token) . "\n\n"
                     . "Open jobs in your counties: " . abs_url('/jobs') . "\n",
                 );
                 return;

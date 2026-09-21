@@ -193,3 +193,49 @@ the profile carries a licence badge and an insurance badge, each a claim the
 site makes on the administrator's behalf, so each is confirmed separately.
 That is what makes "licence and insurance checked" true rather than
 decorative.
+
+
+## The signed-in area for tradespeople
+
+`/my`, gated by `AccountController::guard()` the same way the admin is. It
+resolves the signed-in user to their profile, deliberately reading it *without*
+the public status filter — the point of this area is that a pro can see and
+edit their own listing while it is pending or after it has been suspended.
+
+Screens: jobs in their counties, their quotes, and their listing.
+
+### Getting in
+
+A tradesperson never chooses a password when they apply. Asking for one before
+they know whether they will be accepted is friction for nothing, and it leaves
+dead accounts behind for every application that is declined. Instead, approval
+issues a one-time link (`PasswordReset`, invite lifetime) and the approval email
+leads with it. The token is emailed in the clear and stored only as a SHA-256
+hash, is single-use, and issuing a new one invalidates any outstanding link.
+
+### Quoting
+
+One quote per pro per job, enforced by a unique index and checked again inside
+the write. The job is re-read `FOR UPDATE` inside the transaction rather than
+trusted from the form, because between rendering the page and submitting it a
+job can close, be removed, or turn out never to have been paid for. County
+coverage is checked at the write too, not only when building the list the pro
+browses.
+
+A quote carries the *shape* of a price — fixed, a range, hourly, or "I need to
+see it first" — because most trades genuinely cannot give one number from a
+paragraph of text, and forcing them to produces a board full of invented
+figures nobody honours.
+
+## Clocks
+
+`Database` sets MySQL's session time zone to PHP's current UTC offset on every
+connection. Without it the two disagree by that offset and any comparison
+mixing them is wrong — a reset link stored as `date(..., time() + 3600)` in
+America/Chicago and checked against a UTC `NOW()` is born four hours expired,
+so nobody can ever use one. That is a silent failure that looks like broken
+email, and it was real until it was caught by a test.
+
+A numeric offset rather than a named zone, because named zones need MySQL's
+time zone tables loaded and shared hosts usually have not. It is recalculated
+per connection, so daylight saving is PHP's problem rather than ours.

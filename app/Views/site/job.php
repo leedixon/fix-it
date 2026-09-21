@@ -77,10 +77,17 @@ $quotes = (int) $job['quote_count'];
       </div>
 
       <div style="padding:18px 20px">
-        <a class="btn btn-primary btn-block" href="<?= e(url('/list-your-business')) ?>">Quote this job</a>
-        <p class="tiny muted" style="margin-top:10px;text-align:center">
-          Free. You need a profile covering this county.
-        </p>
+        <?php if (!empty($me)): ?>
+          <a class="btn btn-primary btn-block" href="<?= e(url('/my/quote/' . $job['reference'])) ?>">Quote this job</a>
+          <p class="tiny muted" style="margin-top:10px;text-align:center">
+            Free to send. You keep the whole job.
+          </p>
+        <?php else: ?>
+          <a class="btn btn-primary btn-block" href="<?= e(url('/sign-in')) ?>">Sign in to quote</a>
+          <p class="tiny muted" style="margin-top:10px;text-align:center">
+            Free. <a href="<?= e(url('/list-your-business')) ?>">Not listed yet?</a>
+          </p>
+        <?php endif; ?>
       </div>
 
       <div class="seal">

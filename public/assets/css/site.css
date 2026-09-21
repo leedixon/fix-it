@@ -478,3 +478,21 @@ td.wrap-cell{white-space:normal;min-width:220px}
   .adm-stats{grid-template-columns:repeat(2,1fr)}
   .adm-review{grid-template-columns:1fr}
 }
+
+/* =========================================================================
+ * The signed-in area for tradespeople.
+ * ====================================================================== */
+.acct{display:grid;grid-template-columns:230px 1fr;gap:30px;align-items:start;padding-block:28px 60px}
+.acct-side{position:sticky;top:84px}
+.acct-nav{display:flex;flex-direction:column;gap:2px;margin-bottom:20px}
+.acct-nav a{padding:9px 12px;border-radius:3px;font-size:14.5px;display:flex;align-items:center;gap:9px;color:var(--text-2)}
+.acct-nav a:hover{background:var(--paper-2);color:var(--text)}
+.acct-nav a.on{background:var(--ink);color:var(--on-ink);font-weight:600}
+.acct-status{border:1px solid var(--line);border-radius:4px;padding:14px 16px;background:var(--paper-3);font-size:13px}
+.acct-status .k{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-3)}
+.acct > *{min-width:0}
+@media (max-width:860px){
+  .acct{grid-template-columns:1fr;gap:20px}
+  .acct-side{position:static}
+  .acct-nav{flex-direction:row;flex-wrap:wrap}
+}

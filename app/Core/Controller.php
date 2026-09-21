@@ -26,6 +26,9 @@ abstract class Controller
         protected readonly array $market,
         protected readonly View $view,
         protected readonly Request $request,
+        // Public pages are readable signed out, but the chrome changes when
+        // somebody is signed in — and the sign-in page itself has to know.
+        protected readonly Auth $auth,
     ) {
     }
 
@@ -59,6 +62,8 @@ abstract class Controller
             'navTrades'   => $this->trades(),
             'path'        => $this->request->path,
             'showDemo'    => Demo::isVisible(),
+            'me'          => $this->auth->user(),
+            'flashes'     => Session::takeFlashes(),
             'bodyClass'   => '',
             // Every public page is noindex until launch. Removing this is a
             // deliberate step in the launch checklist, not something that

@@ -198,3 +198,25 @@ function abs_asset(string $path): string
     $base = rtrim((string) \FixListed\Core\Config::get('app.url', ''), '/');
     return $base . asset($path);
 }
+
+/**
+ * A quote's price as one string.
+ *
+ * Four shapes — a fixed figure, a range, an hourly rate, or the honest "needs
+ * a look first" — and a homeowner comparing five quotes should not have to
+ * work out which is which from three separate columns.
+ *
+ * @param array<string,mixed> $quote
+ */
+function quote_price(array $quote): string
+{
+    $min = isset($quote['amount_cents']) ? (int) $quote['amount_cents'] : null;
+    $max = isset($quote['amount_max_cents']) ? (int) $quote['amount_max_cents'] : null;
+
+    return match ((string) ($quote['amount_type'] ?? 'fixed')) {
+        'visit_required' => 'After a visit',
+        'hourly'         => $min !== null ? money($min) . '/hr' : 'Hourly',
+        'range'          => $min !== null && $max !== null ? money($min) . '–' . money($max) : money($min),
+        default          => $min !== null ? money($min) : '—',
+    };
+}

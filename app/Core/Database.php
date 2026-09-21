@@ -64,7 +64,35 @@ final class Database
             throw new RuntimeException('Database connection failed.', 0, $e);
         }
 
+        $this->alignClock($this->pdo);
+
         return $this->pdo;
+    }
+
+    /**
+     * Makes MySQL's clock agree with PHP's.
+     *
+     * Without this the two disagree by the UTC offset, and every comparison
+     * that mixes them is wrong. It is not theoretical: a password reset link
+     * stored as date('Y-m-d H:i:s', time() + 3600) in America/Chicago and
+     * checked against a UTC NOW() is born four hours expired, so nobody can
+     * ever use one — a silent failure that looks like broken email.
+     *
+     * A numeric offset rather than a named zone, because the named zones need
+     * MySQL's time zone tables loaded and shared hosts usually have not. The
+     * offset is recalculated per connection, so daylight saving is handled by
+     * PHP rather than by us.
+     */
+    private function alignClock(PDO $pdo): void
+    {
+        $offset = (new \DateTimeImmutable('now'))->format('P');   // '-05:00'
+        try {
+            $pdo->exec("SET time_zone = '{$offset}'");
+        } catch (PDOException $e) {
+            // Not fatal on its own — worth knowing about, because every
+            // timestamp in the application is now approximate.
+            error_log('Could not set the database time zone to ' . $offset . ': ' . $e->getMessage());
+        }
     }
 
     public function run(string $sql, array $params = []): PDOStatement

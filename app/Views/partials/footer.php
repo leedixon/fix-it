@@ -31,6 +31,7 @@ require_once __DIR__ . '/icons.php';
           <li><a href="<?= e(url('/list-your-business')) ?>">List your business</a></li>
           <li><a href="<?= e(url('/jobs')) ?>">Open jobs</a></li>
           <li><a href="<?= e(url('/pricing')) ?>">Advertising</a></li>
+          <li><a href="<?= e(url('/sign-in')) ?>">Sign in</a></li>
         </ul>
       </div>
 

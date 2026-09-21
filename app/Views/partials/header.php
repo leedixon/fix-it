@@ -10,6 +10,7 @@
  * @var array  $counties
  * @var string $path
  * @var bool   $showDemo
+ * @var array|null $me
  */
 require_once __DIR__ . '/icons.php';
 
@@ -44,6 +45,11 @@ $navItem = static function (string $href, string $label, string $current): strin
         </select>
         <noscript><button class="btn btn-sm btn-ghost" type="submit">Go</button></noscript>
       </form>
+      <?php endif; ?>
+      <?php if (!empty($me)): ?>
+        <a class="btn btn-ghost btn-sm" href="<?= e(url('/my')) ?>">Your account</a>
+      <?php else: ?>
+        <a class="btn btn-ghost btn-sm" href="<?= e(url('/sign-in')) ?>">Sign in</a>
       <?php endif; ?>
       <a class="btn btn-primary btn-sm" href="<?= e(url('/pricing')) ?>">Post a job — $10</a>
     </div>

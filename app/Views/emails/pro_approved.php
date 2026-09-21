@@ -1,5 +1,6 @@
 <?php
-/** @var string $name @var string $business @var string $profileUrl @var string $jobsUrl @var string $market */
+/** @var string $name @var string $business @var string $profileUrl @var string $jobsUrl
+ *  @var string $setUpUrl @var string $market */
 use FixListed\Core\View;
 $e = static fn($v) => View::e($v);
 $first = explode(' ', trim($name))[0] ?: 'there';
@@ -12,13 +13,20 @@ $first = explode(' ', trim($name))[0] ?: 'there';
   <?= $e($business) ?> is published across <?= $e($market) ?>. Homeowners can find you by trade and by the towns you cover, and you can quote anything on the board.
 </p>
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;">
+<!-- One dominant action, and it is the one that unlocks everything else.
+     Seeing the profile is a link below; setting the password is the button. -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px 0;">
   <tr><td style="background-color:#C79A3E;border-radius:3px;">
-    <a href="<?= $e($profileUrl) ?>" style="display:inline-block;padding:14px 26px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:16px;font-weight:600;color:#0E1513;text-decoration:none;">
-      See your profile
+    <a href="<?= $e($setUpUrl) ?>" style="display:inline-block;padding:14px 26px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:16px;font-weight:600;color:#0E1513;text-decoration:none;">
+      Set your password and start quoting
     </a>
   </td></tr>
 </table>
+
+<p class="dk-mute" style="margin:0 0 24px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;line-height:1.6;color:#78857F;">
+  That link works once and lasts a fortnight. It is what lets you quote jobs and edit your listing.
+  Or just <a href="<?= $e($profileUrl) ?>" style="color:#8A6115;">look at your profile first</a>.
+</p>
 
 <p class="dk-mute" style="margin:0 0 22px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:16px;line-height:1.6;color:#4E5C57;">
   <strong style="color:#16201D;" class="dk-text">Two things worth doing today.</strong><br>

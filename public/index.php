@@ -17,6 +17,11 @@ use FixListed\Controllers\HomeController;
 use FixListed\Controllers\JobsController;
 use FixListed\Controllers\PageController;
 use FixListed\Controllers\ProSignupController;
+use FixListed\Controllers\Account\DashboardController as AccountDashboard;
+use FixListed\Controllers\Account\PasswordController;
+use FixListed\Controllers\Account\ProfileController;
+use FixListed\Controllers\Account\QuoteController;
+use FixListed\Controllers\Account\SessionController as AccountSession;
 use FixListed\Controllers\Admin\DashboardController;
 use FixListed\Controllers\Admin\ManageController;
 use FixListed\Controllers\Admin\ReviewController;
@@ -24,6 +29,7 @@ use FixListed\Controllers\Admin\SessionController;
 use FixListed\Core\Auth;
 use FixListed\Core\Config;
 use FixListed\Core\Database;
+use FixListed\Core\HaltWith;
 use FixListed\Core\NotFound;
 use FixListed\Core\Request;
 use FixListed\Core\Response;
@@ -52,12 +58,12 @@ try {
     }
     $scope = TenantScope::market((int) $market['id']);
 
-    $make = static fn (string $class): object => new $class($db, $scope, $market, $view, $request);
-
-    // Admin controllers take Auth as well; it is the only thing they need
-    // that the public side does not.
+    // One Auth for the request. Every controller takes it: public pages change
+    // their chrome when somebody is signed in, and the account and admin areas
+    // are gated on it.
     $auth  = new Auth($db);
-    $admin = static fn (string $class): object => new $class($db, $scope, $market, $view, $request, $auth);
+    $make  = static fn (string $class): object => new $class($db, $scope, $market, $view, $request, $auth);
+    $admin = $make;
 
     $router = new Router();
     $router->get('/',               static fn () => $make(HomeController::class)->index());
@@ -75,6 +81,22 @@ try {
     $router->get('/terms',          static fn () => $make(PageController::class)->legal('terms'));
     $router->get('/privacy',        static fn () => $make(PageController::class)->legal('privacy'));
     $router->get('/contact',        static fn () => $make(PageController::class)->contact());
+
+    // --- signing in, and the tradesperson's own area ---------------------
+    $router->get('/sign-in',          static fn () => $make(AccountSession::class)->form());
+    $router->post('/sign-in',         static fn () => $make(AccountSession::class)->login());
+    $router->post('/sign-out',        static fn () => $make(AccountSession::class)->logout());
+    $router->get('/forgot-password',  static fn () => $make(AccountSession::class)->forgotForm());
+    $router->post('/forgot-password', static fn () => $make(AccountSession::class)->forgot());
+    $router->get('/set-password/{token}',  static fn (array $p) => $make(PasswordController::class)->form($p['token']));
+    $router->post('/set-password/{token}', static fn (array $p) => $make(PasswordController::class)->submit($p['token']));
+
+    $router->get('/my',            static fn () => $make(AccountDashboard::class)->index());
+    $router->get('/my/quotes',     static fn () => $make(AccountDashboard::class)->quotes());
+    $router->get('/my/listing',    static fn () => $make(ProfileController::class)->edit());
+    $router->post('/my/listing',   static fn () => $make(ProfileController::class)->update());
+    $router->get('/my/quote/{reference}',  static fn (array $p) => $make(QuoteController::class)->form($p['reference']));
+    $router->post('/my/quote/{reference}', static fn (array $p) => $make(QuoteController::class)->submit($p['reference']));
 
     // --- admin ---------------------------------------------------------
     // Registered after the public routes but before the match, so nothing
@@ -106,6 +128,9 @@ try {
     }
 
     $response = ($matched['handler'])($matched['params']);
+} catch (HaltWith $halt) {
+    // A controller decided mid-request that the answer is a redirect.
+    $response = $halt->response;
 } catch (NotFound) {
     $response = Response::html(
         $view->render('site/not_found', [

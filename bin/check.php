@@ -95,9 +95,18 @@ if ($secretKey === '') {
     line(true, 'Stripe is not configured',
         'job posting will say payments are off rather than half-working');
 } else {
-    $live = str_starts_with($secretKey, 'sk_live_');
-    line(str_starts_with($secretKey, 'sk_'), 'Stripe secret key looks like a key',
-        $live ? 'LIVE — real cards will be charged' : 'test mode');
+    $live = \FixListed\Core\Stripe::isLiveKey($secretKey);
+    $kind = \FixListed\Core\Stripe::keyKind($secretKey);
+    line(\FixListed\Core\Stripe::looksLikeSecretKey($secretKey), 'Stripe secret key looks like a key',
+        ($live ? 'LIVE — real cards will be charged' : 'test mode') . ', ' . $kind . ' key');
+
+    // Not a failure — a standard key works — but worth saying every time.
+    // A restricted key scoped to what this site does is worth far less to
+    // whoever ends up with it.
+    line(true, $kind === 'restricted'
+        ? 'the key is restricted, so a leak is limited to what this site does'
+        : 'the key is a standard secret key',
+        $kind === 'restricted' ? '' : 'consider a restricted key — see docs/payments.md');
 
     // Without this, a payment can never be confirmed and no job ever goes
     // live. Everything else about Stripe can be right and nothing will work.

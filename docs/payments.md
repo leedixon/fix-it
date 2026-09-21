@@ -56,6 +56,66 @@ page is worse than an empty Products list. Existing subscribers are unaffected
 by a price change either way, because `subscriptions.price_cents` captures what
 they agreed to.
 
+## Which API key, and which permissions
+
+Use a **restricted key** (`rk_live_…`), not a standard secret key
+(`sk_live_…`). This application calls six endpoints and needs nothing else, so
+a key scoped to those six is worth very little to whoever ends up with it.
+`bin/configure.php` and `bin/check.php` accept both and say which you pasted.
+
+### Every Stripe call this application makes
+
+That is the whole list — it is the permission set, derived from the code
+rather than guessed at.
+
+| Endpoint | Method | Why |
+| --- | --- | --- |
+| `checkout/sessions` | POST | The listing fee, and starting a placement subscription |
+| `checkout/sessions/{id}` | GET | Reading a session back |
+| `refunds` | POST | The no-quote auto-refund, and undoing an oversold placement |
+| `subscriptions/{id}` | GET | What a placement is paid up through |
+| `subscriptions/{id}` | DELETE | Cancelling a placement that could not be granted |
+| `invoices/{id}` | GET | Finding the payment intent behind a subscription invoice |
+| `billing_portal/sessions` | POST | The pro's "manage or cancel" link |
+
+Webhooks need **no** permission — they are verified with the signing secret
+and make no API call.
+
+### Setting the permissions
+
+In **Custom permissions**, grant *write* on Checkout Sessions, Refunds,
+Subscriptions, Customers and the Customer portal, and *read* on Invoices and
+PaymentIntents. Write implies read, so nothing needs both ticked.
+
+**Then confirm it against the request log rather than trusting that list.**
+Inline `price_data` creates Product and Price objects behind the scenes, and
+whether that draws on the Products and Prices permissions is the sort of
+detail that is easy to be wrong about and expensive to discover at the moment
+a customer presses Pay. Stripe's own advice is to derive the permissions from
+what the key actually did:
+
+1. Make the restricted key **in a sandbox first**, with the same permissions
+   you intend to use live.
+2. Run the whole money path against it — post a job and pay for it, let the
+   sweep refund one, buy a placement, open the billing portal, cancel it.
+3. **Developers → Logs**, filtered to that key. Any 403 names the permission
+   it wanted; tick it and go again.
+4. Once the sandbox run is clean, create the live key with the permissions
+   you ended up with.
+
+This costs half an hour and replaces a guess with a fact.
+
+### If you would rather not
+
+**Full access — except sensitive operations** works and is defensible. It
+blocks payouts, issuing cards, fund transfers and Connect account creation —
+the operations that actually drain an account. What it leaves open is reading
+every customer record you hold, which is a real cost and the reason it is the
+second choice rather than the first.
+
+**Full access** is not needed by anything here. Its permissions cannot be
+edited after creation, so a key made that way can only be replaced.
+
 ## Setting it up
 
 ```bash
@@ -245,7 +305,9 @@ in the `webhook_events` table with its payload and outcome.
 
 ## Going live
 
-- Swap test keys for live ones with `bin/configure.php`.
+- Swap test keys for live ones with `bin/configure.php`. Prefer a restricted
+  key; see **Which API key** above, and prove the permission set in a sandbox
+  before making the live one.
 - Add a **live-mode** webhook endpoint in Stripe; test and live have separate
   endpoints and separate signing secrets.
 - Make sure `stripe.api_base` is **not** in the config. It exists so the flow

@@ -19,6 +19,9 @@ Roughly in order.
       reviewed by anyone qualified. Stripe's underwriting reads them, and so do
       people deciding whether to hand over a card.
 - [ ] Stripe account out of sandbox, live keys in via `bin/configure.php`.
+- [ ] **The live key is a restricted key** (`rk_live_…`), with its permission
+      set proven in a sandbox first — run the whole money path, then read
+      Developers → Logs for 403s. See [payments.md](payments.md).
 - [ ] **Live-mode webhook endpoint added in Stripe** — test and live have
       separate endpoints and separate signing secrets, and a job cannot go live
       without one. See [payments.md](payments.md).

@@ -59,10 +59,47 @@ final class Stripe
         );
     }
 
-    /** True when live keys are in use, so the UI can say so honestly. */
+    /**
+     * True when live keys are in use, so the UI can say so honestly.
+     *
+     * Matches the mode segment rather than the whole prefix, because a
+     * restricted key is `rk_live_…` and a standard secret key is `sk_live_…`.
+     * Looking for 'sk_live_' would read a live restricted key as test mode and
+     * cheerfully tell somebody no real card would be charged.
+     */
     public function isLive(): bool
     {
-        return str_starts_with($this->secretKey, 'sk_live_');
+        return self::isLiveKey($this->secretKey);
+    }
+
+    /** Whether a key string is a live one, restricted or not. */
+    public static function isLiveKey(string $key): bool
+    {
+        return str_starts_with($key, 'sk_live_') || str_starts_with($key, 'rk_live_');
+    }
+
+    /**
+     * Whether a key string is a Stripe secret key at all.
+     *
+     * Accepts both shapes deliberately. A restricted key does everything this
+     * application needs and can do nothing else, which makes it the better
+     * one to deploy — refusing it would push somebody towards the key that
+     * can do anything.
+     */
+    public static function looksLikeSecretKey(string $key): bool
+    {
+        foreach (['sk_test_', 'sk_live_', 'rk_test_', 'rk_live_'] as $prefix) {
+            if (str_starts_with($key, $prefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 'restricted' or 'standard', for a message that tells somebody which they pasted. */
+    public static function keyKind(string $key): string
+    {
+        return str_starts_with($key, 'rk_') ? 'restricted' : 'standard';
     }
 
     /**

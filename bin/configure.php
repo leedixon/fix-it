@@ -133,29 +133,35 @@ if ($transport === 'smtp') {
 }
 
 echo "\nPayments\n";
-echo "Keys come from the Stripe dashboard. Test keys start sk_test_ and charge\n";
-echo "nobody; live keys start sk_live_ and take real money. Leave blank to skip\n";
-echo "for now — job posting will say so rather than half-working.\n\n";
+echo "Keys come from the Stripe dashboard. Test keys charge nobody; live keys\n";
+echo "take real money. A restricted key (rk_...) is preferred over a standard\n";
+echo "secret key (sk_...) — it does everything this site needs and nothing else,\n";
+echo "so a leaked one is worth far less. Leave blank to skip for now — job\n";
+echo "posting will say so rather than half-working.\n\n";
 
 $stripe = ['publishable_key' => '', 'secret_key' => '', 'webhook_secret' => ''];
 $stripe['secret_key'] = trim(ask('Stripe secret key (not shown as you type)', '', true));
 
 if ($stripe['secret_key'] !== '') {
-    if (!str_starts_with($stripe['secret_key'], 'sk_test_') && !str_starts_with($stripe['secret_key'], 'sk_live_')) {
-        fwrite(STDERR, "\nThat does not look like a Stripe secret key. Nothing was written.\n");
+    if (!\FixListed\Core\Stripe::looksLikeSecretKey($stripe['secret_key'])) {
+        fwrite(STDERR, "\nThat does not look like a Stripe secret key. Expected one starting\n");
+        fwrite(STDERR, "sk_test_, sk_live_, rk_test_ or rk_live_. Nothing was written.\n");
         exit(1);
     }
     $stripe['publishable_key'] = trim(ask('Stripe publishable key (pk_...)', ''));
     echo "\nThe webhook secret is shown when you add the endpoint in Stripe:\n";
     echo "  Developers > Webhooks > Add endpoint\n";
     echo "  URL:    " . rtrim($url, '/') . "/webhooks/stripe\n";
-    echo "  Events: checkout.session.completed, charge.refunded\n";
+    echo "  Events: checkout.session.completed, charge.refunded, invoice.paid,\n";
+    echo "          invoice.payment_failed, customer.subscription.updated,\n";
+    echo "          customer.subscription.deleted\n";
     echo "Without it, no payment can ever be confirmed and no job goes live.\n";
     $stripe['webhook_secret'] = trim(ask('Stripe webhook signing secret (whsec_...)', '', true));
 
-    if (str_starts_with($stripe['secret_key'], 'sk_live_')) {
+    if (\FixListed\Core\Stripe::isLiveKey($stripe['secret_key'])) {
         echo "\n*** These are LIVE keys. Real cards will be charged. ***\n";
     }
+    echo "\nKey type: " . \FixListed\Core\Stripe::keyKind($stripe['secret_key']) . "\n";
 }
 
 if ($dbPass === '') {

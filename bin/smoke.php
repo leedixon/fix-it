@@ -592,6 +592,32 @@ $dupes = (int) $db->value(
 );
 check('the daily rollup holds one row per placement per day', $dupes === 0);
 
+// --- Stripe key shapes ------------------------------------------------------
+// A restricted key is rk_live_…, not sk_live_…. Matching the whole 'sk_live_'
+// prefix read a live restricted key as test mode — and told somebody no real
+// card would be charged while real cards were being charged.
+foreach ([
+    ['sk_test_x', true,  false, 'standard'],
+    ['sk_live_x', true,  true,  'standard'],
+    ['rk_test_x', true,  false, 'restricted'],
+    ['rk_live_x', true,  true,  'restricted'],
+    ['pk_live_x', false, false, 'standard'],   // publishable: not a secret key
+    ['whsec_x',   false, false, 'standard'],
+    ['',          false, false, 'standard'],
+] as [$key, $isSecret, $isLive, $kind]) {
+    check(
+        sprintf('%-10s secret:%-3s live:%-3s', $key !== '' ? $key : "''",
+            $isSecret ? 'yes' : 'no', $isLive ? 'yes' : 'no'),
+        \FixListed\Core\Stripe::looksLikeSecretKey($key) === $isSecret
+        && \FixListed\Core\Stripe::isLiveKey($key) === $isLive
+        && \FixListed\Core\Stripe::keyKind($key) === $kind,
+    );
+}
+
+// The one that actually bit: a live restricted key must never read as test.
+check('a live restricted key is not mistaken for test mode',
+    (new \FixListed\Core\Stripe('rk_live_example', 'whsec_x'))->isLive());
+
 // --- the staff ladder -------------------------------------------------------
 // Read as a table: each row is a capability, each column a role. A permission
 // model is only auditable if you can see it all at once, and this is the test

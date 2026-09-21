@@ -17,6 +17,40 @@ reports what the database says and nothing more. It has three states:
 - **Not paid** — they never completed Checkout. The job is saved and they are
   offered the way back.
 
+## Products: there are none, on purpose
+
+**Do not create a Product or a Price in the Stripe dashboard.** Nothing in the
+code looks one up, and one created there would simply sit unused.
+
+The checkout session builds its line item inline instead:
+
+```php
+'line_items' => [[
+    'quantity'   => 1,
+    'price_data' => [
+        'currency'     => 'usd',
+        'unit_amount'  => $amountCents,          // from markets.listing_fee_cents
+        'product_data' => ['name' => 'Fix Listed job posting', 'description' => …],
+    ],
+]],
+```
+
+The reason is the admin. The listing fee is a per-market column that a
+superadmin can change at **/admin/markets** without a deploy, and a market can
+run at $0 to fill its board. A Stripe Price is a fixed object with its own id;
+wiring one in would mean the fee shown on the site and the fee actually charged
+could drift apart, silently, the first time somebody edited it. Reading the
+amount from the same row the page reads makes that impossible.
+
+The cost is that Stripe's Products list stays empty and per-product reporting
+is not available. Payments are still fully reported, and the application's own
+`payments` table is the better record anyway — it knows which *job* each charge
+belongs to, which Stripe never will.
+
+The one place real Products will earn their keep is **subscriptions** for Boost
+and Spotlight, which are recurring, fixed-price, and genuinely the same thing
+every month. That is not built yet.
+
 ## Setting it up
 
 ```bash
@@ -83,6 +117,32 @@ up one extra day is a much smaller problem than one quietly dropped.
 Refunds issued by hand in the Stripe dashboard come back through
 `charge.refunded` and are recorded the same way. A refund that never reaches
 the database is how the books stop matching.
+
+## Testing it
+
+Use Stripe's test cards. The only one worth memorising:
+
+| Card | What it does |
+| --- | --- |
+| `4242 4242 4242 4242` | Succeeds |
+| `4000 0000 0000 9995` | Declined for insufficient funds |
+| `4000 0025 0000 3155` | Requires 3-D Secure authentication |
+
+Any future expiry, any CVC, any postcode.
+
+**The webhook will not reach a local machine**, only a public URL. On the
+server it works as-is. Locally, either use the Stripe CLI
+(`stripe listen --forward-to localhost/webhooks/stripe`, which prints its own
+signing secret to use instead) or test against the deployed preview.
+
+After a test payment, check three places:
+
+1. **Stripe → Developers → Webhooks → your endpoint** shows a 200.
+2. `SELECT status FROM jobs WHERE reference = '…'` reads `active`.
+3. The job appears on `/jobs`.
+
+If Stripe shows a non-200, the message there says why — and the same event is
+in the `webhook_events` table with its payload and outcome.
 
 ## Going live
 

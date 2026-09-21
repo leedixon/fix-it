@@ -83,3 +83,21 @@ CSS.
 
 See [launch.md](launch.md). The short version: move the mount to the root,
 turn off `noindex`, and purge the sample data.
+
+
+## If /admin starts returning 404
+
+Your account is no longer an administrator. Every admin page 404s for a
+non-admin — deliberately, so that somebody poking at `/admin` gets no
+confirmation the URL exists — which makes a privilege change look exactly like
+a broken site.
+
+```bash
+php bin/admin.php --list     # shows every admin account and its role
+php bin/admin.php            # makes an account a superadmin again
+```
+
+The cause worth knowing about: **listing a business with the same email
+address as your admin account** used to demote it to `pro`. Fixed — roles now
+only ever go up — but an account demoted before that fix stays demoted until
+`bin/admin.php` puts it back.

@@ -45,20 +45,17 @@ $name = $pro['business_name'] ?: trim($pro['first_name'] . ' ' . $pro['last_name
           <span><?= e($pro['insurance_carrier'] ?: 'none given') ?></span>
         </div>
 
-        <?php if ($pro['license_number'] !== '' && $pro['license_state'] === 'IL'): ?>
-          <p style="margin-top:14px">
-            <a class="btn btn-ghost btn-sm btn-block" target="_blank" rel="noopener"
-               href="https://online-dfpr.micropact.com/lookup/licenselookup.aspx">
-              Illinois licence lookup <?= icon('arrow', 13) ?>
-            </a>
-          </p>
-        <?php endif; ?>
-
         <p class="tiny muted" style="margin-top:14px">
           Tick only what you have actually seen. Each tick puts a badge on their public profile
           saying a person verified it.
         </p>
       </div>
+
+      <?php
+      $licenceNumber = (string) $pro['license_number'];
+      $licenceState  = (string) $pro['license_state'];
+      require __DIR__ . '/../partials/licence_help.php';
+      ?>
     </div>
 
     <form class="panel" method="post" action="<?= e(url('/admin/applications/' . $pro['id'] . '/approve')) ?>"

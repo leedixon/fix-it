@@ -53,9 +53,16 @@ final class ProApplicationRepository extends Repository
                 if ((int) $hasProfile > 0) {
                     throw new RuntimeException('already_applied');
                 }
+                // Promote to 'pro', never demote. An administrator who lists
+                // their own business was being dropped to 'pro' by this
+                // update, which locked them out of /admin on their very next
+                // request — every admin page 404s for a non-admin, so it
+                // looked like the site was broken rather than like a
+                // privilege change. Roles only ever go up here.
                 $db->affected(
                     "UPDATE users
-                        SET role = 'pro', first_name = :first, last_name = :last, phone = :phone,
+                        SET role = IF(role = 'homeowner', 'pro', role),
+                            first_name = :first, last_name = :last, phone = :phone,
                             market_id = COALESCE(market_id, :market_id)
                       WHERE id = :id",
                     [

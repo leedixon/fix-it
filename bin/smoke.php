@@ -309,6 +309,44 @@ try {
     }
 }
 
+// --- applying must never lower an existing account's role -------------------
+//
+// An administrator who lists their own business was being demoted to 'pro' by
+// the application, which locked them out of /admin on their next request —
+// and because admin pages 404 for non-admins, it looked like the site was
+// broken rather than like a privilege change.
+foreach (['superadmin' => 'superadmin', 'market_admin' => 'market_admin', 'homeowner' => 'pro'] as $before => $after) {
+    $email = 'role-' . $before . '-' . bin2hex(random_bytes(3)) . '@example.invalid';
+    $userId = (int) $db->insert(
+        "INSERT INTO users (market_id, role, email, first_name, last_name, status)
+         VALUES (NULL, :r, :e, 'T', 'T', 'active')",
+        ['r' => $before, 'e' => $email],
+    );
+    try {
+        $applications->create([
+            'first_name' => 'T', 'last_name' => 'T', 'email' => $email, 'phone' => '815',
+            'business_name' => 'Role Probe', 'headline' => 'Probe',
+            'bio' => str_repeat('Checking the role rule. ', 3),
+            'hourly_rate_cents' => null, 'years_experience' => 1,
+            'home_county_id' => $counties['winnebago-il'], 'zip' => '61103',
+            'license_number' => '', 'license_state' => 'IL', 'insurance_carrier' => '',
+            'trade_ids' => [1], 'county_ids' => [$counties['winnebago-il']],
+        ]);
+        check("applying leaves a {$before} as {$after}",
+            $db->value('SELECT role FROM users WHERE id = :i', ['i' => $userId]) === $after);
+        check("a {$before} still gets a profile",
+            (int) $db->value('SELECT COUNT(*) FROM pro_profiles WHERE user_id = :i', ['i' => $userId]) === 1);
+    } finally {
+        $probeId = $db->value('SELECT id FROM pro_profiles WHERE user_id = :i', ['i' => $userId]);
+        if ($probeId !== null) {
+            $db->affected('DELETE FROM moderation_items WHERE subject_type = :t AND subject_id = :i',
+                ['t' => 'pro_profile', 'i' => $probeId]);
+            $db->affected('DELETE FROM pro_profiles WHERE id = :i', ['i' => $probeId]);
+        }
+        $db->affected('DELETE FROM users WHERE id = :i', ['i' => $userId]);
+    }
+}
+
 // --- the money path ---------------------------------------------------------
 //
 // The rule being protected: a job is invisible until a verified webhook says

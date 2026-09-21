@@ -496,3 +496,59 @@ td.wrap-cell{white-space:normal;min-width:220px}
   .acct-side{position:static}
   .acct-nav{flex-direction:row;flex-wrap:wrap}
 }
+
+/* =========================================================================
+ * Checkbox chips — picking trades and counties.
+ *
+ * A chip is a flex item inside a wrapping row, and a flex item may shrink
+ * below the width of its own content. That is what turned "Drywall & Paint"
+ * into three stacked lines: the box got narrow and the text wrapped inside
+ * it. white-space:nowrap and flex:none say the chip is as wide as its label
+ * and no narrower, and the row wraps between chips instead of inside them.
+ *
+ * The whole chip is the label, so the hit area is the pill rather than a
+ * 15px box — which matters most on a phone, held in one hand, by someone
+ * standing in a van.
+ * ====================================================================== */
+.chip-check{
+  display:inline-flex; align-items:center; gap:9px;
+  white-space:nowrap; flex:none; cursor:pointer;
+  border:1px solid var(--line-2); background:var(--paper-2);
+  border-radius:99px; padding:9px 15px; font-size:13.5px; line-height:1;
+  transition:background .14s ease, border-color .14s ease, color .14s ease;
+}
+.chip-check input{
+  appearance:auto; accent-color:var(--brass);
+  width:15px; height:15px; margin:0; flex:none; cursor:pointer;
+}
+.chip-check:hover{background:var(--paper-3); border-color:var(--text-3)}
+
+/* :has() carries the checked state to the whole pill. Where it is not
+   supported the chip simply stays plain with a ticked box — still usable,
+   just less obvious. */
+.chip-check:has(input:checked){
+  background:var(--ink); color:var(--on-ink); border-color:var(--ink);
+}
+.chip-check:has(input:checked) input{accent-color:var(--brass-3)}
+/* The input is visible, so the ring has to sit on the pill around it. */
+.chip-check:has(input:focus-visible){outline:2px solid var(--brass); outline-offset:2px}
+
+.chipset-check{display:flex; flex-wrap:wrap; gap:9px; margin-top:4px}
+
+/* A field label's aside — "optional", "leave blank if…". The label itself is
+   uppercase mono; this is the part that should read as a sentence. */
+.field .hint{
+  font-family:var(--sans); font-size:12px; letter-spacing:0;
+  text-transform:none; color:var(--text-3); font-weight:400;
+}
+
+/* Fields side by side in a grid: align the controls, not the labels.
+ *
+ * A label that needs two lines ("Hourly rate — optional") otherwise pushes
+ * its own input below its neighbours', and the row reads as broken rather
+ * than as one row. Letting the control sit at the bottom of its cell means
+ * the inputs line up however long the labels are. */
+.grid > .field{display:flex; flex-direction:column}
+.grid > .field > input,
+.grid > .field > select,
+.grid > .field > textarea{margin-top:auto}

@@ -89,7 +89,7 @@ $chosen = static function (string $k, int $id) use ($old): bool {
         </div>
 
         <label class="field">
-          <span>Business name <em style="text-transform:none;letter-spacing:0;font-style:normal">— leave blank if you trade under your own name</em></span>
+          <span>Business name <span class="hint">— leave blank if you trade under your own name</span></span>
           <input class="<?= e(trim($bad('business_name'))) ?>" type="text" name="business_name"
                  value="<?= e($v('business_name')) ?>" placeholder="e.g. Ojo Plumbing" autocomplete="organization">
           <?php if ($err('business_name')): ?><b class="err"><?= e($err('business_name')) ?></b><?php endif; ?>
@@ -100,9 +100,9 @@ $chosen = static function (string $k, int $id) use ($old): bool {
 
         <label class="field" style="margin-top:16px">
           <span>Your trades — tick everything you take on</span>
-          <div class="chipset" style="margin-top:2px">
+          <div class="chipset-check">
             <?php foreach ($trades as $t): ?>
-              <label class="chip" style="display:flex;align-items:center;gap:7px;cursor:pointer">
+              <label class="chip-check">
                 <input type="checkbox" name="trades[]" value="<?= (int) $t['id'] ?>"
                        <?= $chosen('trades', (int) $t['id']) ? 'checked' : '' ?>>
                 <?= e($t['name']) ?>
@@ -114,9 +114,9 @@ $chosen = static function (string $k, int $id) use ($old): bool {
 
         <label class="field">
           <span>Counties you will drive to — the first one is your base</span>
-          <div class="chipset" style="margin-top:2px">
+          <div class="chipset-check">
             <?php foreach ($counties as $c): ?>
-              <label class="chip" style="display:flex;align-items:center;gap:7px;cursor:pointer">
+              <label class="chip-check">
                 <input type="checkbox" name="counties[]" value="<?= (int) $c['id'] ?>"
                        <?= $chosen('counties', (int) $c['id']) ? 'checked' : '' ?>>
                 <?= e($c['short_name']) ?>
@@ -146,7 +146,7 @@ $chosen = static function (string $k, int $id) use ($old): bool {
             <input type="number" name="years_experience" min="0" max="70" value="<?= e($v('years_experience')) ?>">
           </label>
           <label class="field">
-            <span>Hourly rate <em style="text-transform:none;letter-spacing:0;font-style:normal">— optional</em></span>
+            <span>Hourly rate <span class="hint">— optional</span></span>
             <input type="text" name="hourly_rate" value="<?= e($v('hourly_rate')) ?>" placeholder="$75" inputmode="decimal">
           </label>
           <label class="field">

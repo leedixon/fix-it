@@ -33,7 +33,7 @@ $rate = $profile['hourly_rate_cents'] !== null
   <div style="padding:20px">
 
     <label class="field">
-      <span>Business name <em style="text-transform:none;letter-spacing:0;font-style:normal">— blank if you trade under your own name</em></span>
+      <span>Business name <span class="hint">— blank if you trade under your own name</span></span>
       <input type="text" name="business_name" value="<?= e($val('business_name', $profile['business_name'])) ?>">
     </label>
 
@@ -52,9 +52,9 @@ $rate = $profile['hourly_rate_cents'] !== null
 
     <label class="field">
       <span>Your trades</span>
-      <div class="chipset" style="margin-top:2px">
+      <div class="chipset-check">
         <?php foreach ($trades as $t): ?>
-          <label class="chip" style="display:flex;align-items:center;gap:7px;cursor:pointer">
+          <label class="chip-check">
             <input type="checkbox" name="trades[]" value="<?= (int) $t['id'] ?>"
                    <?= in_array((int) $t['id'], $myTrades, true) ? 'checked' : '' ?>>
             <?= e($t['name']) ?>
@@ -66,9 +66,9 @@ $rate = $profile['hourly_rate_cents'] !== null
 
     <label class="field">
       <span>Counties you cover — this decides which jobs you see</span>
-      <div class="chipset" style="margin-top:2px">
+      <div class="chipset-check">
         <?php foreach ($counties as $c): ?>
-          <label class="chip" style="display:flex;align-items:center;gap:7px;cursor:pointer">
+          <label class="chip-check">
             <input type="checkbox" name="counties[]" value="<?= (int) $c['id'] ?>"
                    <?= in_array((int) $c['id'], $myCounties, true) ? 'checked' : '' ?>>
             <?= e($c['short_name']) ?>

@@ -41,7 +41,9 @@ $status = (string) ($profile['status'] ?? '');
       <a href="<?= e(url('/pros')) ?>">Directory</a>
     </nav>
     <div class="chrome-r">
-      <span class="tiny muted" style="display:none"></span>
+      <?php if (in_array($me['role'] ?? '', ['superadmin', 'market_admin'], true)): ?>
+        <a class="btn btn-ghost btn-sm" href="<?= e(url('/admin')) ?>">Admin</a>
+      <?php endif; ?>
       <form method="post" action="<?= e(url('/sign-out')) ?>">
         <?= \FixListed\Core\Csrf::field() ?>
         <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>

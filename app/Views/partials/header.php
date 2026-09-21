@@ -47,6 +47,17 @@ $navItem = static function (string $href, string $label, string $current): strin
       </form>
       <?php endif; ?>
       <?php if (!empty($me)): ?>
+        <?php
+        /*
+         * Shown only to administrators, so it is not an advertisement of
+         * where the back end lives. Without it the only way in is typing a
+         * URL from memory, which is a silly thing to ask of the person who
+         * owns the site.
+         */
+        if (in_array($me['role'] ?? '', ['superadmin', 'market_admin'], true)):
+        ?>
+          <a class="btn btn-ghost btn-sm" href="<?= e(url('/admin')) ?>">Admin</a>
+        <?php endif; ?>
         <a class="btn btn-ghost btn-sm" href="<?= e(url('/my')) ?>">Your account</a>
       <?php else: ?>
         <a class="btn btn-ghost btn-sm" href="<?= e(url('/sign-in')) ?>">Sign in</a>

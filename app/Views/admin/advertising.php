@@ -2,7 +2,7 @@
 /**
  * Advertising, as it actually stands.
  *
- * @var array $placements @var array $sold @var array $market
+ * @var array $placements @var array $sold @var array $market @var callable $can
  */
 require_once __DIR__ . '/../partials/icons.php';
 $boostSold     = $sold['boost'] ?? 0;
@@ -37,20 +37,35 @@ $bar = static function (int $sold, int $cap): string {
   <div class="stat">
     <div class="k">Spotlight</div>
     <div class="v"><?= $spotlightSold ?> / <?= $spotlightCap ?></div>
-    <div class="d"><?= e(money((int) $market['spotlight_price_cents'])) ?> per month</div>
+    <?php if ($can('finance.view')): ?>
+      <div class="d"><?= e(money((int) $market['spotlight_price_cents'])) ?> per month</div>
+    <?php endif; ?>
     <?= $bar($spotlightSold, $spotlightCap) ?>
   </div>
   <div class="stat">
     <div class="k">Boost</div>
     <div class="v"><?= $boostSold ?> / <?= $boostCap ?></div>
-    <div class="d"><?= e(money((int) $market['boost_price_cents'])) ?> per month</div>
+    <?php if ($can('finance.view')): ?>
+      <div class="d"><?= e(money((int) $market['boost_price_cents'])) ?> per month</div>
+    <?php endif; ?>
     <?= $bar($boostSold, $boostCap) ?>
   </div>
-  <div class="stat">
-    <div class="k">Monthly value, if sold out</div>
-    <div class="v"><?= e(money($spotlightCap * (int) $market['spotlight_price_cents'] + $boostCap * (int) $market['boost_price_cents'])) ?></div>
-    <div class="d">At today's prices and caps</div>
-  </div>
+  <?php if ($can('finance.view')): ?>
+    <div class="stat">
+      <div class="k">Monthly value, if sold out</div>
+      <div class="v"><?= e(money($spotlightCap * (int) $market['spotlight_price_cents'] + $boostCap * (int) $market['boost_price_cents'])) ?></div>
+      <div class="d">At today's prices and caps</div>
+    </div>
+  <?php else: ?>
+    <!-- A manager needs to know how full the inventory is. What it earns is
+         not theirs to see, so the tile answers the operational question
+         instead of the financial one. -->
+    <div class="stat">
+      <div class="k">Slots left</div>
+      <div class="v"><?= max(0, $spotlightCap - (int) $spotlightSold) + max(0, $boostCap - (int) $boostSold) ?></div>
+      <div class="d">across both plans</div>
+    </div>
+  <?php endif; ?>
 </div>
 
 <div class="panel">

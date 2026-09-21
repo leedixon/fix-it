@@ -143,6 +143,9 @@ SET @pw := '$2y$12$EqamHUG6bee9W5b.i8lSi.T4eYxJ8T6VjUzosZShwAd.CiO2AP8kK';  -- '
 INSERT INTO users (id, market_id, role, email, password_hash, first_name, last_name, phone, email_verified_at, sms_opt_in) VALUES
  (1, NULL,'superadmin',  'owner@fixlisted.com',  @pw,'Lee','Dixon','',                NOW(),0),
  (2, 1,   'market_admin','dana@fixlisted.com',   @pw,'Dana','Whitfield','',           NOW(),0),
+ -- A moderator, so the narrowest staff role is exercised by the sample data
+ -- rather than only by whoever remembers to make one.
+ (3, 1,   'moderator',   'tomas@fixlisted.com',  @pw,'Tomas','Iverson','',           NOW(),0),
  -- pros
  (10,1,'pro','marcus@ojoplumbing.com',      @pw,'Marcus','Ojo','(815) 555-0112',      NOW(),1),
  (11,1,'pro','karin@halvorsenwood.com',     @pw,'Karin','Halvorsen','(815) 555-0134', NOW(),1),

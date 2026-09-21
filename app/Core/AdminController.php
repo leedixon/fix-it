@@ -39,24 +39,38 @@ abstract class AdminController
             Session::put('_admin_intended', $this->request->path);
             return Response::redirect('/admin/login');
         }
-        if (!$this->auth->is(Auth::ROLE_SUPER, Auth::ROLE_ADMIN)) {
+        if (!$this->auth->can('admin.access')) {
             throw new NotFound('admin');
         }
         return null;
     }
 
-    /** Only a superadmin may cross market boundaries or change pricing. */
-    protected function guardSuper(): ?Response
+    /**
+     * Refuses anyone without this capability.
+     *
+     * A 404, not a redirect with an explanation. The screens behind these are
+     * hidden from the navigation of anyone who cannot use them, so a staff
+     * member reaching one has either typed the URL or been sent it, and
+     * neither deserves confirmation that it exists. It also keeps the
+     * behaviour identical whether you lack the capability or the page is not
+     * there at all.
+     */
+    protected function guardCan(string $capability): ?Response
     {
         $denied = $this->guard();
         if ($denied !== null) {
             return $denied;
         }
-        if (!$this->auth->isSuperadmin()) {
-            Session::flash('bad', 'That is a superadmin-only screen.');
-            return Response::redirect('/admin');
+        if (!$this->auth->can($capability)) {
+            throw new NotFound('admin: ' . $capability);
         }
         return null;
+    }
+
+    /** Shorthand for the several screens that are the owner's alone. */
+    protected function guardSuper(): ?Response
+    {
+        return $this->guardCan('markets.manage');
     }
 
     /** @param array<string,mixed> $data */
@@ -68,6 +82,10 @@ abstract class AdminController
             'path'     => $this->request->path,
             'me'       => $this->auth->user(),
             'isSuper'  => $this->auth->isSuperadmin(),
+            // Templates ask what this person may do rather than what they
+            // are, so a nav item or a button disappears by asking the same
+            // question the controller asked.
+            'can'      => fn (string $capability): bool => $this->auth->can($capability),
             'flashes'  => Session::takeFlashes(),
             'pending'  => 0,
         ];

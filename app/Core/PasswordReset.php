@@ -18,14 +18,29 @@ namespace FixListed\Core;
 final class PasswordReset
 {
     public const INVITE_DAYS  = 14;
+    /**
+     * A staff invite expires sooner than a tradesperson's.
+     *
+     * The link is a key to the admin panel, and an invite forwarded into
+     * somebody's archive stays live for exactly as long as this says. A week
+     * survives a holiday weekend and a missed email; a fortnight is a longer
+     * window than an account that can suspend listings deserves. Resending
+     * costs one click.
+     */
+    public const STAFF_INVITE_DAYS = 7;
     public const RESET_HOURS  = 1;
 
     public function __construct(private readonly Database $db)
     {
     }
 
-    /** @return string the raw token to put in the emailed link */
-    public function issue(int $userId, bool $invite = false): string
+    /**
+     * @param bool $invite      a first-time link rather than a reset
+     * @param bool $staffInvite a first-time link to an admin account, which
+     *                          expires sooner — see STAFF_INVITE_DAYS
+     * @return string the raw token to put in the emailed link
+     */
+    public function issue(int $userId, bool $invite = false, bool $staffInvite = false): string
     {
         // Not password_hash(): that is deliberately slow and salted, so it
         // cannot be looked up. A token is high-entropy already, and a plain
@@ -36,9 +51,11 @@ final class PasswordReset
         // NOW(), so the same clock has to set it — otherwise a timezone
         // difference between the two silently expires every link the moment
         // it is created.
-        $interval = $invite
-            ? self::INVITE_DAYS . ' DAY'
-            : self::RESET_HOURS . ' HOUR';
+        $interval = match (true) {
+            $staffInvite => self::STAFF_INVITE_DAYS . ' DAY',
+            $invite      => self::INVITE_DAYS . ' DAY',
+            default      => self::RESET_HOURS . ' HOUR',
+        };
 
         // Outstanding links for this account stop working. Asking for a second
         // reset must invalidate the first, or an intercepted older email stays

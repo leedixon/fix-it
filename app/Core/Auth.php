@@ -4,18 +4,30 @@ declare(strict_types=1);
 namespace FixListed\Core;
 
 /**
- * Authentication and the role checks the whole app hangs off.
+ * Authentication, and the capability checks the whole app hangs off.
  *
  * Roles, narrowest to widest:
  *   homeowner     — posts jobs, reads quotes on their own jobs
  *   pro           — quotes jobs, manages one profile and its advertising
- *   market_admin   — everything inside one market
- *   superadmin    — every market, plus market creation and billing
+ *   moderator     — the queue: applications, listings, jobs. Staff.
+ *   market_admin  — everything inside one market, bar money. Staff.
+ *   superadmin    — every market, plus money, the team, and deletion
+ *
+ * **Ask what somebody can do, not what they are.** can('finance.view') says
+ * what the code actually depends on; is(ROLE_SUPER) says what happens to be
+ * true today, and is the line that gets missed when a fourth role arrives.
+ * CAPABILITIES below is the whole permission model, in one readable table —
+ * the point being that you can audit it by reading it.
+ *
+ * The line that matters most is between superadmin and everyone else. Money,
+ * the team, and deleting an account are the three things a staff member
+ * cannot do, and they are grouped at the bottom of the table for that reason.
  */
 final class Auth
 {
     public const ROLE_HOMEOWNER = 'homeowner';
     public const ROLE_PRO       = 'pro';
+    public const ROLE_MODERATOR = 'moderator';
     public const ROLE_ADMIN     = 'market_admin';
     public const ROLE_SUPER     = 'superadmin';
 
@@ -89,13 +101,95 @@ final class Auth
         return $this->is(self::ROLE_SUPER);
     }
 
+    /** Everyone who gets through the /admin door at all. */
+    public const STAFF_ROLES = [self::ROLE_SUPER, self::ROLE_ADMIN, self::ROLE_MODERATOR];
+
+    /**
+     * Who can do what. The whole permission model.
+     *
+     * @var array<string,array<int,string>>
+     */
+    private const CAPABILITIES = [
+        // --- the day job. All staff. ---------------------------------------
+        'admin.access'        => self::STAFF_ROLES,
+        'applications.review' => self::STAFF_ROLES,
+        'listings.moderate'   => self::STAFF_ROLES,   // suspend and restore
+        'jobs.moderate'       => self::STAFF_ROLES,   // take off the board
+        'activity.view'       => self::STAFF_ROLES,
+
+        // --- running the market. Managers and up. --------------------------
+        // A moderator works the queue. Somebody's phone number and sign-in
+        // history is not part of the queue.
+        'people.view'         => [self::ROLE_SUPER, self::ROLE_ADMIN],
+        'licensing.manage'    => [self::ROLE_SUPER, self::ROLE_ADMIN],
+        'placements.view'     => [self::ROLE_SUPER, self::ROLE_ADMIN],
+
+        // --- the owner's own. Superadmin only. -----------------------------
+        // Three things no staff member does, however senior: see or move
+        // money, change who is on the team, or erase a person.
+        'finance.view'        => [self::ROLE_SUPER],  // revenue, what a plan earns
+        'finance.manage'      => [self::ROLE_SUPER],  // prices and inventory caps
+        'team.manage'         => [self::ROLE_SUPER],
+        'users.delete'        => [self::ROLE_SUPER],
+        'markets.manage'      => [self::ROLE_SUPER],
+        'maintenance.manage'  => [self::ROLE_SUPER],
+    ];
+
+    /**
+     * Whether the signed-in person may do this.
+     *
+     * An unknown capability is false, never true. A typo in a template should
+     * hide a button, not expose one — the failure has to land on the safe
+     * side, because the unsafe side is silent.
+     */
+    public function can(string $capability): bool
+    {
+        $role = $this->role();
+        if ($role === null) {
+            return false;
+        }
+        return in_array($role, self::CAPABILITIES[$capability] ?? [], true);
+    }
+
+    /** Staff, of any rank. */
+    public function isStaff(): bool
+    {
+        return $this->is(...self::STAFF_ROLES);
+    }
+
+    /** What to call a role in front of a person. */
+    public static function roleLabel(string $role): string
+    {
+        return match ($role) {
+            self::ROLE_SUPER     => 'Superadmin',
+            self::ROLE_ADMIN     => 'Manager',
+            self::ROLE_MODERATOR => 'Moderator',
+            self::ROLE_PRO       => 'Tradesperson',
+            self::ROLE_HOMEOWNER => 'Homeowner',
+            default              => ucfirst(str_replace('_', ' ', $role)),
+        };
+    }
+
+    /** One line on what a staff role is for, shown wherever one is chosen. */
+    public static function roleBlurb(string $role): string
+    {
+        return match ($role) {
+            self::ROLE_SUPER     => 'Everything, including money, the team and deleting accounts.',
+            self::ROLE_ADMIN     => 'Runs the site day to day: applications, listings, jobs, people, '
+                                  . 'licensing. Cannot see money or manage the team.',
+            self::ROLE_MODERATOR => 'Works the queue: approves applications, suspends listings, '
+                                  . 'removes jobs. Nothing else.',
+            default              => '',
+        };
+    }
+
     /** Superadmins pass for any market; everyone else only for their own. */
     public function canAdminister(int $marketId): bool
     {
         if ($this->isSuperadmin()) {
             return true;
         }
-        return $this->is(self::ROLE_ADMIN) && $this->marketId() === $marketId;
+        return $this->is(self::ROLE_ADMIN, self::ROLE_MODERATOR) && $this->marketId() === $marketId;
     }
 
     /**

@@ -19,6 +19,14 @@ final class DashboardController extends AdminController
         $admin = new AdminRepository($this->db, $this->scope);
         $counts = $admin->counts();
 
+        // Removed here, not just hidden in the template. A number a manager
+        // may not see should not reach the page they are served at all —
+        // "display:none" on a revenue figure is still a revenue figure in
+        // the HTML, readable by anyone who opens the inspector.
+        if (!$this->auth->can('finance.view')) {
+            unset($counts['revenue_30d']);
+        }
+
         return $this->page('admin/dashboard', [
             'title'   => 'Dashboard — Fix Listed admin',
             'counts'  => $counts,
@@ -30,7 +38,7 @@ final class DashboardController extends AdminController
 
     public function activity(): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('activity.view')) {
             return $denied;
         }
         $admin = new AdminRepository($this->db, $this->scope);

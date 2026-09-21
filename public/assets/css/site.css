@@ -620,3 +620,28 @@ td.wrap-cell{white-space:normal;min-width:220px}
 .rule{height:1px;background:var(--line)}
 /* Helper text under a form field. */
 .field small{display:block;margin-top:6px;font-size:12.5px;line-height:1.5}
+
+/* ---- team (admin) ---- */
+.sel-sm{border:1px solid var(--line-2);background:var(--paper-2);border-radius:3px;padding:5px 8px;font-size:13px}
+.inp-sm{border:1px solid var(--line-2);background:var(--paper-3);border-radius:3px;padding:6px 9px;font-size:12.5px;width:140px}
+/* Destructive, and it should look it — but not so loud that the row it sits
+   in reads as an error state. */
+.btn-danger{background:var(--clay);color:#fff;border-color:var(--clay)}
+.btn-danger:hover{background:color-mix(in srgb,var(--clay) 86%,#000)}
+
+.roleset{border:0;margin:14px 0 0;padding:0}
+.roleset legend{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;padding:0}
+.rolepick{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--line);border-radius:4px;
+  padding:13px 15px;margin-bottom:8px;cursor:pointer;background:var(--paper-3)}
+.rolepick:hover{border-color:var(--line-2)}
+/* :has() rather than a class toggled by script — the choice is visible
+   without any JavaScript having run. */
+.rolepick:has(input:checked){border-color:var(--brass-2);background:var(--brass-wash)}
+.rolepick input{margin-top:3px;flex:none}
+.rolepick strong{display:block;font-size:14.5px}
+.rolepick small{display:block;color:var(--text-2);font-size:13px;line-height:1.5;margin-top:3px}
+.field small.bad{color:var(--clay)}
+/* Row actions wrap onto their own line rather than running off the table. */
+.row-acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.row-remove{margin-top:6px}
+.row-remove .inp-sm{width:180px}

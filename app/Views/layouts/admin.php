@@ -10,6 +10,7 @@
  * @var bool   $isSuper
  * @var array  $flashes
  * @var int    $pending
+ * @var callable $can
  */
 require_once __DIR__ . '/../partials/icons.php';
 
@@ -37,24 +38,49 @@ $nav = static function (string $href, string $label, string $icon, string $curre
   <aside class="adm-side">
     <a class="logo" href="<?= e(url('/admin')) ?>"><b>Fix</b> <i style="font-style:normal;color:var(--brass-3)">Listed</i></a>
 
+    <!--
+      Every item asks the same question the controller behind it asks, so a
+      link can never appear to somebody the screen would then 404. Hidden
+      rather than greyed: a door you cannot open is one more thing to email
+      the owner about.
+    -->
     <nav class="adm-nav" aria-label="Admin">
       <?= $nav('/admin', 'Dashboard', 'chart', $path) ?>
-      <?= $nav('/admin/applications', 'Applications', 'inbox', $path, $pending) ?>
-      <?= $nav('/admin/pros', 'Tradespeople', 'tools', $path) ?>
-      <?= $nav('/admin/jobs', 'Jobs', 'clipboard', $path) ?>
-      <?= $nav('/admin/users', 'People', 'user', $path) ?>
-      <?= $nav('/admin/advertising', 'Advertising', 'megaphone', $path) ?>
-      <?php if ($isSuper): ?>
+      <?php if ($can('applications.review')): ?>
+        <?= $nav('/admin/applications', 'Applications', 'inbox', $path, $pending) ?>
+      <?php endif; ?>
+      <?php if ($can('listings.moderate')): ?>
+        <?= $nav('/admin/pros', 'Tradespeople', 'tools', $path) ?>
+      <?php endif; ?>
+      <?php if ($can('jobs.moderate')): ?>
+        <?= $nav('/admin/jobs', 'Jobs', 'clipboard', $path) ?>
+      <?php endif; ?>
+      <?php if ($can('people.view')): ?>
+        <?= $nav('/admin/users', 'People', 'user', $path) ?>
+      <?php endif; ?>
+      <?php if ($can('placements.view')): ?>
+        <?= $nav('/admin/advertising', 'Advertising', 'megaphone', $path) ?>
+      <?php endif; ?>
+      <?php if ($can('licensing.manage')): ?>
         <?= $nav('/admin/licensing', 'Licensing', 'shield', $path) ?>
+      <?php endif; ?>
+      <?php if ($can('team.manage')): ?>
+        <?= $nav('/admin/team', 'Team', 'users', $path) ?>
+      <?php endif; ?>
+      <?php if ($can('markets.manage')): ?>
         <?= $nav('/admin/markets', 'Markets', 'pin', $path) ?>
+      <?php endif; ?>
+      <?php if ($can('maintenance.manage')): ?>
         <?= $nav('/admin/maintenance', 'Maintenance', 'lock', $path) ?>
       <?php endif; ?>
-      <?= $nav('/admin/activity', 'Activity log', 'clock', $path) ?>
+      <?php if ($can('activity.view')): ?>
+        <?= $nav('/admin/activity', 'Activity log', 'clock', $path) ?>
+      <?php endif; ?>
     </nav>
 
     <div class="who">
       <b><?= e(trim(($me['first_name'] ?? '') . ' ' . ($me['last_name'] ?? '')) ?: ($me['email'] ?? '')) ?></b>
-      <span><?= e($isSuper ? 'Superadmin' : 'Market admin') ?></span>
+      <span><?= e(\FixListed\Core\Auth::roleLabel((string) ($me['role'] ?? ''))) ?></span>
       <form method="post" action="<?= e(url('/admin/logout')) ?>" style="margin-top:10px">
         <?= \FixListed\Core\Csrf::field() ?>
         <button class="btn btn-onink btn-sm btn-block" type="submit">Sign out</button>

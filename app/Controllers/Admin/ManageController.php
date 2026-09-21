@@ -4,11 +4,13 @@ declare(strict_types=1);
 namespace FixListed\Controllers\Admin;
 
 use FixListed\Core\AdminController;
+use FixListed\Core\Auth;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
 use FixListed\Repositories\AdminRepository;
 use FixListed\Repositories\LicenceRepository;
 use FixListed\Repositories\MarketRepository;
+use FixListed\Repositories\TeamRepository;
 use FixListed\Repositories\TradeRepository;
 
 /** The list screens, and the few actions that act on a row. */
@@ -16,7 +18,7 @@ final class ManageController extends AdminController
 {
     public function pros(): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('listings.moderate')) {
             return $denied;
         }
         $admin  = new AdminRepository($this->db, $this->scope);
@@ -33,7 +35,7 @@ final class ManageController extends AdminController
     /** Suspend or reinstate a listing. */
     public function setProStatus(string $id): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('listings.moderate')) {
             return $denied;
         }
         if (!$this->checkCsrf()) {
@@ -61,7 +63,7 @@ final class ManageController extends AdminController
 
     public function jobs(): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('jobs.moderate')) {
             return $denied;
         }
         $admin  = new AdminRepository($this->db, $this->scope);
@@ -77,7 +79,7 @@ final class ManageController extends AdminController
 
     public function removeJob(string $id): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('jobs.moderate')) {
             return $denied;
         }
         if (!$this->checkCsrf()) {
@@ -100,7 +102,7 @@ final class ManageController extends AdminController
 
     public function users(): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('people.view')) {
             return $denied;
         }
         $admin = new AdminRepository($this->db, $this->scope);
@@ -116,16 +118,90 @@ final class ManageController extends AdminController
     }
 
     /**
-     * Advertising.
+     * Removes an ordinary account — a tradesperson or a homeowner.
      *
-     * Read-only for now, and that is the honest state of it: the schema,
-     * the inventory caps and the directory's paid ordering all exist and
-     * work, but nothing sells a placement yet. The screen shows what is
-     * there rather than pretending at controls that do nothing.
+     * Superadmin only, like every other deletion. Marked deleted rather than
+     * erased: their jobs, quotes and reviews point at this row, and a real
+     * DELETE would either cascade a paying customer's history away or leave
+     * it pointing at nothing.
+     *
+     * Staff accounts are not removable here. They go through /admin/team,
+     * which knows how to refuse the last superadmin.
+     */
+    public function removeUser(string $id): Response
+    {
+        if ($denied = $this->guardCan('users.delete')) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was changed.');
+            return Response::redirect('/admin/users');
+        }
+
+        $userId = (int) $id;
+        $user   = $this->db->one(
+            'SELECT id, email, role, status FROM users WHERE id = :id LIMIT 1',
+            ['id' => $userId],
+        );
+
+        if ($user === null || (string) $user['status'] === 'deleted') {
+            Session::flash('bad', 'No such account.');
+            return Response::redirect('/admin/users');
+        }
+        if ($userId === $this->auth->id()) {
+            Session::flash('bad', 'You cannot remove your own account.');
+            return Response::redirect('/admin/users');
+        }
+        if (in_array((string) $user['role'], Auth::STAFF_ROLES, true)) {
+            Session::flash('bad', 'That is a team member. Remove them from the Team screen, '
+                . 'which knows not to lock the last owner out.');
+            return Response::redirect('/admin/users');
+        }
+
+        $typed = mb_strtolower(trim((string) $this->request->input('confirm_email', '')));
+        if ($typed !== mb_strtolower((string) $user['email'])) {
+            Session::flash('bad', 'Nothing was removed — the email did not match.');
+            return Response::redirect('/admin/users');
+        }
+
+        // Logged before the row is scrubbed, while there is still something
+        // worth logging.
+        $this->record('user.removed', 'user', $userId, [
+            'email' => (string) $user['email'],
+            'role'  => (string) $user['role'],
+        ]);
+
+        (new TeamRepository($this->db))->remove($userId);
+
+        // A tradesperson's listing goes with them. Leaving a live profile
+        // behind an account nobody can sign into means a homeowner quoting
+        // into silence.
+        $this->db->affected(
+            "UPDATE pro_profiles SET status = 'suspended' WHERE user_id = :id",
+            ['id' => $userId],
+        );
+
+        Session::flash('good', $user['email'] . ' has been removed. Their listing is off the '
+            . 'directory and their history stays in the activity log.');
+
+        return Response::redirect('/admin/users');
+    }
+
+    /**
+     * Advertising: who is paying for position, and what it delivered.
+     *
+     * Read-only by design rather than by omission. A placement is granted by
+     * a paid Stripe subscription and revoked when that subscription ends, so
+     * an admin button that granted one by hand would create a placement no
+     * invoice backs. Selling and cancelling both belong to the pro's own
+     * screen and Stripe's billing portal.
+     *
+     * Managers see the placements; the prices and what the inventory is worth
+     * are money, and money is the superadmin's alone.
      */
     public function advertising(): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('placements.view')) {
             return $denied;
         }
         $admin = new AdminRepository($this->db, $this->scope);
@@ -152,7 +228,7 @@ final class ManageController extends AdminController
      */
     public function licensing(): Response
     {
-        if ($denied = $this->guardSuper()) {
+        if ($denied = $this->guardCan('licensing.manage')) {
             return $denied;
         }
         $licences = new LicenceRepository($this->db);
@@ -170,7 +246,7 @@ final class ManageController extends AdminController
 
     public function saveLicensing(): Response
     {
-        if ($denied = $this->guardSuper()) {
+        if ($denied = $this->guardCan('licensing.manage')) {
             return $denied;
         }
         if (!$this->checkCsrf()) {
@@ -214,7 +290,7 @@ final class ManageController extends AdminController
 
     public function deleteLicensing(string $id): Response
     {
-        if ($denied = $this->guardSuper()) {
+        if ($denied = $this->guardCan('licensing.manage')) {
             return $denied;
         }
         if (!$this->checkCsrf()) {
@@ -233,7 +309,7 @@ final class ManageController extends AdminController
 
     public function markets(): Response
     {
-        if ($denied = $this->guardSuper()) {
+        if ($denied = $this->guardCan('markets.manage')) {
             return $denied;
         }
 
@@ -247,7 +323,7 @@ final class ManageController extends AdminController
     /** Pricing and inventory caps, which only a superadmin may move. */
     public function updateMarket(string $id): Response
     {
-        if ($denied = $this->guardSuper()) {
+        if ($denied = $this->guardCan('finance.manage')) {
             return $denied;
         }
         if (!$this->checkCsrf()) {

@@ -2,10 +2,15 @@
 declare(strict_types=1);
 
 /**
- * Creates or resets an administrator account.
+ * Creates or resets a **superadmin** account.
  *
  *   php bin/admin.php                  create or reset one, prompting
- *   php bin/admin.php --list           show the administrators that exist
+ *   php bin/admin.php --list           show the staff accounts that exist
+ *
+ * Managers and moderators are invited from /admin/team, where they set their
+ * own password from an emailed link. This is for the owner's own account, and
+ * for the one case the web interface deliberately cannot handle: getting back
+ * in when there is no superadmin left who can sign in.
  *
  * Exists because the seeded admin is demonstration data — it is flagged
  * is_demo and its password is printed in database/seed.sql, so it must not be
@@ -37,7 +42,8 @@ function ask(string $label, string $default = '', bool $hidden = false): string
 
 $admins = $db->all(
     "SELECT id, email, role, status, is_demo, last_login_at
-       FROM users WHERE role IN ('superadmin','market_admin') ORDER BY role, id"
+       FROM users WHERE role IN ('superadmin','market_admin','moderator')
+      ORDER BY FIELD(role, 'superadmin','market_admin','moderator'), id"
 );
 
 echo "\nFix Listed — administrators\n\n";
@@ -45,7 +51,7 @@ if ($admins === []) {
     echo "  none yet\n\n";
 } else {
     foreach ($admins as $a) {
-        printf("  %-34s %-13s %s%s\n", $a['email'], $a['role'],
+        printf("  %-34s %-13s %s%s\n", $a['email'], Auth::roleLabel((string) $a['role']),
             $a['status'], $a['is_demo'] ? '  ** SAMPLE ACCOUNT — replace this **' : '');
     }
     echo "\n";

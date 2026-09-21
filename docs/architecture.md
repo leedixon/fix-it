@@ -181,14 +181,29 @@ commitment, made per market so it can be tightened in a thin market. Block 8 of
 controller extends it and calls it first, so "is this person allowed" has one
 implementation rather than a check each new screen has to remember to make.
 
-Roles run narrowest to widest — homeowner, pro, market_admin, superadmin. A
-market admin sees their own market; only a superadmin may change pricing or
-see the market list. A signed-out visitor gets the login page; a signed-in
-tradesperson poking at `/admin` gets a 404, which does not confirm the URL
-exists.
+Roles run narrowest to widest — homeowner, pro, moderator, market_admin,
+superadmin. The last three are staff. A signed-out visitor gets the login
+page; a signed-in tradesperson poking at `/admin` gets a 404, which does not
+confirm the URL exists.
+
+**The code asks what somebody can do, not what they are.** `can('finance.view')`
+states what a screen actually depends on; `is(ROLE_SUPER)` states what happens
+to be true today, and is the line that gets missed when a fourth role arrives.
+The whole permission model is one readable table, `CAPABILITIES` in
+`app/Core/Auth.php` — the point being that it can be audited by reading it,
+and `bin/smoke.php` asserts every row of it. An unknown capability is false,
+so a typo in a template hides a button rather than exposing one.
+
+The division that matters: money, the team, and deleting an account are the
+superadmin's alone. A manager runs the market; a moderator works the queue.
+Financial figures are *removed from the response* for anyone without
+`finance.view` rather than hidden in the template — a revenue number behind
+`display:none` is still a revenue number in the HTML. See
+[team.md](team.md).
 
 Screens: dashboard, the application queue, tradespeople, jobs, people (with
-the pre-launch waiting list), advertising, markets, and the activity log.
+the pre-launch waiting list), advertising, licensing, team, markets,
+maintenance, and the activity log — each shown only to a role that can use it.
 
 **Reads for the back end live in `AdminRepository`, away from the public
 ones.** The admin deliberately ignores the filters the public repositories

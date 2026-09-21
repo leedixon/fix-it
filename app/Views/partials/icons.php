@@ -22,6 +22,10 @@ function icon(string $name, int $size = 16): string
         'alert'   => '<path d="M12 4l9 16H3z"/><path d="M12 10v4"/><path d="M12 17.2v.6"/>',
         'tools'   => '<path d="M14.5 5.5a3.5 3.5 0 004.8 4.5l-8 8a2.3 2.3 0 11-3.3-3.3l8-8a3.5 3.5 0 01-1.5-1.2z"/>',
         'user'    => '<circle cx="12" cy="8" r="3.6"/><path d="M5 20c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4"/>',
+        // Two people, for the team — distinct from 'user', which is one
+        // person and already means the People list.
+        'users'   => '<circle cx="9.5" cy="8" r="3.2"/><path d="M3 20c1.2-3.3 3.6-5 6.5-5s5.3 1.7 6.5 5"/>'
+                   . '<path d="M16.5 5.2a3.2 3.2 0 010 5.8"/><path d="M18 15.4c1.5.8 2.6 2.3 3 4.6"/>',
         'phone'   => '<path d="M5 4h4l2 5-2.4 1.6a12 12 0 005.4 5.4L15.6 14l5 2v4a1 1 0 01-1.1 1A16.5 16.5 0 014 5.1 1 1 0 015 4z"/>',
         'mail'    => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.4 6.2L12 13l8.6-6.8"/>',
         // Admin navigation.

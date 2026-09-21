@@ -6,6 +6,7 @@ namespace FixListed\Controllers\Account;
 use FixListed\Core\Controller;
 use FixListed\Core\Csrf;
 use FixListed\Core\PasswordReset;
+use FixListed\Repositories\TeamRepository;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
 
@@ -61,6 +62,16 @@ final class PasswordController extends Controller
         // the mailbox type the password they set ten seconds ago is friction
         // for nothing.
         $this->auth->attempt((string) $reset['email'], $password, $this->request->ip());
+
+        // A staff member lands in the admin, not on a tradesperson's
+        // dashboard — /my has nothing on it for somebody with no listing,
+        // and a first impression of an empty screen invites an email asking
+        // where the admin panel is.
+        if ($this->auth->can('admin.access')) {
+            (new TeamRepository($this->db))->markAccepted((int) $reset['id']);
+            Session::flash('ok', 'Password set. Welcome to Fix Listed.');
+            return Response::redirect('/admin');
+        }
 
         Session::flash('ok', 'Password set. You are signed in.');
         return Response::redirect('/my');

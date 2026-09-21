@@ -13,7 +13,7 @@ final class SessionController extends AdminController
 {
     public function form(): Response
     {
-        if ($this->auth->is(Auth::ROLE_SUPER, Auth::ROLE_ADMIN)) {
+        if ($this->auth->can('admin.access')) {
             return Response::redirect('/admin');
         }
         return Response::html(
@@ -46,7 +46,7 @@ final class SessionController extends AdminController
             return Response::redirect('/admin/login');
         }
 
-        if (!$this->auth->is(Auth::ROLE_SUPER, Auth::ROLE_ADMIN)) {
+        if (!$this->auth->can('admin.access')) {
             // A real account, but not an administrator. Signed straight back
             // out rather than left open on an admin URL — but with the
             // session kept, or the message below dies with it and they are

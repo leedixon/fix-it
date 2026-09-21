@@ -16,12 +16,14 @@ require __DIR__ . '/../app/bootstrap.php';
 use FixListed\Core\Auth;
 use FixListed\Core\Database;
 use FixListed\Core\Maintenance;
+use FixListed\Core\PasswordReset;
 use FixListed\Core\Repository;
 use FixListed\Core\TenantScope;
 use FixListed\Repositories\AdvertisingRepository;
 use FixListed\Repositories\GeographyRepository;
 use FixListed\Repositories\JobRepository;
 use FixListed\Repositories\MarketRepository;
+use FixListed\Repositories\TeamRepository;
 use FixListed\Repositories\ProRepository;
 
 $pass = 0;
@@ -589,6 +591,118 @@ $dupes = (int) $db->value(
      ) d'
 );
 check('the daily rollup holds one row per placement per day', $dupes === 0);
+
+// --- the staff ladder -------------------------------------------------------
+// Read as a table: each row is a capability, each column a role. A permission
+// model is only auditable if you can see it all at once, and this is the test
+// that fails when somebody widens one by accident.
+$CAPS = [
+    'admin.access', 'applications.review', 'listings.moderate', 'jobs.moderate',
+    'people.view', 'licensing.manage', 'placements.view',
+    'finance.view', 'finance.manage', 'team.manage', 'users.delete',
+    'markets.manage', 'maintenance.manage',
+];
+
+/**
+ * Everything one account can do, captured in one go.
+ *
+ * Signing in writes the user to the session, so two Auth objects held at once
+ * both answer for whoever signed in last. Each role is therefore asked
+ * everything before the next one signs in.
+ *
+ * @return array{role:?string,caps:array<string,bool>}
+ */
+$snapshot = static function (Database $db, string $email) use ($CAPS): array {
+    $auth = new Auth($db);
+    $auth->attempt($email, 'demo-password');
+
+    $caps = [];
+    foreach ($CAPS as $cap) {
+        $caps[$cap] = $auth->can($cap);
+    }
+    return ['role' => $auth->role(), 'caps' => $caps];
+};
+
+$asOwner = $snapshot($db, 'owner@fixlisted.com');
+$asMgr   = $snapshot($db, 'dana@fixlisted.com');
+$asMod   = $snapshot($db, 'tomas@fixlisted.com');
+$asPro   = $snapshot($db, 'marcus@ojoplumbing.com');
+$asNone  = ['role' => null, 'caps' => array_map(
+    static fn (string $c): bool => (new Auth($db))->can($c),
+    array_combine($CAPS, $CAPS),
+)];
+
+check('the three staff roles sign in',
+    $asOwner['role'] === Auth::ROLE_SUPER
+    && $asMgr['role'] === Auth::ROLE_ADMIN
+    && $asMod['role'] === Auth::ROLE_MODERATOR,
+    $asOwner['role'] . ', ' . $asMgr['role'] . ', ' . $asMod['role']);
+
+foreach ([
+    // capability            owner  manager  moderator  tradesperson
+    ['admin.access',          true,   true,    true,      false],
+    ['applications.review',   true,   true,    true,      false],
+    ['listings.moderate',     true,   true,    true,      false],
+    ['jobs.moderate',         true,   true,    true,      false],
+    ['people.view',           true,   true,    false,     false],
+    ['licensing.manage',      true,   true,    false,     false],
+    ['placements.view',       true,   true,    false,     false],
+    ['finance.view',          true,   false,   false,     false],
+    ['finance.manage',        true,   false,   false,     false],
+    ['team.manage',           true,   false,   false,     false],
+    ['users.delete',          true,   false,   false,     false],
+    ['markets.manage',        true,   false,   false,     false],
+    ['maintenance.manage',    true,   false,   false,     false],
+] as [$cap, $wantOwner, $wantMgr, $wantMod, $wantPro]) {
+    $yn = static fn (bool $b): string => $b ? 'yes' : 'no ';
+    check(
+        sprintf('%-20s owner:%s manager:%s moderator:%s pro:%s',
+            $cap, $yn($wantOwner), $yn($wantMgr), $yn($wantMod), $yn($wantPro)),
+        $asOwner['caps'][$cap] === $wantOwner
+        && $asMgr['caps'][$cap] === $wantMgr
+        && $asMod['caps'][$cap] === $wantMod
+        && $asPro['caps'][$cap] === $wantPro
+        // Nobody signed in can do anything, whatever the row says.
+        && $asNone['caps'][$cap] === false,
+    );
+}
+
+// Named again on purpose. If a later change widens one of these, the row
+// above fails and so does this — and the second failure says why it mattered.
+check('money, the team and deletion are the owner\'s alone',
+    !$asMgr['caps']['finance.view'] && !$asMgr['caps']['team.manage'] && !$asMgr['caps']['users.delete']
+    && !$asMod['caps']['finance.view'] && !$asMod['caps']['team.manage'] && !$asMod['caps']['users.delete']);
+
+// A typo in a template must hide a button, not reveal one.
+$ownerAgain = new Auth($db);
+$ownerAgain->attempt('owner@fixlisted.com', 'demo-password');
+check('an unknown capability is refused, not granted', !$ownerAgain->can('finance.embezzle'));
+
+$team  = new TeamRepository($db);
+$staff = $team->all();
+check('the team lists all three staff roles and nobody else',
+    count($staff) === 3
+    && array_values(array_unique(array_column($staff, 'role')))
+       === ['superadmin', 'market_admin', 'moderator'],
+    implode(', ', array_column($staff, 'role')));
+
+// A superadmin belongs to no market. A team query that insisted on market_id
+// would quietly return a team with its owner missing.
+check('the owner appears despite belonging to no market',
+    in_array('owner@fixlisted.com', array_column($staff, 'email'), true));
+
+// The count every destructive path checks first. Locking the last owner out
+// is the one mistake with no way back through the interface.
+check('the last signed-in-able superadmin is counted',
+    $team->activeSuperadmins() === 1
+    && $team->activeSuperadmins((int) $staff[0]['id']) === 0,
+    'excluding the owner leaves none');
+
+// A staff invite is a key to the admin panel and expires sooner than a
+// tradesperson's first-time link.
+check('a staff invite expires sooner than a pro invite',
+    PasswordReset::STAFF_INVITE_DAYS < PasswordReset::INVITE_DAYS,
+    PasswordReset::STAFF_INVITE_DAYS . ' days vs ' . PasswordReset::INVITE_DAYS);
 
 // --- the maintenance switch -------------------------------------------------
 // It is a file rather than a row precisely so it works when the database does

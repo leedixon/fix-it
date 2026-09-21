@@ -24,7 +24,7 @@ final class MaintenanceController extends AdminController
 {
     public function index(): Response
     {
-        if ($denied = $this->guardSuper()) {
+        if ($denied = $this->guardCan('maintenance.manage')) {
             return $denied;
         }
 
@@ -38,7 +38,7 @@ final class MaintenanceController extends AdminController
 
     public function update(): Response
     {
-        if ($denied = $this->guardSuper()) {
+        if ($denied = $this->guardCan('maintenance.manage')) {
             return $denied;
         }
         if (!$this->checkCsrf()) {

@@ -1,5 +1,5 @@
 <?php
-/** @var array $counts @var array $queue @var array $recent @var array $market */
+/** @var array $counts @var array $queue @var array $recent @var array $market @var callable $can */
 require_once __DIR__ . '/../partials/icons.php';
 ?>
 <div class="adm-h">
@@ -30,11 +30,22 @@ require_once __DIR__ . '/../partials/icons.php';
       <div class="d down"><?= (int) $counts['jobs_unpaid'] ?> never paid for</div>
     <?php endif; ?>
   </div>
-  <div class="stat">
-    <div class="k">Revenue, 30 days</div>
-    <div class="v"><?= e(money((int) $counts['revenue_30d'])) ?></div>
-    <div class="d"><?= (int) $counts['waitlist'] ?> on the waiting list</div>
-  </div>
+  <?php if ($can('finance.view')): ?>
+    <div class="stat">
+      <div class="k">Revenue, 30 days</div>
+      <div class="v"><?= e(money((int) $counts['revenue_30d'])) ?></div>
+      <div class="d"><?= (int) $counts['waitlist'] ?> on the waiting list</div>
+    </div>
+  <?php else: ?>
+    <!-- Money is the superadmin's alone. The tile is replaced rather than
+         removed, so the row does not visibly have a hole where a number
+         somebody else can see used to be. -->
+    <div class="stat">
+      <div class="k">Waiting list</div>
+      <div class="v"><?= (int) $counts['waitlist'] ?></div>
+      <div class="d">signed up before launch</div>
+    </div>
+  <?php endif; ?>
 </div>
 
 <div class="panel" style="margin-bottom:22px">

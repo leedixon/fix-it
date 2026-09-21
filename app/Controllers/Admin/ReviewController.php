@@ -29,7 +29,7 @@ final class ReviewController extends AdminController
 {
     public function index(): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('applications.review')) {
             return $denied;
         }
         $repo = new ProApplicationRepository($this->db, $this->scope);
@@ -43,7 +43,7 @@ final class ReviewController extends AdminController
 
     public function show(string $id): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('applications.review')) {
             return $denied;
         }
         $repo = new ProApplicationRepository($this->db, $this->scope);
@@ -68,7 +68,7 @@ final class ReviewController extends AdminController
 
     public function approve(string $id): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('applications.review')) {
             return $denied;
         }
         if (!$this->checkCsrf()) {
@@ -101,7 +101,7 @@ final class ReviewController extends AdminController
 
     public function reject(string $id): Response
     {
-        if ($denied = $this->guard()) {
+        if ($denied = $this->guardCan('applications.review')) {
             return $denied;
         }
         if (!$this->checkCsrf()) {

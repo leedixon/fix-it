@@ -48,6 +48,12 @@ Roughly in order.
 
 ## Administration
 
+- [ ] **The team is real, not sample.** `php bin/admin.php --list` should show
+      no accounts marked SAMPLE. Invite real colleagues from **Admin → Team**;
+      see [team.md](team.md) for what each role can reach.
+- [ ] **A second superadmin exists**, or you have tested `php bin/admin.php`
+      and know it works. One owner who can sign in is one lost password away
+      from needing SSH to administer your own platform.
 - [ ] **Make a real superadmin** — `php bin/admin.php`. The seeded one
       (`owner@fixlisted.com`) is sample data and its password is published in
       `database/seed.sql`, so anyone who has read this repository can sign in as

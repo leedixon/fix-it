@@ -288,7 +288,7 @@ $feeLabel = money($fee);
     <div class="eyebrow" style="margin-bottom:12px">Towns we cover</div>
     <div class="chipset">
       <?php foreach ($cities as $c): ?>
-        <a class="chip" href="<?= e(url('/in/' . $c['slug'])) ?>"><?= e($c['name']) ?></a>
+        <a class="chip" href="<?= e(city_url($c)) ?>"><?= e($c['name']) ?></a>
       <?php endforeach; ?>
     </div>
   </div>

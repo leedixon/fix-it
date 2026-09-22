@@ -29,11 +29,35 @@ final class GeographyRepository extends Repository
     public function pageCities(): array
     {
         return $this->scopedAll(
-            'SELECT ci.id, ci.name, ci.slug, co.short_name AS county
+            'SELECT ci.id, ci.name, ci.slug, ci.state, co.short_name AS county, co.slug AS county_slug
                FROM cities ci
                JOIN counties co ON co.id = ci.county_id
               WHERE ci.market_id = :market_id AND ci.has_page = 1
               ORDER BY ci.sort_order, ci.name'
+        );
+    }
+
+    /**
+     * A city from its URL segment — 'freeport-il' rather than 'freeport'.
+     *
+     * The suffix is matched in SQL instead of being parsed off in PHP, so
+     * there is exactly one definition of the URL shape and no guessing about
+     * where a name ends. 'mount-carroll-il' would otherwise have to be split
+     * on the last hyphen and hoped about; here the database simply answers
+     * whether any row spells itself that way.
+     *
+     * Forty-six rows, so the unindexed expression costs nothing measurable.
+     */
+    public function findCityByPath(string $segment): ?array
+    {
+        return $this->scopedOne(
+            "SELECT ci.*, co.short_name AS county, co.slug AS county_slug
+               FROM cities ci
+               JOIN counties co ON co.id = ci.county_id
+              WHERE ci.market_id = :market_id
+                AND CONCAT(ci.slug, '-', LOWER(ci.state)) = :segment
+              LIMIT 1",
+            ['segment' => $segment],
         );
     }
 

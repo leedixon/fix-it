@@ -17,15 +17,7 @@ $reviewN  = (int) $pro['rating_count'];
 $verified = !empty($pro['license_verified_at']) && !empty($pro['insurance_verified_at']);
 ?>
 
-<div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb">
-    <a href="<?= e(url('/')) ?>">Home</a>
-    <span class="sep">/</span>
-    <a href="<?= e(url('/pros')) ?>">Tradespeople</a>
-    <span class="sep">/</span>
-    <span><?= e($name) ?></span>
-  </nav>
-</div>
+<?php require __DIR__ . '/../partials/crumbs.php'; ?>
 
 <section class="sect-tight">
   <div class="wrap profile-hd">

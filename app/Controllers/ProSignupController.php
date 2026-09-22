@@ -37,6 +37,11 @@ final class ProSignupController extends Controller
             'description' => 'Get listed in ' . $this->market['name']
                 . '. A profile is free, quoting is free, and you keep the whole job.',
             'trades'      => (new TradeRepository($this->db))->all(),
+            'crumbs'      => [
+                ['label' => 'Home', 'href' => '/'],
+                ['label' => 'For tradespeople', 'href' => '/for-pros'],
+                ['label' => 'List your business'],
+            ],
             'old'         => [],
             'errors'      => [],
         ]);
@@ -137,6 +142,11 @@ final class ProSignupController extends Controller
         return $this->page('site/list_business', [
             'title'  => 'List your trade business — Fix Listed',
             'trades' => (new TradeRepository($this->db))->all(),
+            'crumbs' => [
+                ['label' => 'Home', 'href' => '/'],
+                ['label' => 'For tradespeople', 'href' => '/for-pros'],
+                ['label' => 'List your business'],
+            ],
             'old'    => $old,
             'errors' => $errors,
         ], 422);
@@ -152,6 +162,21 @@ final class ProSignupController extends Controller
         return $this->page('site/application_received', [
             'title'   => 'Application received — Fix Listed',
             'noindex' => true,
+            /*
+             * A tradesperson applied. GA4's own 'sign_up' rather than a
+             * custom name, so it lands in the reports that already exist.
+             *
+             * No transaction_id and so no deduplication — nothing was
+             * charged, so there is nothing for GA4 to dedupe against. A
+             * refresh of this page counts twice. That is a known and small
+             * inaccuracy on a soft conversion, and the number that actually
+             * matters is the count of applications in the admin queue, which
+             * is exact.
+             */
+            'analytics' => $this->analytics('site/application_received', [
+                'event'  => 'sign_up',
+                'method' => 'pro_application',
+            ]),
         ]);
     }
 

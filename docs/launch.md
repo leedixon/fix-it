@@ -109,9 +109,20 @@ actually are.
       a sample admin, or an empty directory would make that a mistake. Do not
       hand-edit those two — launch day is the worst moment to put a parse
       error into a file holding live credentials.
-- [ ] **Remove `noindex`.** Set `app.noindex` to `false`. Until then every page
-      carries `<meta name="robots" content="noindex, nofollow">`, deliberately.
-- [ ] Remove the `Disallow: /` from the holding page's `robots.txt`.
+- [ ] **Remove `noindex`.** Set `app.noindex` to `false`. That one flag
+      controls three things together: the `<meta name="robots">` on every
+      page, what `/robots.txt` says, and whether `/sitemap.xml` has anything
+      in it. See [seo.md](seo.md).
+- [ ] **Delete the holding page's own `robots.txt`** from the document root,
+      if one is still there. The app serves `/robots.txt` itself once it is
+      mounted at the root, and a real file on disk wins over the router — so
+      a leftover holding-page file would keep saying `Disallow: /` after
+      launch, silently, with nothing in the app to show it.
+- [ ] **`app.url` has no `/preview` on it.** Every canonical link, `og:url`,
+      JSON-LD `@id` and sitemap `<loc>` is built from it. Wrong, and the
+      whole site tells search engines it lives somewhere else — which looks
+      fine in a browser and is noticed weeks later. `check.php --live` fails
+      on this.
 - [ ] **`www` A record** pointing at the same IP, and reissue the certificate
       to cover `www.fixlisted.com`. Right now typing `www.` gives a warning.
 - [ ] `php bin/check.php` passes on the server.
@@ -132,7 +143,14 @@ actually are.
       when posting resolves to a county without asking. It must come from the
       Census file — hand-typed ZIP boundaries are wrong in ways nobody notices
       until a job is invisible to the pros who cover it.
-- [ ] Google Search Console and a sitemap, once `noindex` is off.
+- [ ] **Google Search Console**, once `noindex` is off: verify the domain and
+      submit `https://fixlisted.com/sitemap.xml`. The sitemap is generated
+      from the database on every request, so there is nothing to upload and
+      nothing to keep in step — but nothing in this repository can submit it
+      for you. Read the Coverage report a week later.
+- [ ] **Set up the GA4 events in GTM** — `purchase` and `sign_up` arrive in
+      the dataLayer already; the triggers, the tags and the custom dimensions
+      are six clicks in two web interfaces. See [analytics.md](analytics.md).
 - [ ] Re-scrape the link preview in Facebook's sharing debugger after the site
       moves to the root, so the cached card picks up the new URL. The card
       itself is `assets/social/` — re-render it there if the wording changes.

@@ -37,6 +37,17 @@ final class PostJobController extends Controller
     {
         Session::put(self::FORM_KEY, time());
 
+        /*
+         * ?trade=plumbing arrives from a service page's "Post a plumbing job"
+         * button, and the dropdown starts on that trade.
+         *
+         * Resolved through the repository rather than trusted: the value is a
+         * slug from the URL bar and what the form needs is a trade id. An
+         * unknown slug leaves the dropdown on its placeholder, which is what
+         * it would have done anyway.
+         */
+        $prefill = $this->selectedTrade();
+
         return $this->page('site/post_job', [
             'title'       => 'Post a job — Fix Listed',
             'description' => 'Describe what needs doing. One flat fee, every tradesperson covering '
@@ -46,7 +57,8 @@ final class PostJobController extends Controller
             'fee'         => (int) $this->market['listing_fee_cents'],
             'listingDays' => (int) $this->market['job_listing_days'],
             'refundHours' => (int) $this->market['refund_window_hours'],
-            'old'         => [],
+            'crumbs'      => [['label' => 'Home', 'href' => '/'], ['label' => 'Post a job']],
+            'old'         => $prefill !== null ? ['trade_id' => (string) $prefill['id']] : [],
             'errors'      => [],
         ]);
     }
@@ -195,12 +207,46 @@ final class PostJobController extends Controller
         $repo = new JobPostingRepository($this->db, $this->scope);
         $job  = $reference !== '' ? $repo->findByReference($reference) : null;
 
+        $paid = $job !== null && $job['status'] === 'active';
+
+        /*
+         * The conversion, reported once the database says it happened.
+         *
+         * Not on arrival: this page is loaded by the browser on the way back
+         * from Stripe and anybody can type its URL, so landing here is not
+         * evidence of payment. While the webhook is still in flight the page
+         * refreshes itself every four seconds, and the event fires on the
+         * reload that finds the job live.
+         *
+         * GA4's own 'purchase' with a transaction_id, rather than a custom
+         * event, because transaction_id is what GA4 deduplicates on — a
+         * homeowner who reloads this page or opens it twice from their email
+         * is one sale, and getting that for free beats getting it wrong.
+         *
+         * The reference and the amount, and nothing else. Their name, email
+         * and what they wrote about their boiler stay here.
+         */
+        $amount = $paid ? $repo->paidAmountCentsFor((int) $job['id']) : null;
+
         return $this->page('site/job_posted', [
             'title'   => 'Your job is posted — Fix Listed',
             'noindex' => true,
             'job'     => $job,
-            'paid'    => $job !== null && $job['status'] === 'active',
+            'paid'    => $paid,
             'payment' => $job !== null ? $repo->paymentStatusFor((int) $job['id']) : 'pending',
+            'analytics' => $this->analytics('site/job_posted', $paid ? [
+                'event'          => 'purchase',
+                'transaction_id' => (string) $job['reference'],
+                'value'          => round(((int) ($amount ?? 0)) / 100, 2),
+                'currency'       => 'USD',
+                'items'          => [[
+                    'item_id'       => 'job_listing',
+                    'item_name'     => 'Job listing',
+                    'item_category' => (string) ($job['trade_name'] ?? ''),
+                    'quantity'      => 1,
+                    'price'         => round(((int) ($amount ?? 0)) / 100, 2),
+                ]],
+            ] : []),
         ]);
     }
 
@@ -231,6 +277,7 @@ final class PostJobController extends Controller
             'fee'         => (int) $this->market['listing_fee_cents'],
             'listingDays' => (int) $this->market['job_listing_days'],
             'refundHours' => (int) $this->market['refund_window_hours'],
+            'crumbs'      => [['label' => 'Home', 'href' => '/'], ['label' => 'Post a job']],
             'old'         => $old,
             'errors'      => $errors,
         ], 422);

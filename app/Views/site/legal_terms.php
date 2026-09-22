@@ -11,6 +11,8 @@
  * @var array  $market
  */
 ?>
+<?php require __DIR__ . '/../partials/crumbs.php'; ?>
+
 <section class="sect-tight">
   <div class="wrap prose">
     <div class="eyebrow eyebrow-brass">Legal</div>

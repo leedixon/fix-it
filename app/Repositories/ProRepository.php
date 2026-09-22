@@ -125,18 +125,109 @@ final class ProRepository extends Repository
         );
     }
 
-    public function countActive(?int $countyId = null): int
+    /**
+     * How many active pros this market has, optionally narrowed to a county,
+     * a trade, or both.
+     *
+     * Both filters are optional and independent, because the three pages that
+     * ask this question ask it three different ways: the home page wants the
+     * market, a city page wants a county, a service page wants a trade.
+     */
+    public function countActive(?int $countyId = null, ?int $tradeId = null): int
     {
-        $filter     = $countyId !== null ? ' AND a.county_id = :county_id' : '';
+        $params     = ['status' => 'active'];
         $demoFilter = Demo::filter('p');
+
+        $countyFilter = '';
+        if ($countyId !== null) {
+            $countyFilter = ' AND a.county_id = :county_id';
+            $params['county_id'] = $countyId;
+        }
+
+        $tradeFilter = '';
+        if ($tradeId !== null) {
+            $tradeFilter = ' AND EXISTS (SELECT 1 FROM pro_trades pt
+                                          WHERE pt.pro_id = p.id AND pt.trade_id = :trade_id)';
+            $params['trade_id'] = $tradeId;
+        }
+
         return (int) $this->scopedValue(
             "SELECT COUNT(*)
                FROM pro_profiles p
               WHERE p.status = :status
                 {$demoFilter}
                 AND EXISTS (SELECT 1 FROM pro_county_areas a
-                             WHERE a.pro_id = p.id AND a.market_id = :market_id {$filter})",
-            $countyId !== null ? ['status' => 'active', 'county_id' => $countyId] : ['status' => 'active'],
+                             WHERE a.pro_id = p.id AND a.market_id = :market_id {$countyFilter})
+                {$tradeFilter}",
+            $params,
+        );
+    }
+
+    /**
+     * The same count, but never counting invented listings.
+     *
+     * This is the number that goes into structured data, and it is a
+     * different question from the one countActive() answers. The visible page
+     * shows seeded listings while demo_data is 'label' — with a Sample badge
+     * on every card and a banner above them, so nobody is misled. A
+     * schema.org description has no badge and no banner: "5 tradespeople
+     * cover Freeport" published to a search engine is a claim about five
+     * businesses that exist, and four of them do not.
+     *
+     * So the markup understates rather than overstates. Understating costs a
+     * little; telling Google about invented local businesses is the kind of
+     * thing that costs a domain.
+     */
+    public function countReal(?int $countyId = null, ?int $tradeId = null): int
+    {
+        $params = ['status' => 'active'];
+
+        $countyFilter = '';
+        if ($countyId !== null) {
+            $countyFilter = ' AND a.county_id = :county_id';
+            $params['county_id'] = $countyId;
+        }
+
+        $tradeFilter = '';
+        if ($tradeId !== null) {
+            $tradeFilter = ' AND EXISTS (SELECT 1 FROM pro_trades pt
+                                          WHERE pt.pro_id = p.id AND pt.trade_id = :trade_id)';
+            $params['trade_id'] = $tradeId;
+        }
+
+        return (int) $this->scopedValue(
+            "SELECT COUNT(*)
+               FROM pro_profiles p
+              WHERE p.status = :status
+                AND p.is_demo = 0
+                AND EXISTS (SELECT 1 FROM pro_county_areas a
+                             WHERE a.pro_id = p.id AND a.market_id = :market_id {$countyFilter})
+                {$tradeFilter}",
+            $params,
+        );
+    }
+
+    /**
+     * Active profiles for the sitemap: slug and when the page last changed.
+     *
+     * Demo rows are excluded outright, not through Demo::filter(). That
+     * filter honours a display setting whose 'label' mode deliberately shows
+     * sample listings *with a badge saying so* — which is fine on a page a
+     * person reads and wrong in a file that says "here is our content, please
+     * index it". A crawler cannot see the badge.
+     *
+     * @return array<int,array{slug:string,updated_at:string}>
+     */
+    public function sitemap(): array
+    {
+        return $this->scopedAll(
+            "SELECT p.slug, p.updated_at
+               FROM pro_profiles p
+              WHERE p.status = 'active'
+                AND p.is_demo = 0
+                AND EXISTS (SELECT 1 FROM pro_county_areas a
+                             WHERE a.pro_id = p.id AND a.market_id = :market_id)
+              ORDER BY p.updated_at DESC"
         );
     }
 

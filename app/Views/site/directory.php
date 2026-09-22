@@ -14,19 +14,7 @@ $what  = $trade['name'] ?? 'Tradespeople';
 $count = count($pros);
 ?>
 
-<div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb">
-    <a href="<?= e(url('/')) ?>">Home</a>
-    <span class="sep">/</span>
-    <?php if ($trade !== null || $county !== null): ?>
-      <a href="<?= e(url('/pros')) ?>">Tradespeople</a>
-      <span class="sep">/</span>
-      <span><?= e($trade['name'] ?? $county['short_name']) ?></span>
-    <?php else: ?>
-      <span>Tradespeople</span>
-    <?php endif; ?>
-  </nav>
-</div>
+<?php require __DIR__ . '/../partials/crumbs.php'; ?>
 
 <section class="sect-tight">
   <div class="wrap">

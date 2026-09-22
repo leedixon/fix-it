@@ -9,18 +9,7 @@
 require_once __DIR__ . '/../partials/icons.php';
 ?>
 
-<div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb">
-    <a href="<?= e(url('/')) ?>">Home</a>
-    <span class="sep">/</span>
-    <?php if ($trade !== null): ?>
-      <a href="<?= e(url('/jobs')) ?>">Jobs board</a>
-      <span class="sep">/</span><span><?= e($trade['name']) ?></span>
-    <?php else: ?>
-      <span>Jobs board</span>
-    <?php endif; ?>
-  </nav>
-</div>
+<?php require __DIR__ . '/../partials/crumbs.php'; ?>
 
 <section class="sect-tight">
   <div class="wrap">

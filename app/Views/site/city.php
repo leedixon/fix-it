@@ -9,19 +9,12 @@
  * @var array $tradeTiles
  * @var array $otherCities
  * @var array $market
+ * @var array $crumbs
  */
 require_once __DIR__ . '/../partials/icons.php';
 ?>
 
-<div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb">
-    <a href="<?= e(url('/')) ?>">Home</a>
-    <span class="sep">/</span>
-    <a href="<?= e(url_q('/pros', ['county' => $city['county_slug']])) ?>"><?= e($city['county']) ?></a>
-    <span class="sep">/</span>
-    <span><?= e($city['name']) ?></span>
-  </nav>
-</div>
+<?php require __DIR__ . '/../partials/crumbs.php'; ?>
 
 <section class="sect-tight">
   <div class="wrap">
@@ -104,7 +97,7 @@ require_once __DIR__ . '/../partials/icons.php';
       <div class="chipset">
         <?php foreach ($otherCities as $c): ?>
           <?php if ($c['slug'] === $city['slug']) { continue; } ?>
-          <a class="chip" href="<?= e(url('/in/' . $c['slug'])) ?>"><?= e($c['name']) ?></a>
+          <a class="chip" href="<?= e(city_url($c)) ?>"><?= e($c['name']) ?></a>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>

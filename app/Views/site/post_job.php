@@ -14,11 +14,7 @@ $err = static fn (string $k): string => $errors[$k] ?? '';
 $bad = static fn (string $k): string => isset($errors[$k]) ? ' bad' : '';
 ?>
 
-<div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb">
-    <a href="<?= e(url('/')) ?>">Home</a><span class="sep">/</span><span>Post a job</span>
-  </nav>
-</div>
+<?php require __DIR__ . '/../partials/crumbs.php'; ?>
 
 <section class="sect-tight">
   <div class="wrap wiz">

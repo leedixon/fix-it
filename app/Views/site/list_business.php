@@ -21,15 +21,7 @@ $chosen = static function (string $k, int $id) use ($old): bool {
 };
 ?>
 
-<div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb">
-    <a href="<?= e(url('/')) ?>">Home</a>
-    <span class="sep">/</span>
-    <a href="<?= e(url('/for-pros')) ?>">For tradespeople</a>
-    <span class="sep">/</span>
-    <span>List your business</span>
-  </nav>
-</div>
+<?php require __DIR__ . '/../partials/crumbs.php'; ?>
 
 <section class="sect-tight">
   <div class="wrap wiz">

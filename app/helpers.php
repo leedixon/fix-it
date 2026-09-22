@@ -179,6 +179,26 @@ function urgency_label(string $urgency): string
 }
 
 /**
+ * A city landing page's URL, from a cities row.
+ *
+ * Templates never build this by hand. The shape lives in Seo::cityPath, and
+ * a link written as '/in/' . $city['slug'] somewhere in a view is exactly how
+ * a site ends up with half its internal links pointing at a redirect.
+ *
+ * @param array<string,mixed> $city
+ */
+function city_url(array $city): string
+{
+    return Url::to(\FixListed\Core\Seo::cityPath($city));
+}
+
+/** A service page's URL, from a trade slug. */
+function service_url(string $tradeSlug): string
+{
+    return Url::to(\FixListed\Core\Seo::servicePath($tradeSlug));
+}
+
+/**
  * An absolute URL for a site path.
  *
  * Open Graph and Twitter both require absolute URLs — a relative og:image is

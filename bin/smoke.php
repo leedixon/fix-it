@@ -18,13 +18,17 @@ use FixListed\Core\Database;
 use FixListed\Core\Maintenance;
 use FixListed\Core\PasswordReset;
 use FixListed\Core\Repository;
+use FixListed\Core\Seo;
 use FixListed\Core\TenantScope;
+use FixListed\Core\TradeCopy;
 use FixListed\Repositories\AdvertisingRepository;
 use FixListed\Repositories\GeographyRepository;
 use FixListed\Repositories\JobRepository;
 use FixListed\Repositories\MarketRepository;
 use FixListed\Repositories\TeamRepository;
 use FixListed\Repositories\ProRepository;
+use FixListed\Repositories\ReviewRepository;
+use FixListed\Repositories\TradeRepository;
 
 $pass = 0;
 $fail = 0;
@@ -50,9 +54,22 @@ $marketId = (int) $nwi['id'];
 $geo = new GeographyRepository($db, TenantScope::market($marketId));
 check('market owns six counties', count($geo->counties()) === 6,
     implode(', ', array_column($geo->counties(), 'short_name')));
-check('cities load, with a subset carrying landing pages',
-    count($geo->allCities()) === 46 && count($geo->pageCities()) === 11,
+// Counted against the has_page column rather than against a literal. The
+// number of landing pages is a decision that gets revisited — migration 007
+// took it from eleven to nineteen — and a test asserting yesterday's number
+// fails on the day somebody does their job.
+$pagedInDb = (int) $db->value(
+    'SELECT COUNT(*) FROM cities WHERE market_id = :m AND has_page = 1',
+    ['m' => $marketId],
+);
+check('cities load, and the landing pages are exactly the ones flagged for one',
+    count($geo->allCities()) === 46 && count($geo->pageCities()) === $pagedInDb,
     count($geo->allCities()) . ' cities, ' . count($geo->pageCities()) . ' with pages');
+
+// The villages stay off. Forty-six pages for forty-six towns, most of them
+// with nobody covering them, is the content farm the seed comment warns about.
+check('not every town gets a landing page',
+    count($geo->pageCities()) > 0 && count($geo->pageCities()) < count($geo->allCities()));
 check('a city resolves to its county',
     ($c = $geo->findCity('freeport')) !== null && $c['county'] === 'Stephenson');
 check('per-market pricing is honoured', $markets->listingFeeCents($marketId) === 1000);
@@ -1139,6 +1156,149 @@ if ($restore !== null) {
     Maintenance::on($restore['message'], $restore['by']);
 }
 check('the smoke test left the site as it found it', Maintenance::isOn() === $wasDown);
+
+// --- SEO: URLs, structured data, and what must never be published ----------
+//
+// The rules under test here are not stylistic. Three of them are about the
+// site not telling a search engine something untrue about businesses that do
+// not exist, and one is about a script element not being escapable.
+
+$geoScope = TenantScope::market($marketId);
+$geo2     = new GeographyRepository($db, $geoScope);
+$proRepo  = new ProRepository($db, $geoScope);
+
+$freeport = $geo2->findCity('freeport');
+check('a city page URL carries its state',
+    Seo::cityPath($freeport) === '/handyman/freeport-il', Seo::cityPath($freeport));
+
+check('a city resolves from its URL segment',
+    ($byPath = $geo2->findCityByPath('freeport-il')) !== null
+        && (int) $byPath['id'] === (int) $freeport['id']);
+
+// The suffix is matched, not stripped and hoped about. Without it two
+// spellings of one town are two pages competing for the same search.
+check('a bare town slug is not a city page URL',
+    $geo2->findCityByPath('freeport') === null);
+check('a made-up state is not a city page URL',
+    $geo2->findCityByPath('freeport-wi') === null);
+
+// Every town with a page must have a URL that resolves back to it, or the
+// footer and the sitemap are advertising 404s.
+$roundTrips = 0;
+foreach ($geo2->pageCities() as $pageCity) {
+    $back = $geo2->findCityByPath(Seo::citySegment($pageCity));
+    if ($back !== null && (int) $back['id'] === (int) $pageCity['id']) {
+        $roundTrips++;
+    }
+}
+check('every landing page URL resolves back to its town',
+    $roundTrips === count($geo2->pageCities()),
+    $roundTrips . ' of ' . count($geo2->pageCities()));
+
+check('all ten Tier 1 towns have a landing page',
+    count(array_intersect(
+        ['freeport', 'rockford', 'lena', 'stockton', 'pearl-city',
+         'forreston', 'orangeville', 'cedarville', 'dakota', 'german-valley'],
+        array_column($geo2->pageCities(), 'slug'),
+    )) === 10);
+
+// Every trade needs a page that says something. A service page with a
+// heading and nothing else is the thin page this whole exercise is meant to
+// avoid producing nineteen of.
+$tradeSlugs = array_column((new TradeRepository($db))->all(), 'slug');
+$written    = array_filter($tradeSlugs, static fn (string $t): bool => TradeCopy::for($t) !== null);
+check('every trade has page copy written for it',
+    count($written) === count($tradeSlugs),
+    count($written) . ' of ' . count($tradeSlugs));
+
+/*
+ * The escaping test, and the reason Seo::json exists.
+ *
+ * Structured data is assembled from names tradespeople type into their own
+ * profile and written into a <script> element. A business name containing
+ * "</script>" must not be able to close it.
+ */
+$hostile = Seo::graph([['@type' => 'Thing', 'name' => '</script><img src=x onerror=alert(1)>']]);
+check('structured data cannot break out of its script tag',
+    !str_contains($hostile, '</script>') && !str_contains($hostile, '<img'),
+    'angle brackets are hex-escaped');
+check('and the value survives the escaping',
+    json_decode($hostile, true)['@graph'][0]['name'] === '</script><img src=x onerror=alert(1)>');
+
+// Empty properties are dropped rather than published as "". Search Console
+// reports an empty value as invalid, where a missing optional one is fine.
+$pruned = Seo::prune(['a' => '', 'b' => null, 'c' => [], 'd' => 0, 'e' => false, 'f' => 'x']);
+check('empty structured-data properties are dropped, but zero and false are kept',
+    $pruned === ['d' => 0, 'e' => false, 'f' => 'x']);
+
+// A trail of one is the home page, and a BreadcrumbList of one item is noise.
+check('a single crumb produces no BreadcrumbList',
+    Seo::breadcrumbs([['label' => 'Home', 'href' => '/']]) === []);
+$crumbNode = Seo::breadcrumbs([
+    ['label' => 'Home', 'href' => '/'],
+    ['label' => 'Freeport'],
+]);
+check('the last crumb is listed by position and carries no link',
+    count($crumbNode['itemListElement']) === 2
+        && !isset($crumbNode['itemListElement'][1]['item'])
+        && $crumbNode['itemListElement'][1]['position'] === 2);
+
+/*
+ * The three that matter most: nothing invented is ever offered for indexing.
+ *
+ * The seed data is ten tradespeople who do not exist, their jobs and their
+ * reviews. Every one of them is on display right now with a Sample badge,
+ * which is honest to a person reading the page. A sitemap, a schema.org
+ * description and an aggregateRating have no badge.
+ */
+$demoPros = (int) $db->value('SELECT COUNT(*) FROM pro_profiles WHERE is_demo = 1');
+check('the seed data is still here to test against', $demoPros > 0, $demoPros . ' sample profiles');
+
+$realPros = (int) $db->value(
+    "SELECT COUNT(*) FROM pro_profiles p
+      WHERE p.status = 'active' AND p.is_demo = 0
+        AND EXISTS (SELECT 1 FROM pro_county_areas a
+                     WHERE a.pro_id = p.id AND a.market_id = :m)",
+    ['m' => $marketId],
+);
+check('the sitemap offers real profiles only, whatever the display mode is set to',
+    count($proRepo->sitemap()) === $realPros,
+    count($proRepo->sitemap()) . ' listed, ' . $realPros . ' real');
+
+$realJobs = (int) $db->value(
+    "SELECT COUNT(*) FROM jobs
+      WHERE market_id = :m AND status = 'active' AND is_demo = 0 AND published_at IS NOT NULL",
+    ['m' => $marketId],
+);
+check('the sitemap offers real jobs only',
+    count((new JobRepository($db, $geoScope))->sitemap()) === $realJobs);
+
+// The count that goes into a Service description is not the count on the page.
+// The page labels its samples; a schema.org description cannot.
+$stephenson = null;
+foreach ($geo2->counties() as $county) {
+    if ($county['slug'] === 'stephenson-il') { $stephenson = (int) $county['id']; }
+}
+check('structured data counts real pros, never seeded ones',
+    $proRepo->countReal($stephenson) <= $proRepo->countActive($stephenson)
+        && $proRepo->countReal() === $realPros,
+    $proRepo->countReal() . ' real vs ' . $proRepo->countActive() . ' shown');
+
+// A star rating built from invented reviews is the fabricated-review case the
+// structured-data policy names outright.
+$reviewRepo = new ReviewRepository($db, $geoScope);
+$demoRated  = $db->one(
+    "SELECT p.id, p.rating_count FROM pro_profiles p
+      WHERE p.is_demo = 1 AND p.rating_count > 0 LIMIT 1"
+);
+if ($demoRated !== null) {
+    $stats = $reviewRepo->publishedStats((int) $demoRated['id']);
+    check('a profile whose only reviews are seeded gets no rating to publish',
+        $stats['count'] === 0 && (int) $demoRated['rating_count'] > 0,
+        'stored rating_count is ' . $demoRated['rating_count'] . ', publishable is 0');
+} else {
+    check('a profile whose only reviews are seeded gets no rating to publish', true, 'no seeded ratings to test');
+}
 
 // --- authentication ---------------------------------------------------------
 $auth = new Auth($db);

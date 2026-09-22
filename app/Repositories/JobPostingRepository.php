@@ -234,6 +234,27 @@ final class JobPostingRepository extends Repository
         );
     }
 
+    /**
+     * What was actually charged for this listing, in cents.
+     *
+     * Read from the payment rather than from the market's current fee: the
+     * conversion value reported to analytics has to be the money that changed
+     * hands, and the fee on the market row is whatever it is today. Null when
+     * nothing succeeded, which is the difference between a free market and an
+     * unpaid job and is the caller's to handle.
+     */
+    public function paidAmountCentsFor(int $jobId): ?int
+    {
+        $cents = $this->db->value(
+            "SELECT amount_cents FROM payments
+              WHERE job_id = :j AND kind = 'job_listing' AND status = 'succeeded'
+              ORDER BY id DESC LIMIT 1",
+            ['j' => $jobId],
+        );
+
+        return $cents === null ? null : (int) $cents;
+    }
+
     /** What the return page shows while waiting for the webhook. */
     public function paymentStatusFor(int $jobId): string
     {

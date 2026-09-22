@@ -47,6 +47,32 @@ final class JobRepository extends Repository
         );
     }
 
+    /**
+     * Live jobs for the sitemap.
+     *
+     * These expire — a job is live for the market's listing window and then
+     * 404s — and they are listed anyway. Freshness is the whole product of a
+     * jobs board, a URL that has genuinely gone is exactly what a 404 is for,
+     * and leaving them out means the one part of the site that changes daily
+     * is the one part search engines never see.
+     *
+     * Sample jobs are excluded outright; see ProRepository::sitemap().
+     *
+     * @return array<int,array{reference:string,updated_at:string}>
+     */
+    public function sitemap(): array
+    {
+        return $this->scopedAll(
+            "SELECT j.reference, GREATEST(j.published_at, j.updated_at) AS updated_at
+               FROM jobs j
+              WHERE j.market_id = :market_id
+                AND j.status = 'active'
+                AND j.is_demo = 0
+                AND j.published_at IS NOT NULL
+              ORDER BY j.published_at DESC"
+        );
+    }
+
     public function findByReference(string $reference): ?array
     {
         $demoFilter = Demo::filter('j');

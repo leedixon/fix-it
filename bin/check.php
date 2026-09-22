@@ -47,6 +47,29 @@ foreach (['db.name', 'db.user', 'app.url'] as $key) {
     line(is_string($value) && $value !== '', "{$key} is set", is_string($value) ? $value : '(empty)');
 }
 
+/*
+ * app.url is quietly the most load-bearing setting here.
+ *
+ * Every canonical link, every og:url, every @id in the structured data, every
+ * <loc> in the sitemap and the Sitemap: line in robots.txt is built from it.
+ * Wrong, and the whole site tells search engines it lives somewhere else —
+ * which fails silently, looks fine in a browser, and is only noticed weeks
+ * later when nothing has been indexed.
+ */
+$appUrl   = (string) Config::get('app.url', '');
+$appHost  = (string) (parse_url($appUrl, PHP_URL_HOST) ?: '');
+$isLocal  = in_array($appHost, ['localhost', '127.0.0.1', '::1'], true);
+
+// http is correct on a development box and wrong on a public one, so the
+// check asks which this is rather than insisting on https everywhere. A
+// permanent failure that everyone learns to read past protects nothing.
+line(str_starts_with($appUrl, 'https://') || $isLocal, 'app.url scheme suits the host',
+    str_starts_with($appUrl, 'https://')
+        ? 'canonicals, og:url, JSON-LD and the sitemap are built from it'
+        : ($isLocal
+            ? "'{$appUrl}' — local, so http is fine here"
+            : "'{$appUrl}' is not https — every canonical and sitemap URL would say that"));
+
 $charset = Config::get('db.charset');
 line($charset === 'utf8mb4', 'db.charset is utf8mb4',
     $charset === 'utf8mb4' ? '' : "found '{$charset}' — em-dashes and accents will be mangled");
@@ -312,6 +335,41 @@ if (in_array('--live', $argv, true)) {
             default                 => count($sweepDays) . ' days recorded, last run '
                                      . (int) round($sweepAge / 3600) . 'h ago',
         });
+
+    /*
+     * The SEO layer, which is one setting deep and fails silently.
+     *
+     * app.url with a path on it is the preview mount. Left in place at
+     * launch, every canonical on the live site points at /preview/... —
+     * pages that are correct, indexed under an address nobody should reach.
+     */
+    $parsedPath = (string) (parse_url($appUrl, PHP_URL_PATH) ?: '');
+    line(str_starts_with($appUrl, 'https://') && trim($parsedPath, '/') === '',
+        'app.url is the live root, not the preview mount',
+        trim($parsedPath, '/') === ''
+            ? $appUrl
+            : "'{$appUrl}' still has '{$parsedPath}' on it — every canonical would point there");
+
+    /*
+     * robots.txt and the sitemap both key off app.noindex, checked above.
+     * What cannot be inferred from a setting is whether the sitemap has
+     * anything in it: real profiles and jobs are excluded when they are
+     * seeded, so a site that has purged its sample data and signed nobody up
+     * submits a sitemap of landing pages and no listings.
+     */
+    $scope1     = \FixListed\Core\TenantScope::market((int) $db->value(
+        "SELECT id FROM markets WHERE status = 'live' ORDER BY launched_at, id LIMIT 1"
+    ));
+    $mapPros    = count((new \FixListed\Repositories\ProRepository($db, $scope1))->sitemap());
+    $mapCities  = count((new \FixListed\Repositories\GeographyRepository($db, $scope1))->pageCities());
+    line($mapPros > 0, 'the sitemap has real listings in it, not just landing pages',
+        $mapPros > 0
+            ? $mapPros . ' profiles, ' . $mapCities . ' town pages'
+            : $mapCities . ' town pages but no real profiles — the pages are fine, they are just empty');
+
+    $gtm = (string) Config::get('analytics.gtm_id', '');
+    line($gtm !== '', 'Google Tag Manager is configured',
+        $gtm !== '' ? $gtm : 'no container — nothing about the launch will be measured');
 
     line(!\FixListed\Core\Maintenance::isOn(), 'the site is not in maintenance mode',
         \FixListed\Core\Maintenance::isOn() ? 'visitors are seeing the holding page' : '');

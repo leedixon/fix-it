@@ -24,6 +24,14 @@ final class JobsController extends Controller
             'trade'       => $trade,
             'trades'      => (new TradeRepository($this->db))->all(),
             'openCount'   => $jobs->countOpen(),
+            'analytics'   => $this->analytics('site/jobs', ['trade' => $trade['slug'] ?? null]),
+            // The filtered view is a third level; the unfiltered board is the
+            // second and links nowhere above Home.
+            'crumbs'      => $trade !== null
+                ? [['label' => 'Home', 'href' => '/'],
+                   ['label' => 'Jobs board', 'href' => '/jobs'],
+                   ['label' => (string) $trade['name']]]
+                : [['label' => 'Home', 'href' => '/'], ['label' => 'Jobs board']],
         ]);
     }
 
@@ -40,6 +48,14 @@ final class JobsController extends Controller
             'title'       => $job['title'] . ' — Fix Listed',
             'description' => excerpt((string) $job['description'], 155),
             'job'         => $job,
+            'analytics'   => $this->analytics('site/job', [
+                'trade' => (string) ($job['trade_name'] ?? ''),
+            ]),
+            'crumbs'      => [
+                ['label' => 'Home', 'href' => '/'],
+                ['label' => 'Jobs board', 'href' => '/jobs'],
+                ['label' => (string) $job['reference'], 'class' => 'mono'],
+            ],
         ]);
     }
 }

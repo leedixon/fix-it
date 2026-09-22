@@ -15,15 +15,7 @@ $isDemo = !empty($job['is_demo']);
 $quotes = (int) $job['quote_count'];
 ?>
 
-<div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb">
-    <a href="<?= e(url('/')) ?>">Home</a>
-    <span class="sep">/</span>
-    <a href="<?= e(url('/jobs')) ?>">Jobs board</a>
-    <span class="sep">/</span>
-    <span class="mono"><?= e($job['reference']) ?></span>
-  </nav>
-</div>
+<?php require __DIR__ . '/../partials/crumbs.php'; ?>
 
 <section class="sect-tight">
   <div class="wrap wiz">

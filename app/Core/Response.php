@@ -45,6 +45,33 @@ final class Response
     }
 
     /**
+     * 301. The URL moved and is not coming back.
+     *
+     * Used when a page's address changes for good. 301 is what transfers the
+     * old URL's accumulated ranking to the new one and what makes browsers,
+     * bookmarks and anyone who linked to the old address stop asking. A 302
+     * or the 303 above says "look over there for now" and transfers nothing,
+     * so a permanent move served as a temporary redirect quietly throws away
+     * every link the old URL ever earned.
+     */
+    public static function movedPermanently(string $location): self
+    {
+        return new self('', 301, ['Location' => Url::to($location)]);
+    }
+
+    /** Plain text, for the files written for robots rather than people. */
+    public static function text(string $body, int $status = 200): self
+    {
+        return new self($body, $status, ['Content-Type' => 'text/plain; charset=UTF-8']);
+    }
+
+    /** XML, for the sitemap. */
+    public static function xml(string $body, int $status = 200): self
+    {
+        return new self($body, $status, ['Content-Type' => 'application/xml; charset=UTF-8']);
+    }
+
+    /**
      * 503, with Retry-After.
      *
      * The status matters more than the page. A search engine reads 503 as

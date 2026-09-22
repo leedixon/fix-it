@@ -19,6 +19,8 @@ use FixListed\Controllers\JobsController;
 use FixListed\Controllers\PageController;
 use FixListed\Controllers\PostJobController;
 use FixListed\Controllers\ProSignupController;
+use FixListed\Controllers\SeoController;
+use FixListed\Controllers\ServiceController;
 use FixListed\Controllers\WebhookController;
 use FixListed\Controllers\Account\DashboardController as AccountDashboard;
 use FixListed\Controllers\Account\PasswordController;
@@ -103,7 +105,26 @@ try {
     $router->get('/pros/{slug}',    static fn (array $p) => $make(DirectoryController::class)->show($p['slug']));
     $router->get('/jobs',           static fn () => $make(JobsController::class)->index());
     $router->get('/jobs/{reference}', static fn (array $p) => $make(JobsController::class)->show($p['reference']));
-    $router->get('/in/{slug}',      static fn (array $p) => $make(CityController::class)->show($p['slug']));
+
+    /*
+     * City and trade landing pages — the two that earn search traffic.
+     *
+     * /handyman/freeport-il rather than /in/freeport: the URL now contains
+     * the words somebody actually types, and the state suffix says which
+     * Freeport. The old address answers with a 301 and always will — it was
+     * live, people linked to it, and a dropped URL is a dropped visitor.
+     */
+    $router->get('/handyman/{segment}', static fn (array $p) => $make(CityController::class)->show($p['segment']));
+    $router->get('/in/{slug}',          static fn (array $p) => $make(CityController::class)->legacy($p['slug']));
+    $router->get('/services/{slug}',    static fn (array $p) => $make(ServiceController::class)->show($p['slug']));
+
+    /*
+     * The two files written for crawlers rather than people. Both are served
+     * by PHP so they can tell the truth about what actually exists — a static
+     * sitemap is a list of URLs that used to be right.
+     */
+    $router->get('/robots.txt',  static fn () => $make(SeoController::class)->robots());
+    $router->get('/sitemap.xml', static fn () => $make(SeoController::class)->sitemap());
     $router->get('/list-your-business',          static fn () => $make(ProSignupController::class)->form());
     $router->post('/list-your-business',         static fn () => $make(ProSignupController::class)->submit());
     $router->get('/list-your-business/received', static fn () => $make(ProSignupController::class)->received());

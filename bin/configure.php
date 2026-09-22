@@ -49,14 +49,28 @@ $existing = is_file($target) ? (array) require $target : [];
 echo "\nFix Listed — configuration\n";
 echo "Press Enter to accept the value in brackets.\n\n";
 
+/*
+ * A backup, held only for as long as it is doing something.
+ *
+ * It exists to survive a failed or interrupted write — nothing more. So
+ * writeConfig() parses the file it just wrote and, once that succeeds,
+ * deletes this. Leaving it behind was how two of them were committed to a
+ * public repository in September: a second complete copy of the database
+ * password, the Stripe key and the mail key, sitting in a directory whose
+ * .gitignore named only one filename.
+ *
+ * chmod 600 immediately rather than after the copy is written, because
+ * copy() leaves it at the umask default in between.
+ */
+$GLOBALS['fixlisted_config_backup'] = null;
+
 if (is_file($target)) {
     $backup = $target . '.bak-' . date('Ymd-His');
     copy($target, $backup);
-    // The backup holds the same credentials as the original, so it gets the
-    // same permissions — copy() would otherwise leave it at the umask default.
     chmod($backup, 0600);
+    $GLOBALS['fixlisted_config_backup'] = $backup;
     echo "Existing config backed up to " . basename($backup) . "\n";
-    echo "Delete old backups once you are happy: rm config/config.php.bak-*\n\n";
+    echo "It is removed automatically once the new file is written and parses.\n\n";
 }
 
 /** Writes the config file at mode 600, the one way, from both paths. */
@@ -73,6 +87,39 @@ function writeConfig(string $target, array $config): void
 
     file_put_contents($target, $php);
     chmod($target, 0600);
+
+    /*
+     * Prove the file is loadable, then drop the backup.
+     *
+     * The backup's whole job is to be there if this write went wrong. Once
+     * the new config parses and returns an array, it has no job left — and a
+     * spare copy of every live credential is not a thing to leave lying
+     * around for a human to remember to delete. bin/check.php fails while one
+     * exists, which is the belt to this braces.
+     *
+     * If it does not parse, the backup stays and is named, because that is
+     * the one moment it matters.
+     */
+    $backup = $GLOBALS['fixlisted_config_backup'] ?? null;
+    if ($backup === null || !is_file($backup)) {
+        return;
+    }
+
+    $parsed = null;
+    try {
+        $parsed = @include $target;
+    } catch (\Throwable) {
+        $parsed = null;
+    }
+
+    if (is_array($parsed)) {
+        unlink($backup);
+        $GLOBALS['fixlisted_config_backup'] = null;
+        return;
+    }
+
+    fwrite(STDERR, "\nThe new config did not parse. Your previous one is still at:\n  "
+        . $backup . "\nRestore it with: mv " . $backup . " " . $target . "\n\n");
 }
 
 /*

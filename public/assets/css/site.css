@@ -92,7 +92,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .btn-sm{padding:8px 13px;font-size:13.5px}
 .btn-lg{padding:15px 26px;font-size:16px}
 .btn-block{width:100%}
-.burger{display:none;border:1px solid var(--line-2);background:transparent;border-radius:3px;padding:8px 10px;cursor:pointer}
+/* .burger removed. It was styled here and rendered nowhere, which is how the
+   mobile nav came to be missing entirely — see the 980px block below. */
 
 /* ---- role bar (prototype affordance) ---- */
 .rolebar{background:var(--ink-2);color:var(--on-ink-2);font-size:12.5px}
@@ -183,7 +184,13 @@ button,input,select,textarea{font:inherit;color:inherit}
 .b-pending{background:var(--clay-wash);color:var(--clay)}
 .b-live{background:var(--jade-wash);color:var(--jade)}
 .b-flat{background:var(--paper-2);color:var(--text-2);border:1px solid var(--line)}
-.pro-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px}
+/*
+ * flex-wrap, because the row holds two buttons that will not shrink and a
+ * reply time. At tablet widths the cards are narrow enough that the three
+ * together are wider than the card, and without wrapping the reply time hung
+ * off the side and gave the whole page a horizontal scrollbar.
+ */
+.pro-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pro-foot .resp{font-size:12px;color:var(--text-3);margin-left:auto;text-align:right}
 
 /* ---- ad slots ---- */
@@ -256,6 +263,18 @@ button,input,select,textarea{font:inherit;color:inherit}
 .panel-h h3{font-size:17px}
 .panel-h .btn{margin-left:auto}
 .tablewrap{overflow-x:auto}
+/*
+ * The first cell of each row stays put while the rest scrolls.
+ *
+ * Without it an admin table on a phone scrolls the name out of view and
+ * leaves you looking at a Suspend button with no way to tell whose it is.
+ */
+@media (max-width:860px){
+  .tablewrap th:first-child,.tablewrap td:first-child{
+    position:sticky;left:0;z-index:1;background:var(--paper-3);
+    box-shadow:1px 0 0 var(--line)}
+  .tablewrap thead th:first-child{background:var(--paper-2)}
+}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-3);font-weight:500;padding:11px 20px;background:var(--paper-2);border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:13px 20px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
@@ -304,16 +323,37 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
   .summary{position:static}
   .g4{grid-template-columns:repeat(2,1fr)}
   .foot-in{grid-template-columns:repeat(2,1fr)}
-  .nav{display:none}
-  .burger{display:block}
+  /*
+   * The nav wraps onto a second row rather than hiding.
+   *
+   * It used to be display:none here, paired with a .burger button — which
+   * this stylesheet still styles and no template has ever rendered. The CSS
+   * came over from the prototype and the markup did not, so on every phone
+   * the header offered exactly two links: the logo and Sign in. Find a pro,
+   * Jobs board, For tradespeople, Pricing and the Post a job button were all
+   * unreachable.
+   *
+   * Wrapping rather than rebuilding the burger, because there are four links.
+   * A menu button for four links is a tap in front of the thing people came
+   * for — and "For tradespeople" is the one link this site most needs a
+   * visitor on a phone to see.
+   */
+  .chrome-in{height:auto;flex-wrap:wrap;padding-block:10px;row-gap:4px}
+  .nav{order:3;width:100%;margin-left:0;flex-wrap:wrap;gap:2px 0}
+  .nav a{white-space:nowrap;padding:6px 10px 6px 0}
+  .chrome-r{margin-left:auto}
 }
 @media (max-width:700px){
   .sect{padding-block:48px}
   .g2,.g3,.g4,.steps{grid-template-columns:1fr}
   .gallery{grid-template-columns:repeat(2,1fr)}
   .mobilebar{display:flex}
+  /* The bar is fixed, so the last thing on the page needs somewhere to go. */
+  body:has(.mobilebar){padding-bottom:74px}
   .mkt select{max-width:96px}
-  .chrome-in{height:58px;gap:8px}
+  /* No fixed height: the header is two rows on a phone and a fixed 58px box
+     made it overlap whatever came next. */
+  .chrome-in{gap:8px}
   .logo{font-size:18px}
   .hero-cta .btn{flex:1}
   .job .budget{margin-left:0;text-align:left}
@@ -483,8 +523,30 @@ td.wrap-cell{white-space:normal;min-width:220px}
 @media (max-width:860px){
   .adm{grid-template-columns:1fr}
   .adm-side{position:static;height:auto;flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px}
-  .adm-nav{flex-direction:row;flex-wrap:wrap}
-  .adm-side .who{margin-top:0;border-top:0;padding-top:0;margin-left:auto}
+  /*
+   * One scrollable row, not eleven items wrapped into a block that eats the
+   * screen before the page starts. Everything stays reachable and nothing is
+   * behind a button that would need JavaScript to open.
+   */
+  /* order:3 puts the nav on its own row *below* the logo and the identity,
+     which then share the first row instead of taking one each. */
+  .adm-nav{order:3;flex-direction:row;flex-wrap:nowrap;width:100%;overflow-x:auto;
+           gap:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .adm-nav::-webkit-scrollbar{display:none}
+  .adm-nav a{white-space:nowrap;flex:0 0 auto}
+  .adm-main{padding:20px 16px 60px}
+  /*
+   * The who block goes on one line. Stacked — name, role, a full-width Sign
+   * out button, then a View the site link — it was 130 of the 245 pixels the
+   * sidebar took before any page content started on a phone.
+   */
+  .adm-side .who{margin-top:0;border-top:0;padding-top:0;margin-left:auto;
+                 display:flex;align-items:center;gap:10px;font-size:12px}
+  .adm-side .who b{display:inline}
+  .adm-side .who span{display:none}          /* the role is on /admin/team */
+  .adm-side .who form{margin-top:0!important}
+  .adm-side .who .btn-block{width:auto}
+  .adm-side .who p{margin-top:0!important;white-space:nowrap}
   .adm-stats{grid-template-columns:repeat(2,1fr)}
   .adm-review{grid-template-columns:1fr}
 }

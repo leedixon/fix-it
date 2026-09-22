@@ -84,6 +84,7 @@ $ogDesc  = $description !== '' ? $description
 <?= $content ?>
 </main>
 <?php require __DIR__ . '/../partials/footer.php'; ?>
+<?php require __DIR__ . '/../partials/mobilebar.php'; ?>
 <script src="<?= e(asset('assets/js/password.js')) ?>" defer></script>
 </body>
 </html>

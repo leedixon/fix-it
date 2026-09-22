@@ -162,6 +162,15 @@ PowerShell's command line that doesn't expand it.
 
 ### If it still refuses
 
+- **Check the username first.** `Permission denied` after three correct-looking
+  password attempts is more often the wrong username than the wrong password.
+  cPanel → **MySQL Databases** shows your account prefix; whatever is before the
+  underscore is your cPanel username. cPanel's **General Information** sidebar
+  states it outright.
+- **You may already be on the server.** cPanel → **Terminal** opens a shell on
+  the account with no SSH, no key and no password prompt. Everything in this
+  document works there. If SSH is fighting you and you need to deploy now, use
+  that and come back to the key later.
 - SSH is off by default on some A2 plans — enable it in the **A2 customer portal**
   (not cPanel).
 - The key was imported but never **Authorized**.
@@ -209,11 +218,19 @@ Your home directory ends up like this:
 
 **In cPanel → MySQL® Databases:**
 
-1. **Create a database.** Name it `fixlisted`. cPanel prefixes it with your account
-   name, so the real name becomes something like `leedixo_fixlisted` — note the full
+1. **Create a database.** Name it `fixlisted`. cPanel prefixes it with your cPanel
+   account name, so the real name becomes `<cpaneluser>_fixlisted` — note the full
    name, you'll need it.
+
+   > **This prefix tells you your cPanel username.** It is not necessarily your
+   > name, your email, or the local username on the machine you are sitting at,
+   > and cPanel truncates long ones. Whatever appears before the underscore here
+   > is exactly what goes in front of the `@` when you SSH. Getting it wrong
+   > produces `Permission denied` with a correct password, which reads as a
+   > password problem and is not one.
+
 2. **Create a user.** Use cPanel's password generator and save the password somewhere
-   safe. The username gets the same prefix: `leedixo_fixapp`.
+   safe. The username gets the same prefix: `<cpaneluser>_fixapp`.
 3. **Add the user to the database** with **ALL PRIVILEGES**. Easy to skip; nothing
    works without it.
 
@@ -222,8 +239,8 @@ imports and silently truncates:
 
 ```bash
 cd ~/fixlisted
-mysql -u leedixo_fixapp -p leedixo_fixlisted < database/schema.sql
-mysql -u leedixo_fixapp -p leedixo_fixlisted < database/seed.sql
+mysql -u <cpaneluser>_fixapp -p <cpaneluser>_fixlisted < database/schema.sql
+mysql -u <cpaneluser>_fixapp -p <cpaneluser>_fixlisted < database/seed.sql
 ```
 
 ### Upgrading a database that already exists
@@ -248,8 +265,8 @@ prints nothing on success. `seed.sql` truncates first, so that one is safe to re
 **Verify the import before moving on:**
 
 ```bash
-mysql -u leedixo_fixapp -p --default-character-set=utf8mb4 --table \
-      leedixo_fixlisted < database/verify.sql
+mysql -u <cpaneluser>_fixapp -p --default-character-set=utf8mb4 --table \
+      <cpaneluser>_fixlisted < database/verify.sql
 ```
 
 Check the output against the expectations listed at the top of `database/verify.sql`.

@@ -32,8 +32,10 @@ return [
     'db' => [
         'host'     => 'localhost',
         'port'     => 3306,
-        'name'     => 'leedixon_fixlisted',
-        'user'     => 'leedixon_fixapp',
+        // cPanel prefixes both with your cPanel account name. Copy the full
+        // names from cPanel > MySQL Databases rather than typing them.
+        'name'     => 'cpaneluser_fixlisted',
+        'user'     => 'cpaneluser_fixapp',
         'pass'     => '',
         // Do not change. Without utf8mb4 the client negotiates latin1 and
         // mangles every em-dash and accented name on the way out, even though

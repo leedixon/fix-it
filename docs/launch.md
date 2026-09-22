@@ -95,8 +95,9 @@ actually are.
 
 - [ ] **Move the mount to the document root.** The app derives its base path
       from where `index.php` sits, so this is a file move and not a code change.
-- [ ] **Google Tag Manager switched on** — set `analytics.gtm_id` to your
-      container (`GTM-…`) in `config/config.php`. Empty until then, so no
+- [ ] **Google Tag Manager switched on** — `php bin/configure.php --analytics`.
+      Do not hand-edit `config/config.php`; a stray comma there takes the
+      whole site down. Empty until then, so no
       preview traffic reports into the live property. Signed-in staff are
       never counted, and the admin and account areas carry no tag at all.
       `/privacy` already describes the cookies this sets.

@@ -76,6 +76,64 @@ function writeConfig(string $target, array $config): void
 }
 
 /*
+ * --analytics — set or clear the Google Tag Manager container.
+ *
+ * Here for the same reason as --stripe: this file holds live credentials, and
+ * hand-editing it in a terminal editor to change one line is how a stray
+ * comma takes the whole site down. Nothing else in the file is touched.
+ */
+if (in_array('--analytics', $argv, true)) {
+    if (!is_file($target)) {
+        fwrite(STDERR, "\nThere is no config/config.php yet. Run php bin/configure.php first.\n\n");
+        exit(1);
+    }
+
+    $config  = require $target;
+    $current = (string) ($config['analytics']['gtm_id'] ?? '');
+
+    echo "Google Tag Manager\n\n";
+    echo "  Currently: " . ($current !== '' ? $current : 'not set — no tag is rendered') . "\n\n";
+    echo "The container id from tagmanager.google.com, e.g. GTM-XXXXXXX.\n";
+    echo "Enter 'none' to switch it off. Press Enter to leave it as it is.\n\n";
+
+    $id = ask('Container id', $current);
+
+    if (strtolower($id) === 'none') {
+        $id = '';
+    }
+
+    // The same rule the template enforces before printing it into a <script>.
+    // Refusing here too means a bad value is never written, rather than
+    // written and then silently ignored on every page.
+    if ($id !== '' && preg_match('/^GTM-[A-Z0-9]{4,12}$/', $id) !== 1) {
+        fwrite(STDERR, "\nThat is not a container id. Expected GTM- followed by letters\n");
+        fwrite(STDERR, "and digits, e.g. GTM-TX649KRG. Received: " . describeInput($id, $id) . ".\n");
+        fwrite(STDERR, "Nothing was written.\n\n");
+        exit(1);
+    }
+
+    $config['analytics'] = ['gtm_id' => $id];
+    writeConfig($target, $config);
+
+    $lint = [];
+    exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($target) . ' 2>&1', $lint, $code);
+    if ($code !== 0) {
+        fwrite(STDERR, "\nThe file was written but does not parse:\n" . implode("\n", $lint) . "\n");
+        exit(1);
+    }
+
+    if ($id === '') {
+        echo "\nSwitched off. No tag is rendered on any page.\n\n";
+        exit(0);
+    }
+
+    echo "\nSet to {$id}. It renders on public pages only —\n";
+    echo "not /admin, not /my, and never for a signed-in staff account.\n\n";
+    echo "Check /privacy still describes what your tags actually do.\n\n";
+    exit(0);
+}
+
+/*
  * --stripe — change the payment keys and nothing else.
  *
  * The full run asks for everything and rebuilds the file from the answers,

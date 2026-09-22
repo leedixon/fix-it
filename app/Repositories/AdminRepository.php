@@ -87,6 +87,16 @@ final class AdminRepository extends Repository
         );
     }
 
+    /**
+     * Accounts in this market, optionally one role at a time.
+     *
+     * The role is bound, not interpolated — and the bug this replaced was the
+     * other failure: `:role` went into the SQL and the value was never passed,
+     * so every filtered tab threw "Invalid parameter number" and rendered a
+     * 500. Unfiltered worked, which is why it survived.
+     *
+     * @return array<int,array<string,mixed>>
+     */
     public function users(string $role = '', int $limit = 200): array
     {
         $filter = $role !== '' ? ' AND u.role = :role' : '';
@@ -97,7 +107,8 @@ final class AdminRepository extends Repository
                FROM users u
               WHERE u.market_id = :market_id {$filter}
               ORDER BY u.created_at DESC
-              LIMIT {$limit}"
+              LIMIT {$limit}",
+            $role !== '' ? ['role' => $role] : [],
         );
     }
 

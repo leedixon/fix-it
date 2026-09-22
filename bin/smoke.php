@@ -714,6 +714,41 @@ foreach ([
 check('a live restricted key is not mistaken for test mode',
     (new \FixListed\Core\Stripe('rk_live_example', 'whsec_x'))->isLive());
 
+// --- the People screen's role tabs ------------------------------------------
+// Every one of these 500'd: ':role' was written into the SQL and the value was
+// never bound, so PDO refused the statement. The unfiltered tab worked, which
+// is exactly why it survived being looked at.
+$adminRepo = new \FixListed\Repositories\AdminRepository($db, TenantScope::market($marketId));
+
+foreach (['', 'pro', 'homeowner', 'market_admin', 'moderator', 'superadmin'] as $role) {
+    $ok = true;
+    try {
+        $rows = $adminRepo->users($role);
+        // A filtered read must return only that role, or the filter is
+        // decorative and the tab is lying about what it shows.
+        foreach ($rows as $row) {
+            if ($role !== '' && $row['role'] !== $role) {
+                $ok = false;
+            }
+        }
+    } catch (\Throwable $e) {
+        $ok = false;
+        $rows = [];
+    }
+    check('the People tab for ' . ($role !== '' ? $role : 'everyone') . ' loads',
+        $ok, count($rows) . ' rows');
+}
+
+// An unknown role is a query that returns nothing, not one that errors —
+// the value is bound, so it cannot be anything else.
+check('an unknown role returns nothing rather than throwing',
+    $adminRepo->users('not-a-role') === []);
+
+// The other two filtered readers on the same screen family, which were
+// written correctly and must stay that way.
+check('the Tradespeople and Jobs filters bind their values too',
+    is_array($adminRepo->pros('active')) && is_array($adminRepo->jobs('active')));
+
 // --- the staff ladder -------------------------------------------------------
 // Read as a table: each row is a capability, each column a role. A permission
 // model is only auditable if you can see it all at once, and this is the test

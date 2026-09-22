@@ -146,7 +146,25 @@ try {
         ['schema' => Config::get('db.name')],
     );
     if ($tables >= 29) {
-        line(true, 'schema is up to date', "{$tables} tables");
+        line(true, 'schema loaded', "{$tables} tables");
+
+        /*
+         * Counting tables is not the same as being up to date.
+         *
+         * A migration that adds a *column* leaves the table count unchanged,
+         * so this said "schema is up to date" on a database missing the
+         * columns three admin screens select — and those screens answered 500
+         * while every check here passed. The only honest measure is which
+         * migration files have actually run.
+         */
+        $files = glob(BASE_PATH . '/database/migrations/*.sql') ?: [];
+        $ran   = array_column($db->all('SELECT filename FROM migrations'), 'filename');
+        $pending = array_values(array_diff(array_map('basename', $files), $ran));
+
+        line($pending === [], 'every migration has been applied',
+            $pending === []
+                ? count($files) . ' in database/migrations, all run'
+                : count($pending) . ' pending: ' . implode(', ', $pending) . ' — run: php bin/migrate.php');
     } elseif ($tables > 0) {
         // An existing install cannot be fixed by re-running schema.sql — it has
         // no IF NOT EXISTS and stops at the first table that already exists.

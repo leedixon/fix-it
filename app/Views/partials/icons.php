@@ -38,6 +38,7 @@ function icon(string $name, int $size = 16): string
         // way, which is the entire reason it is recognisable.
         'menu'    => '<path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/>',
         'close'   => '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
+        'chev'    => '<path d="M6 9l6 6 6-6"/>',
 
         // The trades. trades.icon holds these names, so a new trade gets an
         // icon by adding one row here and one in the table — and an unknown

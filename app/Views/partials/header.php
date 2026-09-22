@@ -46,22 +46,14 @@ $navItem = static function (string $href, string $label, string $current): strin
         <noscript><button class="btn btn-sm btn-ghost" type="submit">Go</button></noscript>
       </form>
       <?php endif; ?>
-      <?php if (!empty($me)): ?>
-        <?php
-        /*
-         * Shown only to administrators, so it is not an advertisement of
-         * where the back end lives. Without it the only way in is typing a
-         * URL from memory, which is a silly thing to ask of the person who
-         * owns the site.
-         */
-        if (in_array($me['role'] ?? '', ['superadmin', 'market_admin'], true)):
-        ?>
-          <a class="btn btn-ghost btn-sm" href="<?= e(url('/admin')) ?>">Admin</a>
-        <?php endif; ?>
-        <a class="btn btn-ghost btn-sm" href="<?= e(url('/my')) ?>">Your account</a>
-      <?php else: ?>
-        <a class="btn btn-ghost btn-sm" href="<?= e(url('/sign-in')) ?>">Sign in</a>
-      <?php endif; ?>
+      <?php
+      /*
+       * One control, not three. Admin is inside it and still only shown to
+       * administrators, so the menu never advertises where the back end
+       * lives to anybody who cannot open it.
+       */
+      require __DIR__ . '/account.php';
+      ?>
       <a class="btn btn-primary btn-sm" href="<?= e(url('/post-a-job')) ?>">Post a job — $10</a>
     </div>
   </div>

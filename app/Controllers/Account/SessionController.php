@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FixListed\Controllers\Account;
 
 use FixListed\Core\Auth;
+use FixListed\Core\AuditLog;
 use FixListed\Core\Config;
 use FixListed\Core\Controller;
 use FixListed\Core\Csrf;
@@ -72,6 +73,27 @@ final class SessionController extends Controller
     public function logout(): Response
     {
         if (Csrf::check($this->request->input('_csrf'))) {
+            /*
+             * Staff signing out is logged here too, not only at
+             * /admin/logout.
+             *
+             * The account menu in the public header signs everybody out
+             * through this one route, so without this an administrator who
+             * signed out from the marketing site left no trace — on a screen
+             * whose own heading promises every administrative change,
+             * appended and never edited.
+             */
+            if ($this->auth->is(...Auth::STAFF_ROLES)) {
+                (new AuditLog($this->db))->record(
+                    'admin.signed_out',
+                    $this->auth->id(),
+                    'user',
+                    $this->auth->id(),
+                    ['from' => 'site'],
+                    (int) $this->market['id'],
+                    $this->request->ip(),
+                );
+            }
             $this->auth->logout();
         }
         return Response::redirect('/');

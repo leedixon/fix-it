@@ -278,12 +278,40 @@ if (in_array('--live', $argv, true)) {
         'Stripe is in live mode',
         $secretKey === '' ? 'no key configured' : '');
 
-    // The auto-refund is a written promise on /pricing. A promise that only
-    // happens when somebody remembers to run something is not a promise.
-    $sweepLog = BASE_PATH . '/storage/logs/sweep.log';
-    $sweepRan = is_file($sweepLog) && (time() - filemtime($sweepLog)) < 172800;
-    line($sweepRan, 'the refund sweep has run in the last two days',
-        $sweepRan ? '' : 'cannot see storage/logs/sweep.log — is bin/sweep.php on cron?');
+    /*
+     * The auto-refund is a written promise on /pricing. A promise that only
+     * happens when somebody remembers to run something is not a promise.
+     *
+     * Counting distinct days in the log, not just its age. A log touched once
+     * by hand satisfies "modified recently" for as long as the window lasts,
+     * so that alone cannot tell a working cron from a single manual run — it
+     * would have reported green on a schedule that never fired. Two different
+     * days in the log means something is running it without being asked.
+     */
+    $sweepLog  = BASE_PATH . '/storage/logs/sweep.log';
+    $sweepDays = [];
+    $sweepAge  = null;
+
+    if (is_file($sweepLog)) {
+        $sweepAge = time() - filemtime($sweepLog);
+        preg_match_all('/sweep (\d{4}-\d{2}-\d{2}) /', (string) file_get_contents($sweepLog), $found);
+        $sweepDays = array_unique($found[1] ?? []);
+    }
+
+    // A daily job leaves 24 hours between runs; 26 allows for drift and a
+    // slow night without reporting a healthy schedule as broken.
+    $recent = $sweepAge !== null && $sweepAge < 93600;
+
+    line($recent && count($sweepDays) > 1, 'the refund sweep is running on a schedule',
+        match (true) {
+            $sweepAge === null      => 'no storage/logs/sweep.log at all — is bin/sweep.php on cron?',
+            count($sweepDays) <= 1  => 'only one day in the log, so this may be your manual run — '
+                                     . 'check again tomorrow, after cron has had a turn',
+            !$recent                => 'last run was ' . (int) round($sweepAge / 3600) . ' hours ago — '
+                                     . 'a daily job should be under 24',
+            default                 => count($sweepDays) . ' days recorded, last run '
+                                     . (int) round($sweepAge / 3600) . 'h ago',
+        });
 
     line(!\FixListed\Core\Maintenance::isOn(), 'the site is not in maintenance mode',
         \FixListed\Core\Maintenance::isOn() ? 'visitors are seeing the holding page' : '');

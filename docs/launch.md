@@ -95,6 +95,11 @@ actually are.
 
 - [ ] **Move the mount to the document root.** The app derives its base path
       from where `index.php` sits, so this is a file move and not a code change.
+- [ ] **Google Tag Manager switched on** — set `analytics.gtm_id` to your
+      container (`GTM-…`) in `config/config.php`. Empty until then, so no
+      preview traffic reports into the live property. Signed-in staff are
+      never counted, and the admin and account areas carry no tag at all.
+      `/privacy` already describes the cookies this sets.
 - [ ] **Remove `noindex`.** Set `app.noindex` to `false`. Until then every page
       carries `<meta name="robots" content="noindex, nofollow">`, deliberately.
 - [ ] Remove the `Disallow: /` from the holding page's `robots.txt`.

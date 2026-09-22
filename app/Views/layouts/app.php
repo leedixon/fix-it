@@ -69,10 +69,12 @@ $ogDesc  = $description !== '' ? $description
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Hanken+Grotesk:ital,wght@0,300..800;1,300..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<?php require __DIR__ . '/../partials/gtm.php'; ?>
 <link rel="stylesheet" href="<?= e(asset('assets/css/site.css')) ?>">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230E1513'/><text x='16' y='23' font-family='Georgia,serif' font-size='19' fill='%23DCB25C' text-anchor='middle'>F</text></svg>">
 </head>
 <body class="<?= e($bodyClass) ?>">
+<?php $part = 'body'; require __DIR__ . '/../partials/gtm.php'; ?>
 <a class="skip" href="#main">Skip to content</a>
 <?php require __DIR__ . '/../partials/header.php'; ?>
 <main id="main">

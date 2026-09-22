@@ -62,10 +62,19 @@
       remove a payment record we are required to keep, and it does not retract a review you left
       about someone else's work.</p>
 
-    <h2>Cookies</h2>
+    <h2>Cookies and measurement</h2>
     <p>One session cookie, so the site can remember you between pages while you are posting a job.
-      No advertising or cross-site tracking cookies are set by us. If advertising is added later,
-      this page will say so before it goes live.</p>
+      That one is necessary for the site to work and cannot be turned off.</p>
+    <p>We also use Google Tag Manager to load Google Analytics, which sets cookies to count
+      visits and work out which pages people find useful. It tells us how many people looked at a
+      county page or started a job posting. It does not tell us who you are, and we do not sell
+      or share it with anyone.</p>
+    <p>You can refuse these in your browser, or install Google's opt-out add-on, and the site
+      will work exactly the same. Most browsers also honour Do Not Track and Global Privacy
+      Control signals for this kind of measurement.</p>
+    <p>We set no advertising or cross-site retargeting cookies. Paid placement on this site is
+      sold directly to tradespeople and is labelled where it appears; it does not follow you
+      around the internet. If that ever changes, this page will say so before it does.</p>
 
     <h2>Children</h2>
     <p>The site is not intended for anyone under 18 and we do not knowingly collect their

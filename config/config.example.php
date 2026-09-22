@@ -43,6 +43,25 @@ return [
         'charset'  => 'utf8mb4',
     ],
 
+    'analytics' => [
+        // Google Tag Manager container, e.g. 'GTM-XXXXXXX'. Empty means no
+        // tag is rendered at all — which is the right setting for any copy of
+        // this codebase that is not the live site, so a staging or local run
+        // cannot report into the real property.
+        //
+        // Anything that is not GTM- followed by letters and digits is
+        // refused rather than printed, because this value ends up inside a
+        // <script> tag. See app/Views/partials/gtm.php.
+        //
+        // Signed-in staff are never tracked: an administrator clicking
+        // through the site all afternoon is not a visitor, and distorts every
+        // funnel they touch.
+        //
+        // NOTE: turning this on means /privacy must say so. GTM exists to
+        // load tags that set cookies.
+        'gtm_id' => '',
+    ],
+
     'stripe' => [
         // A restricted key (rk_...) is preferred over a standard secret key
         // (sk_...) — it does everything this site needs and nothing else, so

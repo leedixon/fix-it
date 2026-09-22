@@ -714,6 +714,66 @@ foreach ([
 check('a live restricted key is not mistaken for test mode',
     (new \FixListed\Core\Stripe('rk_live_example', 'whsec_x'))->isLive());
 
+// --- the analytics tag ------------------------------------------------------
+// The container id is interpolated into a <script>, so anything that is not a
+// container id must be refused rather than printed. And a signed-in
+// administrator is not a visitor: counting their afternoon of clicking
+// through the site distorts every funnel they touch.
+$gtm = static function (string $id, ?array $viewer): string {
+    \FixListed\Core\Config::load(
+        ['analytics' => ['gtm_id' => $id]] + (array) require BASE_PATH . '/config/config.php'
+    );
+    $me   = $viewer;
+    $part = 'head';
+    ob_start();
+    require BASE_PATH . '/app/Views/partials/gtm.php';
+    return (string) ob_get_clean();
+};
+
+$visitor = null;
+$staff   = ['role' => 'superadmin'];
+$pro     = ['role' => 'pro'];
+
+check('a valid container renders the tag',
+    str_contains($gtm('GTM-TX649KRG', $visitor), 'GTM-TX649KRG'));
+
+check('an empty container renders nothing',
+    trim($gtm('', $visitor)) === '');
+
+foreach ([
+    "GTM-X');alert(1);//" => 'a script injection',
+    'notagtmid'           => 'a value that is not a container id',
+    'GTM-<script>'        => 'markup in the container id',
+    'GTM-'                => 'a bare prefix',
+    'gtm-lowercase'       => 'the wrong case',
+] as $bad => $label) {
+    $out = $gtm($bad, $visitor);
+    check($label . ' renders nothing',
+        trim($out) === '' && !str_contains($out, 'alert('));
+}
+
+check('signed-in staff are not counted',
+    trim($gtm('GTM-TX649KRG', $staff)) === '');
+check('a signed-in tradesperson is a real visitor and is counted',
+    str_contains($gtm('GTM-TX649KRG', $pro), 'GTM-TX649KRG'));
+
+// Only the public layout. The admin and account areas are private, noindex,
+// and nobody's funnel.
+foreach (['layouts/admin', 'layouts/account'] as $private) {
+    check('the ' . $private . ' layout carries no tag',
+        !str_contains((string) file_get_contents(BASE_PATH . '/app/Views/' . $private . '.php'), 'gtm.php'));
+}
+
+// Turning measurement on makes a published promise false unless the page is
+// updated with it. It was, and this stops it drifting back.
+$privacy = (string) file_get_contents(BASE_PATH . '/app/Views/site/legal_privacy.php');
+check('the privacy page describes the analytics cookies',
+    stripos($privacy, 'Google Analytics') !== false
+    && stripos($privacy, 'No advertising or cross-site tracking cookies are set by us') === false);
+
+// Put the real config back for everything that runs after this.
+\FixListed\Core\Config::load((array) require BASE_PATH . '/config/config.php');
+
 // --- show/hide on password fields -------------------------------------------
 // This is the only JavaScript on the site and it must stay an enhancement:
 // the button is created by script, never present in the markup, so a form

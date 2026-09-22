@@ -119,9 +119,19 @@ edited after creation, so a key made that way can only be replaced.
 ## Setting it up
 
 ```bash
-php bin/configure.php          # asks for the keys, validates their shape
+php bin/configure.php          # first run: asks for everything
+php bin/configure.php --stripe # after that: the payment keys and nothing else
 php bin/check.php              # confirms all three are present
 ```
+
+Use `--stripe` for every change after the first, including swapping test keys
+for live ones. The full run rebuilds the file from its answers, which is right
+once and wrong afterwards — it would mean retyping a database password and a
+mail provider key nobody should have to have to hand. It shows what is already
+set without printing any of it, keeps anything you skip with Enter, refuses a
+key pasted into the wrong slot, and removes `stripe.api_base` when the key you
+give it is live.
+
 
 In the Stripe dashboard, **Developers → Webhooks → Add endpoint**:
 

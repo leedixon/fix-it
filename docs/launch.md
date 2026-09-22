@@ -18,7 +18,9 @@ Roughly in order.
       what the site actually does, in plain English, and they have not been
       reviewed by anyone qualified. Stripe's underwriting reads them, and so do
       people deciding whether to hand over a card.
-- [ ] Stripe account out of sandbox, live keys in via `bin/configure.php`.
+- [ ] Stripe account out of sandbox, live keys in via
+      `php bin/configure.php --stripe`. The plain run rebuilds the whole file
+      and would want your database and mail credentials again.
 - [ ] **The live key is a restricted key** (`rk_live_…`), with its permission
       set proven in a sandbox first — run the whole money path, then read
       Developers → Logs for 403s. See [payments.md](payments.md).

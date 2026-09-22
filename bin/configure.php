@@ -20,6 +20,7 @@ $failed = false;
 require_once $root . '/app/Core/Config.php';
 require_once $root . '/app/Core/Smtp.php';
 require_once $root . '/app/Core/MailApi.php';
+require_once $root . '/app/Core/Stripe.php';
 
 function ask(string $label, string $default = '', bool $hidden = false): string
 {
@@ -40,6 +41,10 @@ function ask(string $label, string $default = '', bool $hidden = false): string
     return $value !== '' ? $value : $default;
 }
 
+// Read before anything is asked, so a re-run can keep what a first run
+// generated and what launch steps have since changed.
+$existing = is_file($target) ? (array) require $target : [];
+
 echo "\nFix Listed — configuration\n";
 echo "Press Enter to accept the value in brackets.\n\n";
 
@@ -51,6 +56,131 @@ if (is_file($target)) {
     chmod($backup, 0600);
     echo "Existing config backed up to " . basename($backup) . "\n";
     echo "Delete old backups once you are happy: rm config/config.php.bak-*\n\n";
+}
+
+/** Writes the config file at mode 600, the one way, from both paths. */
+function writeConfig(string $target, array $config): void
+{
+    $php = "<?php\n"
+         . "/**\n"
+         . " * Fix Listed — configuration.\n"
+         . " *\n"
+         . " * Written by bin/configure.php on " . date('j M Y') . ".\n"
+         . " * Gitignored. Never commit this file. Re-run bin/configure.php to rebuild it.\n"
+         . " */\n\n"
+         . "return " . var_export($config, true) . ";\n";
+
+    file_put_contents($target, $php);
+    chmod($target, 0600);
+}
+
+/*
+ * --stripe — change the payment keys and nothing else.
+ *
+ * The full run asks for everything and rebuilds the file from the answers,
+ * which is right the first time and wrong every time after. Swapping test
+ * keys for live ones would otherwise mean retyping a database password and a
+ * mail provider key that nobody should have to have to hand — and would
+ * quietly reset app.key, app.noindex and app.demo_data back to their
+ * first-run defaults, undoing launch steps that were taken on purpose.
+ */
+if (in_array('--stripe', $argv, true)) {
+    if (!is_file($target)) {
+        fwrite(STDERR, "\nThere is no config/config.php yet. Run php bin/configure.php first.\n\n");
+        exit(1);
+    }
+
+    $config = require $target;
+    $current = $config['stripe'] ?? [];
+
+    // What is there now, without printing any of it. A key on screen is a key
+    // in the scrollback, and this is the one command somebody runs over SSH
+    // while sharing a window.
+    $describe = static function (string $value, bool $isSecret = false): string {
+        if ($value === '') {
+            return 'not set';
+        }
+        if (!$isSecret) {
+            return 'set';
+        }
+        return 'set — ' . (\FixListed\Core\Stripe::isLiveKey($value) ? 'LIVE' : 'test')
+             . ', ' . \FixListed\Core\Stripe::keyKind($value);
+    };
+
+    echo "Changing the Stripe keys only. Everything else in the file is left alone.\n\n";
+    echo "  Publishable key:  " . $describe((string) ($current['publishable_key'] ?? '')) . "\n";
+    echo "  Secret key:       " . $describe((string) ($current['secret_key'] ?? ''), true) . "\n";
+    echo "  Webhook secret:   " . $describe((string) ($current['webhook_secret'] ?? '')) . "\n\n";
+    echo "Press Enter at any prompt to keep what is already there.\n\n";
+
+    $secret = trim(ask('Stripe secret key (not shown as you type)', '', true));
+    if ($secret === '') {
+        $secret = (string) ($current['secret_key'] ?? '');
+        echo "  keeping the existing secret key\n";
+    } elseif (!\FixListed\Core\Stripe::looksLikeSecretKey($secret)) {
+        fwrite(STDERR, "\nThat does not look like a Stripe secret key. Expected one starting\n");
+        fwrite(STDERR, "sk_test_, sk_live_, rk_test_ or rk_live_. Nothing was written.\n\n");
+        exit(1);
+    }
+
+    $publishable = ask('Stripe publishable key (pk_...)', (string) ($current['publishable_key'] ?? ''));
+    if ($publishable !== '' && !str_starts_with($publishable, 'pk_')) {
+        fwrite(STDERR, "\nA publishable key starts with pk_. Nothing was written.\n\n");
+        exit(1);
+    }
+
+    // Live and test have separate endpoints and separate signing secrets.
+    // Pasting the test one against live keys makes every webhook fail
+    // signature verification, which looks exactly like the endpoint being
+    // down — so it is worth saying before the prompt rather than after.
+    if (\FixListed\Core\Stripe::isLiveKey($secret)) {
+        echo "\nThese are LIVE keys, so the webhook secret must be the LIVE one —\n";
+        echo "from the live-mode endpoint, not the test one. They are different,\n";
+        echo "and the wrong one makes every webhook fail its signature check.\n";
+    }
+    $webhook = trim(ask('Stripe webhook signing secret (whsec_...)', '', true));
+    if ($webhook === '') {
+        $webhook = (string) ($current['webhook_secret'] ?? '');
+        echo "  keeping the existing webhook secret\n";
+    } elseif (!str_starts_with($webhook, 'whsec_')) {
+        fwrite(STDERR, "\nA webhook signing secret starts with whsec_. Nothing was written.\n\n");
+        exit(1);
+    }
+
+    $config['stripe'] = [
+        'publishable_key' => $publishable,
+        'secret_key'      => $secret,
+        'webhook_secret'  => $webhook,
+        // Left as it was, or empty. See config.example.php for why pinning a
+        // version that disagrees with the event destination goes wrong.
+        'api_version'     => (string) ($current['api_version'] ?? ''),
+    ];
+
+    // A stub override alongside live keys sends real checkouts nowhere.
+    // Removed here rather than merely reported, because there is no situation
+    // in which both are wanted.
+    if (\FixListed\Core\Stripe::isLiveKey($secret) && !empty($current['api_base'])) {
+        unset($config['stripe']['api_base']);
+        echo "\n  removed stripe.api_base — live keys must talk to Stripe, not a stub\n";
+    } elseif (!empty($current['api_base'])) {
+        $config['stripe']['api_base'] = (string) $current['api_base'];
+    }
+
+    writeConfig($target, $config);
+
+    $lint = [];
+    exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($target) . ' 2>&1', $lint, $code);
+    if ($code !== 0) {
+        fwrite(STDERR, "\nThe file was written but does not parse:\n" . implode("\n", $lint) . "\n");
+        exit(1);
+    }
+
+    echo "\nWritten. Stripe keys updated, everything else untouched.\n";
+    if (\FixListed\Core\Stripe::isLiveKey($secret)) {
+        echo "\n*** LIVE KEYS ARE NOW IN PLACE. Real cards will be charged. ***\n";
+    }
+    echo "\nNext:  php bin/check.php\n\n";
+    exit(0);
 }
 
 $dbName = ask('Database name', 'leedixon_fixlisted');
@@ -175,17 +305,19 @@ $config = [
         'url'      => $url,
         'env'      => 'production',
         'timezone' => 'America/Chicago',
-        'key'      => bin2hex(random_bytes(32)),
+        // Kept if there is one. Re-running this for an unrelated reason must
+        // not silently rotate the key that ad-impression dedupe hashes with.
+        'key'      => $existing['app']['key'] ?? bin2hex(random_bytes(32)),
 
         // Every public page carries <meta name="robots" content="noindex">
         // while this is true. Turning it off is a deliberate step in
         // docs/launch.md, not something a template should decide.
-        'noindex'   => true,
+        'noindex'   => $existing['app']['noindex'] ?? true,
 
         // 'label' shows the seeded listings with a Sample badge on every card
         // and a banner on every page. 'hide' filters them out of every query.
         // There is no mode that shows them unlabelled — see app/Core/Demo.php.
-        'demo_data' => 'label',
+        'demo_data' => $existing['app']['demo_data'] ?? 'label',
     ],
     'db' => [
         'host'    => 'localhost',
@@ -209,17 +341,7 @@ $config = [
     ],
 ];
 
-$php = "<?php\n"
-     . "/**\n"
-     . " * Fix Listed — configuration.\n"
-     . " *\n"
-     . " * Written by bin/configure.php on " . date('j M Y') . ".\n"
-     . " * Gitignored. Never commit this file. Re-run bin/configure.php to rebuild it.\n"
-     . " */\n\n"
-     . "return " . var_export($config, true) . ";\n";
-
-file_put_contents($target, $php);
-chmod($target, 0600);
+writeConfig($target, $config);
 
 // Prove the file parses and the credentials work, rather than leaving that to
 // be discovered by a blank page in a browser.

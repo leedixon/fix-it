@@ -29,8 +29,22 @@ if ($gtmId === '' || preg_match('/^GTM-[A-Z0-9]{4,12}$/', $gtmId) !== 1) {
     return;
 }
 
-$isStaff = in_array($me['role'] ?? '', ['superadmin', 'market_admin', 'moderator'], true);
-if ($isStaff) {
+/*
+ * Staff are not counted — except when they are deliberately debugging tags.
+ *
+ * Tag Assistant and GTM's own Preview open the site in the operator's browser,
+ * where they are signed in, so the suppression below hides the tag from the
+ * one person trying to look at it. That reads as "the tag is not installed"
+ * and is the most confusing possible failure.
+ *
+ * GTM appends gtm_debug to the URL when previewing, and hits made in debug
+ * mode go to DebugView rather than the ordinary reports — so honouring it
+ * costs nothing in polluted data and makes the tool usable.
+ */
+$isPreviewing = isset($_GET['gtm_debug']);
+$isStaff      = in_array($me['role'] ?? '', ['superadmin', 'market_admin', 'moderator'], true);
+
+if ($isStaff && !$isPreviewing) {
     return;
 }
 ?>

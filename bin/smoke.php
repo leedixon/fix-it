@@ -732,7 +732,8 @@ check('a live restricted key is not mistaken for test mode',
 // container id must be refused rather than printed. And a signed-in
 // administrator is not a visitor: counting their afternoon of clicking
 // through the site distorts every funnel they touch.
-$gtm = static function (string $id, ?array $viewer): string {
+$gtm = static function (string $id, ?array $viewer, bool $previewing = false): string {
+    $_GET = $previewing ? ['gtm_debug' => '1700000000000'] : [];
     \FixListed\Core\Config::load(
         ['analytics' => ['gtm_id' => $id]] + (array) require BASE_PATH . '/config/config.php'
     );
@@ -767,6 +768,13 @@ foreach ([
 
 check('signed-in staff are not counted',
     trim($gtm('GTM-TX649KRG', $staff)) === '');
+
+// Otherwise the tag is hidden from the one person trying to debug it, which
+// reads exactly like it was never installed.
+check('staff previewing with Tag Assistant do see the tag',
+    str_contains($gtm('GTM-TX649KRG', $staff, true), 'GTM-TX649KRG'));
+check('and preview mode still cannot conjure a tag that is switched off',
+    trim($gtm('', $staff, true)) === '');
 check('a signed-in tradesperson is a real visitor and is counted',
     str_contains($gtm('GTM-TX649KRG', $pro), 'GTM-TX649KRG'));
 

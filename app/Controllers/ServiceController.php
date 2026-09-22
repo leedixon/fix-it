@@ -8,7 +8,6 @@ use FixListed\Core\NotFound;
 use FixListed\Core\Response;
 use FixListed\Core\Seo;
 use FixListed\Core\TradeCopy;
-use FixListed\Repositories\GeographyRepository;
 use FixListed\Repositories\LicenceRepository;
 use FixListed\Repositories\ProRepository;
 use FixListed\Repositories\TradeRepository;
@@ -58,19 +57,20 @@ final class ServiceController extends Controller
 
         return $this->page('site/service', [
             'title'       => $trade['name'] . ' in ' . $this->market['name'] . ' — Fix Listed',
+            // Trade names do not survive being lowercased into the middle of
+            // a sentence ("a odd jobs job"), and this string is what a search
+            // result shows. TradeCopy::jobPhrase carries the article.
             'description' => $count > 0
-                ? $count . ' ' . strtolower((string) $trade['name']) . ' businesses listed across '
-                    . $this->market['name'] . '. Post the job once for a flat fee and they quote you '
-                    . 'directly — no commission.'
-                : strtolower((string) $trade['name']) . ' in ' . $this->market['name']
+                ? self::businesses($count, (string) $trade['name']) . ' listed across '
+                    . $this->market['name'] . '. Post ' . TradeCopy::jobPhrase($slug)
+                    . ' once for a flat fee and they quote you directly — no commission.'
+                : $trade['name'] . ' in ' . $this->market['name']
                     . ': what the work covers, what it costs to ask, and what to check before you hire.',
             'trade'       => $trade,
             'copy'        => $copy,
             'licence'     => $licence,
             'pros'        => $listed,
             'proCount'    => $count,
-            'cities'      => (new GeographyRepository($this->db, $this->scope))->pageCities(),
-            'otherTrades' => $trades->all(),
             'fee'         => (int) $this->market['listing_fee_cents'],
             'crumbs'      => [
                 ['label' => 'Home', 'href' => '/'],
@@ -114,11 +114,24 @@ final class ServiceController extends Controller
             // it does not price the plumbing, and a price on this node would
             // read as the cost of the work itself.
             'description' => $count > 0
-                ? $count . ' ' . strtolower((string) $trade['name']) . ' businesses covering '
-                    . $this->market['name'] . ' are listed on Fix Listed.'
+                ? self::businesses($count, (string) $trade['name']) . ' covering '
+                    . $this->market['name'] . ($count === 1 ? ' is' : ' are') . ' listed on Fix Listed.'
                 : 'Fix Listed is open to ' . strtolower((string) $trade['name'])
                     . ' businesses covering ' . $this->market['name'] . '.',
         ];
+    }
+
+    /**
+     * "1 plumbing business", "2 carpentry businesses".
+     *
+     * A count and a noun, agreeing. Small, and it appears in the meta
+     * description and in the structured data, which is to say in the two
+     * places a stranger forms their first opinion of whether this site is
+     * maintained by anyone.
+     */
+    private static function businesses(int $count, string $tradeName): string
+    {
+        return $count . ' ' . strtolower($tradeName) . ' ' . ($count === 1 ? 'business' : 'businesses');
     }
 
     /**
@@ -136,19 +149,30 @@ final class ServiceController extends Controller
      */
     private function faqNode(array $trade, ?array $copy, array $licence): array
     {
+        /*
+         * Questions phrased so they work for every trade name.
+         *
+         * "What does a odd jobs job usually involve?" is what you get from
+         * interpolating the name into a sentence, and this text is published
+         * to Google, where it may be read aloud. Each question below takes
+         * the name as a noun on its own, which every one of the ten survives.
+         */
         $name  = strtolower((string) $trade['name']);
         $pairs = [];
 
         if ($copy !== null) {
-            $pairs['What does a ' . $name . ' job usually involve?'] = $copy['intro'];
+            $pairs['What does ' . $trade['name'] . ' cover?'] = $copy['intro'];
             $pairs['What should I check before hiring for ' . $name . '?'] = $copy['ask'];
         }
 
         // Only when there is real guidance. The repository returns known=false
         // for a state nobody has entered yet, and that answer is "we do not
         // know", which is honest on the page and not worth marking up.
+        //
+        // The state is not named in the question — the market's is not always
+        // Illinois, and the answer says which one it is anyway.
         if (($licence['known'] ?? false) === true && ($licence['guidance'] ?? '') !== '') {
-            $pairs['Does Illinois license ' . $name . '?'] = (string) $licence['guidance'];
+            $pairs['Is ' . $name . ' licensed by the state?'] = (string) $licence['guidance'];
         }
 
         $pairs['What does it cost to get quotes on Fix Listed?'] =

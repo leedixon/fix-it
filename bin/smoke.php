@@ -1212,6 +1212,58 @@ check('every trade has page copy written for it',
     count($written) . ' of ' . count($tradeSlugs));
 
 /*
+ * The copy has to read as English for every trade, not just for the one
+ * somebody happened to look at.
+ *
+ * "Post a odd jobs job" and "1 plumbing businesses" both shipped, and both
+ * were found by looking at a screenshot rather than by any test here. These
+ * assertions are what stop the eleventh trade reintroducing them.
+ */
+$badArticle = [];
+$missingJob = [];
+foreach ($tradeSlugs as $slug) {
+    $phrase = TradeCopy::jobPhrase($slug);
+    $copy   = TradeCopy::for($slug);
+
+    if ($copy === null || ($copy['job'] ?? '') === '') {
+        $missingJob[] = $slug;
+        continue;
+    }
+
+    // 'a' before a consonant, 'an' before a vowel. The check in jobPhrase is
+    // a plain vowel test, which is right for these phrases and wrong for a
+    // silent h or a long u — so this is where such a phrase gets caught.
+    $expected = str_contains('aeiou', strtolower($copy['job'][0])) ? 'an ' : 'a ';
+    if (!str_starts_with($phrase, $expected) || !str_ends_with($phrase, ' job')) {
+        $badArticle[] = $slug . ': "Post ' . $phrase . '"';
+    }
+}
+check('every trade has a phrase that fits "Post a ___ job"',
+    $missingJob === [], implode(', ', $missingJob));
+check('and the article in front of it is right',
+    $badArticle === [], implode('; ', $badArticle));
+
+/*
+ * Two mechanical properties of the phrase, and deliberately not a third.
+ *
+ * Whether 'handyman' is the right word for Odd Jobs is a judgement, made
+ * once and visible in TradeCopy — not something to approximate with a rule
+ * that would also have rejected 'appliance repair', which reads perfectly.
+ * A test that fails on correct output is a test people learn to ignore.
+ *
+ * What a machine can check: it never reads 'job job', and it is lower case,
+ * so it does not look like a proper noun in the middle of a sentence.
+ */
+$malformed = [];
+foreach ($tradeSlugs as $slug) {
+    $phrase = TradeCopy::jobPhrase($slug);
+    if (str_contains($phrase, 'job job') || $phrase !== strtolower($phrase)) {
+        $malformed[] = $slug . ': "Post ' . $phrase . '"';
+    }
+}
+check('no phrase stutters or shouts', $malformed === [], implode('; ', $malformed));
+
+/*
  * The escaping test, and the reason Seo::json exists.
  *
  * Structured data is assembled from names tradespeople type into their own

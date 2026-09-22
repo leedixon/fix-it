@@ -11,16 +11,23 @@
  * @var array      $licence     LicenceRepository::forTrade()
  * @var array      $pros
  * @var int        $proCount
- * @var array      $cities
- * @var array      $otherTrades
  * @var int        $fee
  * @var array      $market
  * @var array      $crumbs
  */
 require_once __DIR__ . '/../partials/icons.php';
 
-$name  = (string) $trade['name'];
-$lower = strtolower($name);
+/*
+ * Prefixed, and not just for tidiness.
+ *
+ * partials/pro_card.php sets $name to the tradesperson it is drawing, and a
+ * PHP require shares this scope — so a bare $name here is whatever the last
+ * card in the loop happened to be, and the heading below the listings read
+ * "Priya Raman by town". Nothing warns about it; you have to look at the page.
+ */
+$tradeName  = (string) $trade['name'];
+$tradeLower = strtolower($tradeName);
+$jobPhrase  = \FixListed\Core\TradeCopy::jobPhrase((string) $trade['slug']);
 ?>
 
 <?php require __DIR__ . '/../partials/crumbs.php'; ?>
@@ -29,7 +36,7 @@ $lower = strtolower($name);
   <div class="wrap">
     <div class="eyebrow eyebrow-brass"><?= icon((string) $trade['icon'], 14) ?> <?= e($market['name']) ?></div>
     <h1 style="font-size:clamp(30px,4.6vw,48px);margin-top:12px">
-      <?= e($name) ?> in <?= e($market['name']) ?>
+      <?= e($tradeName) ?> in <?= e($market['name']) ?>
     </h1>
 
     <?php if ($copy !== null): ?>
@@ -41,8 +48,8 @@ $lower = strtolower($name);
         <?= e($proCount) ?> <?= e($proCount === 1 ? 'business' : 'businesses') ?> covering
         <?= e($market['name']) ?> <?= e($proCount === 1 ? 'is' : 'are') ?> listed for this trade.
       <?php else: ?>
-        No <?= e($lower) ?> businesses have listed with us yet — this part of the directory is
-        still filling up.
+        No <?= e($tradeLower) ?> businesses have listed with us yet — this part of the directory
+        is still filling up.
       <?php endif; ?>
       Posting a job costs a flat <?= e(money($fee)) ?>, quotes come back free, and Fix Listed
       takes no cut of the work.
@@ -50,7 +57,7 @@ $lower = strtolower($name);
 
     <div class="hero-cta" style="margin-top:24px">
       <a class="btn btn-primary btn-lg" href="<?= e(url_q('/post-a-job', ['trade' => $trade['slug']])) ?>">
-        Post a <?= e($lower) ?> job
+        Post <?= e($jobPhrase) ?>
       </a>
       <?php if ($proCount > 0): ?>
         <a class="btn btn-ghost btn-lg" href="<?= e(url_q('/pros', ['trade' => $trade['slug']])) ?>">
@@ -72,7 +79,7 @@ $lower = strtolower($name);
   <div class="wrap">
     <div class="grid g2" style="align-items:start">
       <div>
-        <h2 style="font-size:26px">What people call a <?= e($lower) ?> for</h2>
+        <h2 style="font-size:26px">The jobs people call about</h2>
         <ul class="muted" style="margin-top:14px;line-height:1.9;padding-left:18px">
           <?php foreach ($copy['jobs'] as $job): ?>
             <li><?= e($job) ?></li>
@@ -127,7 +134,7 @@ $lower = strtolower($name);
 <section class="sect-tight">
   <div class="wrap">
     <div class="head">
-      <div><h2 style="font-size:28px"><?= e($name) ?> businesses</h2></div>
+      <div><h2 style="font-size:28px"><?= e($tradeName) ?> businesses</h2></div>
       <?php if ($proCount > count($pros)): ?>
         <a class="btn btn-ghost btn-sm" href="<?= e(url_q('/pros', ['trade' => $trade['slug']])) ?>">
           All <?= e($proCount) ?> <?= icon('arrow', 14) ?>
@@ -138,7 +145,7 @@ $lower = strtolower($name);
     <?php if ($pros === []): ?>
       <?php
       $emptyTitle   = 'Launching soon in ' . $market['name'];
-      $emptyBody    = 'No ' . $lower . ' businesses have listed here yet. If this is your trade, '
+      $emptyBody    = 'No ' . $tradeLower . ' businesses have listed here yet. If this is your trade, '
                     . 'a profile is free, quoting is free, and you would be the first one on this page.';
       $emptyCta     = 'List your business — free';
       $emptyCtaHref = url('/list-your-business');
@@ -154,23 +161,13 @@ $lower = strtolower($name);
   </div>
 </section>
 
-<section class="sect-tight">
-  <div class="wrap">
-    <?php if ($cities !== []): ?>
-      <div class="eyebrow" style="margin-bottom:12px"><?= e($name) ?> by town</div>
-      <div class="chipset">
-        <?php foreach ($cities as $c): ?>
-          <a class="chip" href="<?= e(city_url($c)) ?>"><?= e($c['name']) ?></a>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-
-    <div class="eyebrow" style="margin:28px 0 12px">Other trades</div>
-    <div class="chipset">
-      <?php foreach ($otherTrades as $t): ?>
-        <?php if ($t['slug'] === $trade['slug']) { continue; } ?>
-        <a class="chip" href="<?= e(service_url((string) $t['slug'])) ?>"><?= e($t['name']) ?></a>
-      <?php endforeach; ?>
-    </div>
-  </div>
-</section>
+<?php
+/*
+ * The town and trade chipsets that used to sit here are gone.
+ *
+ * They listed exactly the links the footer already carries on every page of
+ * the site — the same towns, the same trades, a hundred pixels above an
+ * identical set. Two copies of a link on one page is not twice the
+ * navigation; it is the same navigation, read twice.
+ */
+?>

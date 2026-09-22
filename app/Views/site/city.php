@@ -92,14 +92,16 @@ require_once __DIR__ . '/../partials/icons.php';
       <?php endforeach; ?>
     </div>
 
-    <?php if (count($otherCities) > 1): ?>
-      <div class="eyebrow" style="margin:28px 0 12px">Nearby towns</div>
-      <div class="chipset">
-        <?php foreach ($otherCities as $c): ?>
-          <?php if ($c['slug'] === $city['slug']) { continue; } ?>
-          <a class="chip" href="<?= e(city_url($c)) ?>"><?= e($c['name']) ?></a>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
+    <?php
+    /*
+     * No "nearby towns" list here any more.
+     *
+     * The footer carries every town with a landing page, on every page of the
+     * site, so this repeated the same twenty links about sixty pixels above
+     * an identical set. The trade chips above stay because they are not a
+     * repeat: they filter the directory by this city's county, which is a
+     * different destination from the footer's trade pages.
+     */
+    ?>
   </div>
 </section>

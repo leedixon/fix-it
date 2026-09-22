@@ -28,11 +28,20 @@ final class TradeCopy
      *   intro  — one paragraph, what the trade covers round here
      *   jobs   — the calls that actually come in, in plain words
      *   ask    — the one question worth asking before hiring
+     *   job    — the phrase that fits "Post a ___ job"
      *
-     * @var array<string,array{intro:string,jobs:array<int,string>,ask:string}>
+     * `job` exists because trade *names* do not survive being dropped into a
+     * sentence. "Post a plumbing job" reads fine; "Post a odd jobs job" is
+     * what you get from the same template, and "Post a drywall & paint job"
+     * is not much better. A page that cannot say what it is for in English
+     * is not a page anybody trusts with their boiler, and the same string
+     * ends up in the meta description, so a search result says it too.
+     *
+     * @var array<string,array{intro:string,jobs:array<int,string>,ask:string,job:string}>
      */
     private const COPY = [
         'plumbing' => [
+            'job' => 'plumbing',
             'intro' => 'Plumbers handle everything water moves through: supply lines, drains, '
                 . 'water heaters, fixtures and the frozen pipe that finds you every January. In '
                 . 'Illinois plumbing is one of the few trades licensed by the state, so this is a '
@@ -49,6 +58,7 @@ final class TradeCopy
                 . 'the name of the person doing the work, not just the company.',
         ],
         'electrical' => [
+            'job' => 'electrical',
             'intro' => 'Electricians cover panels, circuits, outlets, lighting and the wiring '
                 . 'behind all of it. Illinois has no statewide electrician licence — towns license '
                 . 'their own — so ask which municipality issued theirs rather than expecting a '
@@ -65,6 +75,7 @@ final class TradeCopy
                 . 'insurance. A missing state number is normal in Illinois; missing insurance is not.',
         ],
         'carpentry' => [
+            'job' => 'carpentry',
             'intro' => 'Carpenters build and repair the wooden parts of a house — framing, trim, '
                 . 'stairs, doors, cabinets and the porch that has started to sag. Much of it is '
                 . 'work a general handyman will not take on and a specialist contractor will not '
@@ -81,6 +92,7 @@ final class TradeCopy
                 . 'trade where the difference between adequate and good is visible from the sofa.',
         ],
         'drywall-paint' => [
+            'job' => 'drywall or painting',
             'intro' => 'Drywall and painting go together because the finish is only as good as the '
                 . 'surface under it. This covers patching, hanging and taping board, texture '
                 . 'matching, and interior and exterior painting.',
@@ -96,6 +108,7 @@ final class TradeCopy
                 . 'the price difference between two painting quotes is in preparation, not paint.',
         ],
         'appliance' => [
+            'job' => 'appliance repair',
             'intro' => 'Appliance engineers repair what is already in the house: washers, dryers, '
                 . 'fridges, ovens, dishwashers and garbage disposals. Often the question worth '
                 . 'answering first is whether a repair is worth doing at all.',
@@ -111,6 +124,7 @@ final class TradeCopy
                 . 'before agreeing — on an older machine it can exceed a replacement.',
         ],
         'hvac' => [
+            'job' => 'heating or cooling',
             'intro' => 'Heating and cooling covers furnaces, air conditioning, heat pumps, '
                 . 'ductwork and the annual service that stops a January failure. In this part of '
                 . 'Illinois a furnace that fails in a cold snap is an emergency, so it is worth '
@@ -127,6 +141,7 @@ final class TradeCopy
                 . 'system. An oversized furnace costs more to buy and more to run.',
         ],
         'roofing-gutters' => [
+            'job' => 'roofing or gutter',
             'intro' => 'Roofers cover shingles, flashing, valleys, gutters and downspouts. '
                 . 'Roofing contractors in Illinois are licensed by IDFPR under the Roofing '
                 . 'Industry Licensing Act, so unlike most trades here there is a state register '
@@ -144,6 +159,7 @@ final class TradeCopy
                 . 'fastest way to tell them from the local firms.',
         ],
         'fencing-decks' => [
+            'job' => 'fencing or decking',
             'intro' => 'Fencing and decking is outdoor structural work: posts, rails, boards, '
                 . 'gates, stairs and railings. Most of it needs a permit and all of it needs the '
                 . 'utilities located before anybody digs.',
@@ -160,6 +176,7 @@ final class TradeCopy
                 . 'contractor\'s job to make.',
         ],
         'landscaping-snow' => [
+            'job' => 'landscaping or snow-clearing',
             'intro' => 'Grounds work across the year: mowing, planting, beds, drainage and '
                 . 'clean-ups in the warm months, and plowing, shovelling and salting once it turns. '
                 . 'Many of the same firms do both, which is why they are listed together.',
@@ -176,6 +193,7 @@ final class TradeCopy
                 . 'booking it in September.',
         ],
         'odd-jobs' => [
+            'job' => 'handyman',
             'intro' => 'The general handyman list — the jobs too small for a specialist and too '
                 . 'awkward to keep putting off. One visit often clears several at once, which is '
                 . 'usually the cheapest way to have them done.',
@@ -200,11 +218,34 @@ final class TradeCopy
      * pretending to be specific. ServiceController decides what to do with
      * that, and the sitemap decides whether the page is worth submitting.
      *
-     * @return array{intro:string,jobs:array<int,string>,ask:string}|null
+     * @return array{intro:string,jobs:array<int,string>,ask:string,job:string}|null
      */
     public static function for(string $tradeSlug): ?array
     {
         return self::COPY[$tradeSlug] ?? null;
+    }
+
+    /**
+     * The phrase a button or a sentence uses: "a plumbing job", "an
+     * electrical job", "a handyman job".
+     *
+     * The article is worked out here rather than stored, so the data above
+     * stays readable, and it is a plain vowel check rather than anything
+     * clever. That is wrong for "an hour" and "a university" — and right for
+     * all ten phrases it is ever given, which bin/smoke.php asserts. If a
+     * trade is ever added whose phrase starts with a silent h or a long u,
+     * the test fails and the article moves into the data.
+     */
+    public static function jobPhrase(string $tradeSlug): string
+    {
+        $copy = self::for($tradeSlug);
+        if ($copy === null) {
+            return 'a job';
+        }
+
+        $article = str_contains('aeiou', strtolower($copy['job'][0])) ? 'an' : 'a';
+
+        return $article . ' ' . $copy['job'] . ' job';
     }
 
     /** @return array<int,string> every trade slug that has copy written */

@@ -113,6 +113,16 @@ if ($secretKey === '') {
     line($webhookKey !== '', 'Stripe webhook secret is set',
         $webhookKey !== '' ? '' : 'no payment can be confirmed without it — see docs/payments.md');
 
+    // The list Stripe must be told to send. Printed rather than merely
+    // checked, because nothing here can see the dashboard — the person
+    // reading this is the only one who can compare the two.
+    $events = \FixListed\Controllers\WebhookController::HANDLED_EVENTS;
+    line(true, 'webhook events this endpoint handles', count($events) . ' — listed below');
+    foreach ($events as $event) {
+        echo '        ' . $event . "\n";
+    }
+    echo "        (Stripe > Webhooks > your endpoint must send exactly these)\n";
+
     // A test override left in production would send real checkouts to a stub,
     // which is why it is a failure with live keys rather than a note.
     if ($apiBase === '') {

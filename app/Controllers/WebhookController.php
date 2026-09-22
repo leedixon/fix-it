@@ -36,6 +36,28 @@ use FixListed\Repositories\JobPostingRepository;
  */
 final class WebhookController
 {
+    /**
+     * Every event type this endpoint acts on.
+     *
+     * The list Stripe is configured to send must match this exactly, and the
+     * two live in different places — one in a dashboard, one in code — so
+     * they drift silently. An event subscribed here but not in Stripe never
+     * arrives: a placement goes up and never comes down, and nothing anywhere
+     * looks wrong. One subscribed in Stripe but not here is answered 200 and
+     * discarded, which is harmless but noise.
+     *
+     * `php bin/check.php` prints this list, and bin/smoke.php asserts the
+     * match block below handles precisely these and nothing else.
+     */
+    public const HANDLED_EVENTS = [
+        'checkout.session.completed',
+        'charge.refunded',
+        'invoice.paid',
+        'invoice.payment_failed',
+        'customer.subscription.updated',
+        'customer.subscription.deleted',
+    ];
+
     public function __construct(
         private readonly Database $db,
         private readonly Request $request,

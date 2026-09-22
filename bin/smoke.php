@@ -592,6 +592,38 @@ $dupes = (int) $db->value(
 );
 check('the daily rollup holds one row per placement per day', $dupes === 0);
 
+// --- the webhook's event list -----------------------------------------------
+// HANDLED_EVENTS is what bin/check.php prints for somebody to paste into the
+// Stripe dashboard. If the match block and that list ever disagree, the
+// printed list is a lie and an event silently never arrives.
+$src = file_get_contents(BASE_PATH . '/app/Controllers/WebhookController.php');
+preg_match('/\$handled = match \(\$type\) \{(.*?)\};/s', $src, $m);
+preg_match_all("/'([a-z_]+\.[a-z_.]+)'\s*=>/", $m[1] ?? '', $hits);
+
+$matched  = $hits[1] ?? [];
+$declared = \FixListed\Controllers\WebhookController::HANDLED_EVENTS;
+sort($matched);
+sort($declared);
+
+check('the event list matches what the webhook actually handles',
+    $matched === $declared && $matched !== [],
+    count($declared) . ' events');
+
+// Each of the four subscription events exists because leaving it off has a
+// specific consequence, named in docs/payments.md. Spelled out so that
+// dropping one is a decision somebody has to make on purpose.
+foreach ([
+    'checkout.session.completed'    => 'nothing is ever published or granted',
+    'charge.refunded'               => 'a refunded listing stays on the board',
+    'invoice.paid'                  => 'a placement is never renewed',
+    'invoice.payment_failed'        => 'a declined card is never noticed',
+    'customer.subscription.updated' => 'a pending cancellation is never recorded',
+    'customer.subscription.deleted' => 'a placement goes up and never comes down',
+] as $event => $consequence) {
+    check('without ' . $event . ', ' . $consequence,
+        in_array($event, $declared, true));
+}
+
 // --- subscription billing periods, across API versions ----------------------
 // Stripe moved these in version 2025-03-31: up to then they sat on the
 // subscription, from then on they sit on its items. A webhook body arrives in

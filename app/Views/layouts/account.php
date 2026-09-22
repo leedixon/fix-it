@@ -98,5 +98,6 @@ $status = (string) ($profile['status'] ?? '');
     <?= $content ?>
   </div>
 </main>
+<script src="<?= e(asset('assets/js/password.js')) ?>" defer></script>
 </body>
 </html>

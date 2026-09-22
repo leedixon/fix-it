@@ -645,3 +645,21 @@ td.wrap-cell{white-space:normal;min-width:220px}
 .row-acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
 .row-remove{margin-top:6px}
 .row-remove .inp-sm{width:180px}
+
+/* ---- show/hide on password fields ---- */
+/* The wrapper is created by assets/js/password.js. With scripting off it is
+   never created, the input keeps its own layout, and nothing here applies. */
+.pw-wrap{position:relative;display:block}
+.pw-wrap input{width:100%;padding-right:44px}
+.pw-eye{
+  position:absolute;top:50%;right:4px;transform:translateY(-50%);
+  display:grid;place-items:center;width:34px;height:34px;
+  background:transparent;border:0;border-radius:3px;cursor:pointer;
+  color:var(--text-3);padding:0;
+}
+.pw-eye:hover{color:var(--text)}
+.pw-eye:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
+/* No per-screen override. Every password field this appears on sits in a
+   .field on a light card — including the admin login, whose .box is white on
+   a dark page. Colouring it for the page rather than the card made the eye
+   almost invisible against the input it sits in. */

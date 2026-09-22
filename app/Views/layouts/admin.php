@@ -119,5 +119,6 @@ $nav = static function (string $href, string $label, string $icon, string $curre
     <?= $content ?>
   </main>
 </div>
+<script src="<?= e(asset('assets/js/password.js')) ?>" defer></script>
 </body>
 </html>

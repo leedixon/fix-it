@@ -714,6 +714,52 @@ foreach ([
 check('a live restricted key is not mistaken for test mode',
     (new \FixListed\Core\Stripe('rk_live_example', 'whsec_x'))->isLive());
 
+// --- show/hide on password fields -------------------------------------------
+// This is the only JavaScript on the site and it must stay an enhancement:
+// the button is created by script, never present in the markup, so a form
+// that works without scripting keeps working.
+$pwJs = BASE_PATH . '/public/assets/js/password.js';
+check('the password toggle script exists', is_file($pwJs));
+
+$pwSrc = is_file($pwJs) ? (string) file_get_contents($pwJs) : '';
+
+// A toggle that defaults to submit sends the form with a half-typed password.
+check('the toggle button is explicitly type=button',
+    str_contains($pwSrc, "button.type = 'button'"));
+
+// It binds to the type, not to named fields, so a password box added to a
+// form later gets this rather than being the one that missed out.
+check('it binds to every password input, not named ones',
+    str_contains($pwSrc, 'input[type="password"]'));
+
+check('a revealed password is re-hidden when the form is submitted',
+    str_contains($pwSrc, 'setShown(false)'));
+
+// No password field may ship a toggle in its own markup: that would render a
+// dead button for anyone without scripting.
+$views = glob(BASE_PATH . '/app/Views/**/*.php') ?: [];
+$hardCoded = [];
+foreach ($views as $view) {
+    $html = (string) file_get_contents($view);
+    if (str_contains($html, 'pw-eye')) {
+        $hardCoded[] = basename($view);
+    }
+}
+check('no template hard-codes a toggle button', $hardCoded === [],
+    $hardCoded === [] ? 'created by script only' : implode(', ', $hardCoded));
+
+// Every layout that can render a password field has to load the script, or
+// one form silently lacks the button.
+$missing = [];
+foreach (['layouts/app', 'layouts/account', 'layouts/admin', 'admin/login'] as $layout) {
+    $file = BASE_PATH . '/app/Views/' . $layout . '.php';
+    if (is_file($file) && !str_contains((string) file_get_contents($file), 'assets/js/password.js')) {
+        $missing[] = $layout;
+    }
+}
+check('every layout with a password form loads it', $missing === [],
+    $missing === [] ? '4 layouts' : 'missing from ' . implode(', ', $missing));
+
 // --- the emails a decision sends --------------------------------------------
 // These two carry the only link a tradesperson or a colleague has to set a
 // password. If one fails to render, or carries no link, the person is live

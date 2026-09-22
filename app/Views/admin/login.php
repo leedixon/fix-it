@@ -43,5 +43,6 @@ require_once __DIR__ . '/../partials/icons.php';
     </p>
   </div>
 </div>
+<script src="<?= e(asset('assets/js/password.js')) ?>" defer></script>
 </body>
 </html>

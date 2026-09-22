@@ -5,6 +5,8 @@ namespace FixListed\Controllers\Admin;
 
 use FixListed\Core\AdminController;
 use FixListed\Core\Auth;
+use FixListed\Core\Mailer;
+use FixListed\Core\PasswordReset;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
 use FixListed\Repositories\AdminRepository;
@@ -115,6 +117,74 @@ final class ManageController extends AdminController
             'waitlist' => $admin->waitlist(50),
             'pending'  => $admin->counts()['applications'],
         ]);
+    }
+
+    /**
+     * Sends a live tradesperson a fresh link to set their password.
+     *
+     * The gap this closes: approval publishes a profile and emails the only
+     * sign-in link that account will ever get. If that email fails — and it
+     * can, silently, on a mail provider having a bad afternoon — the person
+     * is live, findable by homeowners, and locked out, with nothing an
+     * administrator can do about it short of SSH.
+     *
+     * Issuing a new link invalidates any outstanding one, so this doubles as
+     * the fix for a link sent to a mistyped address.
+     */
+    public function resendProLink(string $id): Response
+    {
+        if ($denied = $this->guardCan('listings.moderate')) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was sent.');
+            return Response::redirect('/admin/pros');
+        }
+
+        $pro = $this->db->one(
+            'SELECT p.id, p.business_name, u.id AS user_id, u.email, u.first_name, u.last_name
+               FROM pro_profiles p JOIN users u ON u.id = p.user_id
+              WHERE p.id = :id AND p.market_id = :market LIMIT 1',
+            ['id' => (int) $id, 'market' => $this->scope->marketId],
+        );
+
+        if ($pro === null) {
+            Session::flash('bad', 'No such listing.');
+            return Response::redirect('/admin/pros');
+        }
+
+        $token = (new PasswordReset($this->db))->issue((int) $pro['user_id'], true);
+        $name  = $pro['business_name'] ?: trim($pro['first_name'] . ' ' . $pro['last_name']);
+
+        try {
+            $ok = Mailer::fromConfig()->send(
+                (string) $pro['email'],
+                'Your Fix Listed sign-in link',
+                $this->view->render('emails.password_link', [
+                    'title'     => 'Set your password',
+                    'preheader' => 'A fresh link to get into your Fix Listed account.',
+                    'name'      => (string) $pro['first_name'],
+                    'link'      => abs_url('/set-password/' . $token),
+                    'invite'    => true,
+                    'hours'     => 0,
+                    'days'      => PasswordReset::INVITE_DAYS,
+                ], 'emails.layout'),
+                "Set your Fix Listed password here:\n" . abs_url('/set-password/' . $token) . "\n",
+            );
+        } catch (\Throwable $e) {
+            error_log('Resend to pro ' . $pro['id'] . ' failed: ' . $e->getMessage());
+            $ok = false;
+        }
+
+        $this->record('pro.link_resent', 'pro_profile', (int) $pro['id'], ['sent' => $ok]);
+
+        Session::flash($ok ? 'good' : 'bad', $ok
+            ? 'A fresh sign-in link is on its way to ' . $pro['email']
+              . '. Any previous one has stopped working.'
+            : 'That email did not send. Run php bin/check.php, then try again — '
+              . $name . ' still has no way in.');
+
+        return Response::redirect('/admin/pros');
     }
 
     /**

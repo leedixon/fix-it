@@ -47,6 +47,16 @@ $tab = static fn (string $s, string $label): string =>
               <?php elseif ($p['status'] === 'pending_review'): ?>
                 <a class="btn btn-dark btn-sm" href="<?= e(url('/admin/applications/' . $p['id'])) ?>">Review</a>
               <?php endif; ?>
+              <?php if ($p['status'] === 'active'): ?>
+                <!-- Approval emails the only sign-in link this account gets.
+                     If that send failed, the profile is live and its owner is
+                     locked out — this is the way back. -->
+                <form method="post" action="<?= e(url('/admin/pros/' . $p['id'] . '/resend')) ?>">
+                  <?= \FixListed\Core\Csrf::field() ?>
+                  <button class="btn btn-ghost btn-sm" type="submit"
+                          title="Email them a fresh link to set their password">Send sign-in link</button>
+                </form>
+              <?php endif; ?>
               <?php if ($p['status'] !== 'pending_review'): ?>
                 <form method="post" action="<?= e(url('/admin/pros/' . $p['id'] . '/status')) ?>">
                   <?= \FixListed\Core\Csrf::field() ?>

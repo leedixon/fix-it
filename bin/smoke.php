@@ -714,6 +714,69 @@ foreach ([
 check('a live restricted key is not mistaken for test mode',
     (new \FixListed\Core\Stripe('rk_live_example', 'whsec_x'))->isLive());
 
+// --- the emails a decision sends --------------------------------------------
+// These two carry the only link a tradesperson or a colleague has to set a
+// password. If one fails to render, or carries no link, the person is live
+// and locked out with nothing on screen to say so.
+$emailView = new FixListed\Core\View(BASE_PATH . '/app/Views');
+$probeToken = str_repeat('a1', 32);
+
+$renders = static function (string $template) use ($emailView, $probeToken): string {
+    // Every variable any template asks for, in one bag. A template that
+    // wants something not in here has been given a new requirement without
+    // the test being told, and fails — which is the point.
+    return $emailView->render('emails.' . $template, [
+        'title' => 't', 'preheader' => 'p', 'name' => 'Sample',
+        'business' => 'Sample Plumbing', 'profileUrl' => '#', 'jobsUrl' => '#',
+        'setUpUrl' => abs_url('/set-password/' . $probeToken), 'market' => 'Northwest Illinois',
+        'note' => 'a reason', 'replyTo' => 'lee@example.com',
+        'inviter' => 'Lee Dixon', 'roleLabel' => 'Moderator', 'roleBlurb' => 'blurb', 'days' => 7,
+        'jobTitle' => 'Replace a sump pump', 'reference' => 'NWI-8HLF4X',
+        'jobUrl' => abs_url('/jobs/NWI-8HLF4X'), 'expires' => '2026-10-21 00:00:00',
+        'trade' => 'Plumbing', 'city' => 'Rockford', 'summary' => 'The old one has failed.',
+        'quoteUrl' => abs_url('/my/quote/NWI-8HLF4X'), 'amount' => '$10.00',
+        'link' => abs_url('/set-password/' . $probeToken), 'invite' => true, 'hours' => 1,
+    ], 'emails.layout');
+};
+
+foreach (['pro_approved', 'pro_rejected', 'team_invite', 'job_live', 'job_alert',
+          'quote_received', 'password_link', 'job_refunded'] as $template) {
+    $html = '';
+    try {
+        $html = $renders($template);
+    } catch (\Throwable $e) {
+        $html = '';
+    }
+    check('the ' . $template . ' email renders', $html !== '', strlen($html) . ' bytes');
+}
+
+// The two that must carry a way in, and the one that must not.
+check('an approved tradesperson is sent a way to set their password',
+    str_contains($renders('pro_approved'), $probeToken));
+check('an invited colleague is sent a way to set their password',
+    str_contains($renders('team_invite'), $probeToken));
+check('a declined applicant is sent no sign-in link',
+    !str_contains($renders('pro_rejected'), $probeToken));
+
+// Guards a fall-through that would have sent an approved tradesperson the
+// rejection email as well: the approve branch must return, not continue into
+// the decline send below it.
+$tellSrc = file_get_contents(BASE_PATH . '/app/Controllers/Admin/ReviewController.php');
+$tellSrc = substr($tellSrc, strpos($tellSrc, 'private function tell('));
+$tellSrc = substr($tellSrc, 0, strpos($tellSrc, "\n    }\n"));
+check('approve and decline each send exactly one email',
+    substr_count($tellSrc, 'mailer->send(') === 2
+    && substr_count($tellSrc, 'return $mailer->send(') === 2,
+    'both sends return, so neither falls through to the other');
+
+// The decision is committed before the email is attempted, so a mail failure
+// must be reported rather than swallowed — an approval nobody was told about
+// is a published profile its owner cannot sign into.
+$reviewSrc = file_get_contents(BASE_PATH . '/app/Controllers/Admin/ReviewController.php');
+check('a failed decision email is reported on screen, not just logged',
+    str_contains($reviewSrc, '$sent = $this->tell($pro, \'approved\'')
+    && str_contains($reviewSrc, 'did not send'));
+
 // --- the People screen's role tabs ------------------------------------------
 // Every one of these 500'd: ':role' was written into the SQL and the value was
 // never bound, so PDO refused the statement. The unfiltered tab worked, which

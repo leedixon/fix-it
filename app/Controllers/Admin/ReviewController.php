@@ -92,10 +92,21 @@ final class ReviewController extends AdminController
             'slug'               => $pro['slug'],
         ]);
 
-        $this->tell($pro, 'approved', '');
+        $sent = $this->tell($pro, 'approved', '');
 
-        Session::flash('ok', ($pro['business_name'] ?: $pro['first_name'])
-            . ' is live. They have been emailed a link to their profile.');
+        // The stakes are higher here than on a decline. That email carries the
+        // only link they have to set a password, so an approved tradesperson
+        // whose email never arrived has a published profile and no way into
+        // it — waiting, while the queue says the job is done.
+        Session::flash('ok', ($pro['business_name'] ?: $pro['first_name']) . ' is live.'
+            . ($sent ? ' They have been emailed a link to set their password.' : ''));
+
+        if (!$sent) {
+            Session::flash('bad', 'Their profile is published, but the email to ' . $pro['email']
+                . ' did not send — so they have no way to sign in yet. Fix the mail setup '
+                . '(php bin/check.php), then send them a link from Tradespeople.');
+        }
+
         return Response::redirect('/admin/applications');
     }
 
@@ -119,11 +130,16 @@ final class ReviewController extends AdminController
         $repo->reject((int) $id, (int) $this->auth->id(), $note);
         $this->record('pro.rejected', 'pro_profile', (int) $id, ['note' => $note, 'slug' => $pro['slug']]);
 
-        if ($this->request->input('tell_them') === '1') {
-            $this->tell($pro, 'rejected', $note);
-        }
+        // null when the box was unticked — declining quietly is a deliberate
+        // option, and "not emailed" must read differently from "the email
+        // failed".
+        $sent = $this->request->input('tell_them') === '1'
+            ? $this->tell($pro, 'rejected', $note)
+            : null;
 
-        Session::flash('ok', 'Application declined and taken out of the queue.');
+        Session::flash('ok', 'Application declined and taken out of the queue.' . $this->sendNote($sent));
+        $this->warnIfUnsent($sent, (string) $pro['email']);
+
         return Response::redirect('/admin/applications');
     }
 
@@ -146,13 +162,19 @@ final class ReviewController extends AdminController
     }
 
     /**
-     * Tells the applicant what was decided.
+     * Tells the applicant what was decided. Returns whether it actually went.
      *
-     * Wrapped, like every other send: the decision is already committed, and a
-     * mail failure must not leave an approved profile looking un-approved to
-     * the administrator who just approved it.
+     * Still wrapped: the decision is already committed, and a mail failure
+     * must not leave an approved profile looking un-approved to the
+     * administrator who just approved it.
+     *
+     * But it no longer fails *silently*. The whole point of this screen is to
+     * tell somebody they are live, or that they are not — and an approval
+     * whose email never arrived is a tradesperson sitting waiting, with a
+     * queue that says the job is done and a log nobody reads. The caller says
+     * so on screen.
      */
-    private function tell(array $pro, string $outcome, string $note): void
+    private function tell(array $pro, string $outcome, string $note): bool
     {
         try {
             $mailer = Mailer::fromConfig();
@@ -167,7 +189,7 @@ final class ReviewController extends AdminController
                 // emails sit unread over a weekend.
                 $token = (new PasswordReset($this->db))->issue((int) $pro['user_id'], true);
 
-                $mailer->send(
+                return $mailer->send(
                     (string) $pro['email'],
                     'You are live on Fix Listed',
                     $view->render('emails.pro_approved', [
@@ -184,10 +206,9 @@ final class ReviewController extends AdminController
                     . "Set your password and start quoting: " . abs_url('/set-password/' . $token) . "\n\n"
                     . "Open jobs in your counties: " . abs_url('/jobs') . "\n",
                 );
-                return;
             }
 
-            $mailer->send(
+            return $mailer->send(
                 (string) $pro['email'],
                 'About your Fix Listed application',
                 $view->render('emails.pro_rejected', [
@@ -202,6 +223,28 @@ final class ReviewController extends AdminController
             );
         } catch (\Throwable $e) {
             error_log('Decision mail failed for pro ' . ($pro['id'] ?? '?') . ': ' . $e->getMessage());
+            return false;
         }
+    }
+
+    /** What to add to the flash, so the outcome of the send is on screen. */
+    private function sendNote(?bool $sent): string
+    {
+        return match ($sent) {
+            true  => ' They have been emailed.',
+            false => '',
+            null  => ' They were not emailed, as you asked.',
+        };
+    }
+
+    /** The same failure, said the same way, on both decisions. */
+    private function warnIfUnsent(?bool $sent, string $email): void
+    {
+        if ($sent !== false) {
+            return;
+        }
+        Session::flash('bad', 'The decision was saved but the email to ' . $email
+            . ' did not send. They have not been told. Check php bin/check.php for the '
+            . 'mail setup, then use "Resend" once it is fixed.');
     }
 }

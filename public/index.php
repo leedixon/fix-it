@@ -165,6 +165,7 @@ try {
 
     $router->get('/admin/pros',                static fn () => $admin(ManageController::class)->pros());
     $router->post('/admin/pros/{id}/status',   static fn (array $p) => $admin(ManageController::class)->setProStatus($p['id']));
+    $router->post('/admin/pros/{id}/resend',   static fn (array $p) => $admin(ManageController::class)->resendProLink($p['id']));
     $router->get('/admin/jobs',                static fn () => $admin(ManageController::class)->jobs());
     $router->post('/admin/jobs/{id}/remove',   static fn (array $p) => $admin(ManageController::class)->removeJob($p['id']));
     $router->get('/admin/users',               static fn () => $admin(ManageController::class)->users());

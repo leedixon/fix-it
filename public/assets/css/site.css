@@ -520,35 +520,65 @@ td.wrap-cell{white-space:normal;min-width:220px}
 .adm-login{min-height:100vh;display:grid;place-items:center;background:var(--ink);padding:24px}
 .adm-login .box{width:100%;max-width:380px;background:var(--paper-3);border-radius:6px;
   padding:32px;box-shadow:var(--shadow-lift)}
+/* =========================================================================
+ * The admin drawer.
+ *
+ * Off-canvas, opened by the checkbox in layouts/admin.php, closed by tapping
+ * the scrim or the button again. No JavaScript: the whole thing is the
+ * :checked state of an input that is clipped rather than hidden, so it stays
+ * in the tab order and a screen reader still announces it.
+ *
+ * It replaced a horizontally scrolling row of eleven nav items. That fitted
+ * on the screen and was reachable, and it was still wrong: nothing about a
+ * row of links says "this scrolls", so the eight items past the fold were
+ * invisible to anyone who did not already know they were there.
+ * ====================================================================== */
+.adm-menu-state{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.adm-menu-btn,.adm-scrim{display:none}
+
 @media (max-width:860px){
   .adm{grid-template-columns:1fr}
-  .adm-side{position:static;height:auto;flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px}
-  /*
-   * One scrollable row, not eleven items wrapped into a block that eats the
-   * screen before the page starts. Everything stays reachable and nothing is
-   * behind a button that would need JavaScript to open.
-   */
-  /* order:3 puts the nav on its own row *below* the logo and the identity,
-     which then share the first row instead of taking one each. */
-  .adm-nav{order:3;flex-direction:row;flex-wrap:nowrap;width:100%;overflow-x:auto;
-           gap:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .adm-nav::-webkit-scrollbar{display:none}
-  .adm-nav a{white-space:nowrap;flex:0 0 auto}
+
+  /* The bar that is always there, carrying the only control that opens it. */
+  .adm-menu-btn{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:76;
+    background:var(--ink);color:var(--on-ink);padding:11px 16px;cursor:pointer}
+  .adm-menu-btn .logo{font-size:18px;color:var(--on-ink)}
+  .adm-menu-ico{display:flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border:1px solid var(--on-ink-line);border-radius:3px}
+  /* The input is invisible, so its focus ring has to land on the label. */
+  .adm-menu-state:focus-visible ~ .adm-menu-btn .adm-menu-ico{
+    outline:2px solid var(--brass-3);outline-offset:2px}
+
+  .adm-side{position:fixed;top:0;left:0;bottom:0;width:270px;max-width:82vw;z-index:80;
+    height:100dvh;overflow-y:auto;flex-direction:column;align-items:stretch;
+    flex-wrap:nowrap;gap:0;padding:18px 14px;
+    transform:translateX(-100%);transition:transform .22s ease;
+    box-shadow:none}
+  .adm-menu-state:checked ~ .adm-side{transform:translateX(0);box-shadow:var(--shadow-lift)}
+
+  .adm-scrim{position:fixed;inset:0;z-index:79;background:rgba(0,0,0,.5);
+    opacity:0;pointer-events:none;transition:opacity .22s ease}
+  .adm-menu-state:checked ~ .adm-scrim{display:block;opacity:1;pointer-events:auto}
+
+  /* Inside the drawer the nav is a column again, which is what it is for. */
+  .adm-nav{flex-direction:column;flex-wrap:nowrap;width:auto;overflow:visible;gap:2px}
+  .adm-nav a{white-space:normal}
+  .adm-side .who{margin-top:auto;border-top:1px solid var(--on-ink-line);
+    padding-top:14px;margin-left:0;display:block;font-size:12.5px}
+  .adm-side .who b{display:block}
+  .adm-side .who span{display:inline}
+  .adm-side .who .btn-block{width:100%}
+
+  /* Nothing behind the drawer should scroll while it is open. */
+  body:has(.adm-menu-state:checked){overflow:hidden}
+
   .adm-main{padding:20px 16px 60px}
-  /*
-   * The who block goes on one line. Stacked — name, role, a full-width Sign
-   * out button, then a View the site link — it was 130 of the 245 pixels the
-   * sidebar took before any page content started on a phone.
-   */
-  .adm-side .who{margin-top:0;border-top:0;padding-top:0;margin-left:auto;
-                 display:flex;align-items:center;gap:10px;font-size:12px}
-  .adm-side .who b{display:inline}
-  .adm-side .who span{display:none}          /* the role is on /admin/team */
-  .adm-side .who form{margin-top:0!important}
-  .adm-side .who .btn-block{width:auto}
-  .adm-side .who p{margin-top:0!important;white-space:nowrap}
   .adm-stats{grid-template-columns:repeat(2,1fr)}
   .adm-review{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  .adm-side,.adm-scrim{transition:none}
 }
 
 /* =========================================================================

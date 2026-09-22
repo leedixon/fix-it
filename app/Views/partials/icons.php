@@ -34,6 +34,10 @@ function icon(string $name, int $size = 16): string
         'clipboard' => '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5h6V7H9z"/><path d="M9 12h6M9 16h4"/>',
         'megaphone' => '<path d="M4 10v4a1 1 0 001 1h3l6 4V5L8 9H5a1 1 0 00-1 1z"/><path d="M18 9.2a4 4 0 010 5.6"/>',
         'star'    => '<path d="M12 3.6l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 17l-5.3 2.8 1.1-5.9L3.5 9.8l5.9-.8z"/>',
+        // Three bars, for the admin drawer. Every app draws this the same
+        // way, which is the entire reason it is recognisable.
+        'menu'    => '<path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/>',
+        'close'   => '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
 
         // The trades. trades.icon holds these names, so a new trade gets an
         // icon by adding one row here and one in the table — and an unknown

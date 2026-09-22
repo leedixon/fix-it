@@ -35,6 +35,27 @@ $nav = static function (string $href, string $label, string $icon, string $curre
 </head>
 <body>
 <div class="adm">
+  <?php
+  /*
+   * The drawer, opened by a checkbox and no JavaScript.
+   *
+   * The input is clipped rather than display:none, which keeps it in the tab
+   * order and operable with Space — so the menu is reachable from a keyboard
+   * and a screen reader announces it as expanded or collapsed, for free.
+   * .adm-scrim is a second label for the same checkbox, so tapping outside
+   * the drawer closes it the way it does in every other app.
+   *
+   * It replaces a horizontally scrolling row of eleven items, which fitted
+   * but which nobody would think to scroll.
+   */
+  ?>
+  <input type="checkbox" id="adm-menu" class="adm-menu-state" aria-label="Menu">
+  <label class="adm-menu-btn" for="adm-menu">
+    <span class="adm-menu-ico"><?= icon('menu', 20) ?></span>
+    <span class="logo"><b>Fix</b> <i style="font-style:normal;color:var(--brass-3)">Listed</i></span>
+  </label>
+  <label class="adm-scrim" for="adm-menu" aria-hidden="true"></label>
+
   <aside class="adm-side">
     <a class="logo" href="<?= e(url('/admin')) ?>"><b>Fix</b> <i style="font-style:normal;color:var(--brass-3)">Listed</i></a>
 

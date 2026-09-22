@@ -108,6 +108,7 @@ if (in_array('--analytics', $argv, true)) {
     if ($id !== '' && preg_match('/^GTM-[A-Z0-9]{4,12}$/', $id) !== 1) {
         fwrite(STDERR, "\nThat is not a container id. Expected GTM- followed by letters\n");
         fwrite(STDERR, "and digits, e.g. GTM-TX649KRG. Received: " . describeInput($id, $id) . ".\n");
+        fwrite(STDERR, queuedInputHint($id));
         fwrite(STDERR, "Nothing was written.\n\n");
         exit(1);
     }
@@ -180,6 +181,7 @@ if (in_array('--stripe', $argv, true)) {
         fwrite(STDERR, "\nThat does not look like a Stripe secret key. Expected one starting\n");
         fwrite(STDERR, "sk_test_, sk_live_, rk_test_ or rk_live_.\n");
         fwrite(STDERR, "Received: " . describeInput($secret, $secret) . ".\n");
+        fwrite(STDERR, queuedInputHint($secret));
         fwrite(STDERR, "Nothing was written.\n\n");
         exit(1);
     }
@@ -208,6 +210,7 @@ if (in_array('--stripe', $argv, true)) {
     } elseif (!str_starts_with($webhook, 'whsec_')) {
         fwrite(STDERR, "\nA webhook signing secret starts with whsec_.\n");
         fwrite(STDERR, "Received: " . describeInput($webhook, $webhook) . ".\n");
+        fwrite(STDERR, queuedInputHint($webhook));
         fwrite(STDERR, "Nothing was written.\n\n");
         exit(1);
     }

@@ -45,3 +45,37 @@ function describeInput(string $raw, string $cleaned): string
     }
     return implode(', ', $bits);
 }
+
+/**
+ * Whether what arrived is obviously a shell command rather than a value.
+ *
+ * This happens when somebody pastes a block of several commands: the shell
+ * runs the first, this script starts, and the *next* line is already sitting
+ * in the terminal's input buffer — so the first fgets() consumes it as the
+ * answer before the person has typed anything. What they then type echoes to
+ * a prompt that is no longer listening.
+ *
+ * It is worth detecting by name because the symptom is baffling: the value on
+ * screen is plainly correct, and the script insists it received something
+ * else.
+ */
+function looksLikeShellCommand(string $value): bool
+{
+    foreach (['php ', 'cd ', 'git ', 'ls ', 'nano ', 'sudo ', 'curl ', 'mysql ', 'chmod '] as $prefix) {
+        if (str_starts_with($value, $prefix)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** The advice that goes with it, or an empty string. */
+function queuedInputHint(string $value): string
+{
+    if (!looksLikeShellCommand($value)) {
+        return '';
+    }
+    return "\nThat is a shell command, not a value — which means your terminal had a\n"
+         . "line queued from a multi-line paste, and it was read as your answer.\n"
+         . "Run this command on its own, wait for the prompt, then type the value.\n";
+}

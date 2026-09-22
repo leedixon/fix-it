@@ -684,6 +684,19 @@ foreach ([
     check($label, cleanInput($raw) === $want, strlen($raw) . ' bytes in, ' . strlen($want) . ' out');
 }
 
+// A queued line from a multi-line paste is read as the answer before the
+// person has typed anything, and the symptom is baffling: the value on screen
+// is plainly right and the script insists it received something else. Worth
+// naming rather than leaving them to guess.
+foreach (['php bin/check.php', 'cd ~/fixlisted', 'git pull', 'nano config/config.php'] as $cmd) {
+    check('a queued "' . explode(' ', $cmd)[0] . '" command is recognised as one',
+        looksLikeShellCommand($cmd) && queuedInputHint($cmd) !== '');
+}
+foreach (['GTM-TX649KRG', 'rk_live_abc', 'whsec_abc', 'phpsomething'] as $real) {
+    check('"' . substr($real, 0, 12) . '" is not mistaken for a command',
+        !looksLikeShellCommand($real) && queuedInputHint($real) === '');
+}
+
 // The sanitiser must not quietly rescue a genuinely wrong key.
 check('a publishable key in the secret slot is still wrong',
     !\FixListed\Core\Stripe::looksLikeSecretKey(cleanInput("\e[200~pk_live_ABC\e[201~")));

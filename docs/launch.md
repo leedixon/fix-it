@@ -3,6 +3,23 @@
 Things that must be true before fixlisted.com stops being a holding page.
 Roughly in order.
 
+**Most of this is machine-checkable. Run it rather than reading it:**
+
+```bash
+php bin/check.php --live
+```
+
+Everything it reports as FAIL under *live readiness* is a setting that is
+correct for a preview and wrong for a site taking money from strangers. The
+list below explains why each one matters; the command tells you where you
+actually are.
+
+> **The first failure is not a launch item.** `database/seed.sql` publishes the
+> sample accounts' password, and this repository is public. A seeded admin that
+> can still sign in is an open door today, not at launch — and maintenance mode
+> does not close it, because `/admin/login` stays reachable by design. Fix that
+> before anything else on this page.
+
 ## Content
 
 - [ ] **Real tradespeople signed up.** A directory of ten invented businesses

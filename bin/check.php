@@ -221,5 +221,76 @@ if (\FixListed\Core\Maintenance::isOn()) {
     line(true, 'the site is not in maintenance mode');
 }
 
+
+/*
+ * --live — the launch gate.
+ *
+ * Everything above passes on a site no visitor should be allowed near. These
+ * are the settings that are correct for a preview and wrong for a live site,
+ * and they are informational the rest of the time precisely so they can be
+ * read past during development. Here they fail.
+ */
+if (in_array('--live', $argv, true)) {
+    echo "\n--- live readiness " . str_repeat('-', 52) . "\n\n";
+
+    // The one that is not a launch item at all. database/seed.sql publishes
+    // this password, and the repository may well be public — so a seeded
+    // admin that can still sign in is an open door, today, not at launch.
+    $demoAdmins = $db->all(
+        "SELECT email FROM users
+          WHERE role IN ('superadmin','market_admin','moderator')
+            AND is_demo = 1 AND status = 'active'"
+    );
+    line($demoAdmins === [], 'no sample admin account can sign in',
+        $demoAdmins === []
+            ? ''
+            : implode(', ', array_column($demoAdmins, 'email'))
+              . ' — password is published in database/seed.sql. Run: php bin/admin.php');
+
+    $realAdmins = (int) $db->value(
+        "SELECT COUNT(*) FROM users
+          WHERE role = 'superadmin' AND status = 'active'
+            AND is_demo = 0 AND password_hash IS NOT NULL"
+    );
+    line($realAdmins > 0, 'a real superadmin exists',
+        $realAdmins > 0 ? $realAdmins . ' who can sign in' : 'run: php bin/admin.php');
+    line($realAdmins > 1, 'more than one superadmin can sign in',
+        $realAdmins > 1 ? '' : 'one lost password means SSH to get back in — not fatal, but know it');
+
+    $demoRows = (int) $db->value('SELECT COUNT(*) FROM pro_profiles WHERE is_demo = 1')
+              + (int) $db->value('SELECT COUNT(*) FROM jobs WHERE is_demo = 1');
+    line($demoRows === 0, 'no sample listings or jobs remain',
+        $demoRows === 0 ? '' : $demoRows . ' invented rows — run: php bin/demo.php purge');
+
+    line(Config::get('app.demo_data') === 'hide', "app.demo_data is 'hide'",
+        Config::get('app.demo_data') === 'hide' ? '' : "currently '" . Config::get('app.demo_data') . "'");
+
+    line(Config::get('app.noindex') === false, 'app.noindex is off',
+        Config::get('app.noindex') === false ? 'search engines may index the site' : 'every page still says noindex');
+
+    $realPros = (int) $db->value("SELECT COUNT(*) FROM pro_profiles WHERE is_demo = 0 AND status = 'active'");
+    line($realPros > 0, 'there are real tradespeople to show',
+        $realPros > 0 ? $realPros . ' live' : 'a directory with nobody in it is worse than no directory');
+
+    // Live keys are the point of going live; a test key here means the site
+    // takes no money at all.
+    line($secretKey !== '' && \FixListed\Core\Stripe::isLiveKey($secretKey),
+        'Stripe is in live mode',
+        $secretKey === '' ? 'no key configured' : '');
+
+    // The auto-refund is a written promise on /pricing. A promise that only
+    // happens when somebody remembers to run something is not a promise.
+    $sweepLog = BASE_PATH . '/storage/logs/sweep.log';
+    $sweepRan = is_file($sweepLog) && (time() - filemtime($sweepLog)) < 172800;
+    line($sweepRan, 'the refund sweep has run in the last two days',
+        $sweepRan ? '' : 'cannot see storage/logs/sweep.log — is bin/sweep.php on cron?');
+
+    line(!\FixListed\Core\Maintenance::isOn(), 'the site is not in maintenance mode',
+        \FixListed\Core\Maintenance::isOn() ? 'visitors are seeing the holding page' : '');
+
+    echo "\nThese are launch gates. Failures here are settings that are correct\n";
+    echo "for a preview and wrong for a site taking money from strangers.\n";
+}
+
 printf("\n%d passed, %d failed\n", $ok, $bad);
 exit($bad === 0 ? 0 : 1);

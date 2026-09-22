@@ -101,6 +101,11 @@ actually are.
       preview traffic reports into the live property. Signed-in staff are
       never counted, and the admin and account areas carry no tag at all.
       `/privacy` already describes the cookies this sets.
+- [ ] **Go live: `php bin/configure.php --launch`.** Flips `app.noindex` off
+      and `app.demo_data` to `'hide'` in one step, and refuses if sample rows,
+      a sample admin, or an empty directory would make that a mistake. Do not
+      hand-edit those two — launch day is the worst moment to put a parse
+      error into a file holding live credentials.
 - [ ] **Remove `noindex`.** Set `app.noindex` to `false`. Until then every page
       carries `<meta name="robots" content="noindex, nofollow">`, deliberately.
 - [ ] Remove the `Disallow: /` from the holding page's `robots.txt`.

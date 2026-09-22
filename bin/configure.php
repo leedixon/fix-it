@@ -76,6 +76,92 @@ function writeConfig(string $target, array $config): void
 }
 
 /*
+ * --launch — flip the two settings that make a preview a live site.
+ *
+ * app.noindex and app.demo_data are the last things in this file anyone had a
+ * reason to hand-edit, and they get edited on launch day — the worst possible
+ * moment to put a parse error into a file holding live credentials.
+ *
+ * It refuses if the gates in `php bin/check.php --live` are not met, because
+ * the failure it prevents is real: turning off noindex with sample listings
+ * still showing invites search engines to index ten invented businesses, and
+ * that is not a mistake a robots file undoes quickly.
+ */
+if (in_array('--launch', $argv, true)) {
+    if (!is_file($target)) {
+        fwrite(STDERR, "\nThere is no config/config.php yet.\n\n");
+        exit(1);
+    }
+
+    $config = require $target;
+
+    echo "Going live\n\n";
+    echo "  app.noindex    " . (($config['app']['noindex'] ?? true) ? 'true — search engines told to stay away' : 'already false') . "\n";
+    echo "  app.demo_data  '" . ($config['app']['demo_data'] ?? 'label') . "'" . (($config['app']['demo_data'] ?? '') === 'hide' ? ' — already hidden' : '') . "\n\n";
+
+    // The gates that make this safe, checked here rather than trusted to have
+    // been read. Sample rows plus an indexable site is the combination that
+    // cannot be quietly undone.
+    $blockers = [];
+    try {
+        $db = new PDO(
+            sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+                $config['db']['host'], $config['db']['port'], $config['db']['name']),
+            $config['db']['user'], $config['db']['pass'],
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
+        );
+        $demoRows = (int) $db->query('SELECT COUNT(*) FROM pro_profiles WHERE is_demo = 1')->fetchColumn()
+                  + (int) $db->query('SELECT COUNT(*) FROM jobs WHERE is_demo = 1')->fetchColumn();
+        if ($demoRows > 0) {
+            $blockers[] = $demoRows . ' sample rows are still in the database — run: php bin/demo.php purge';
+        }
+        $realPros = (int) $db->query("SELECT COUNT(*) FROM pro_profiles WHERE is_demo = 0 AND status = 'active'")->fetchColumn();
+        if ($realPros === 0) {
+            $blockers[] = 'there are no real tradespeople listed — an empty directory is worse than none';
+        }
+        $demoAdmins = (int) $db->query("SELECT COUNT(*) FROM users WHERE role IN ('superadmin','market_admin','moderator') AND is_demo = 1 AND status = 'active'")->fetchColumn();
+        if ($demoAdmins > 0) {
+            $blockers[] = 'a sample admin account can still sign in — its password is published';
+        }
+    } catch (Throwable $e) {
+        $blockers[] = 'could not read the database to check: ' . $e->getMessage();
+    }
+
+    if ($blockers !== []) {
+        fwrite(STDERR, "STOPPED. Not ready to go live:\n\n");
+        foreach ($blockers as $blocker) {
+            fwrite(STDERR, "  - " . $blocker . "\n");
+        }
+        fwrite(STDERR, "\nNothing was changed. See php bin/check.php --live.\n\n");
+        exit(1);
+    }
+
+    echo "This makes the site public: search engines may index it, and no listing\n";
+    echo "is labelled Sample any more.\n\n";
+    if (strtolower(substr(ask('Go live? (y/n)', 'n'), 0, 1)) !== 'y') {
+        echo "Cancelled. Nothing was changed.\n\n";
+        exit(0);
+    }
+
+    $config['app']['noindex']   = false;
+    $config['app']['demo_data'] = 'hide';
+    writeConfig($target, $config);
+
+    $lint = [];
+    exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($target) . ' 2>&1', $lint, $code);
+    if ($code !== 0) {
+        fwrite(STDERR, "\nThe file was written but does not parse:\n" . implode("\n", $lint) . "\n");
+        exit(1);
+    }
+
+    echo "\nLive. noindex off, sample data hidden.\n\n";
+    echo "Two things that are now urgent rather than pending:\n";
+    echo "  - the webhook URL in Stripe must match where the app actually is\n";
+    echo "  - bin/sweep.php must be on cron, or the refund promise is not kept\n\n";
+    exit(0);
+}
+
+/*
  * --analytics — set or clear the Google Tag Manager container.
  *
  * Here for the same reason as --stripe: this file holds live credentials, and

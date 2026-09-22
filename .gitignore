@@ -1,5 +1,18 @@
-# Secrets — never commit real credentials
+# Secrets — never commit real credentials.
+#
+# The glob, not the exact filename. config/config.php was ignored and its
+# backups were not, so two config.php.bak-* files went into this repo's
+# history on 2026-09-20 — and this repo is public. Editors and scripts make
+# these constantly: nano writes .save when a session dies, vim writes .swp,
+# bin/configure.php used to write .bak-<timestamp>. Every one of them is a
+# full copy of the live credentials, and every one was one `git add -A` away
+# from being published.
+#
+# bin/check.php fails while any of them exists on disk, so they get deleted
+# rather than merely left unstaged.
 config/config.php
+config/config.php.*
+config/.*.php.sw?
 .env
 
 # Runtime

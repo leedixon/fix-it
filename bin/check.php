@@ -35,6 +35,32 @@ line(true, 'config/config.php exists');
 $perms = substr(sprintf('%o', fileperms($configFile)), -3);
 line($perms === '600', 'config/config.php is not world-readable', "mode {$perms}" . ($perms === '600' ? '' : ' — run: chmod 600 config/config.php'));
 
+/*
+ * Stray copies of the config, which are stray copies of every credential.
+ *
+ * nano writes config.php.save when a session dies, vim writes a .swp,
+ * configure.php used to write .bak-<timestamp>. Each is a complete copy of
+ * the live database password, the Stripe key and the mail key — and unlike
+ * config.php itself, which is chmod 600, they are created with whatever the
+ * umask says.
+ *
+ * This is a failure rather than a note because it has already gone wrong:
+ * .gitignore listed config/config.php exactly, so the backups were not
+ * ignored, and two of them were committed to a public repository on
+ * 2026-09-20. Ignoring them now stops them being committed; failing here is
+ * what gets them deleted.
+ *
+ * Anything in config/ that is not the config or its example counts.
+ */
+$expected = ['.', '..', 'config.php', 'config.example.php'];
+$strays   = array_values(array_diff(scandir($root . '/config') ?: [], $expected));
+
+line($strays === [], 'no stray copies of the config are lying around',
+    $strays === []
+        ? ''
+        : implode(', ', array_map(static fn (string $f): string => 'config/' . $f, $strays))
+          . ' — each holds every live credential. Delete them: rm -f config/config.php.*');
+
 require $root . '/app/bootstrap.php';
 
 use FixListed\Core\Config;

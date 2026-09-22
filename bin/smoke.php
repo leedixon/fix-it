@@ -727,6 +727,45 @@ foreach ([
 check('a live restricted key is not mistaken for test mode',
     (new \FixListed\Core\Stripe('rk_live_example', 'whsec_x'))->isLive());
 
+// --- the sample-listings banner ---------------------------------------------
+// The mode says whether seeded rows would be shown; it does not say whether
+// any exist. They come apart the moment somebody purges the sample data
+// without switching the mode, and then the banner tells visitors the listings
+// are invented while every listing on the page is real — which is worse than
+// the failure the banner exists to prevent.
+$demoRows = (int) $db->value('SELECT COUNT(*) FROM pro_profiles WHERE is_demo = 1');
+check('the sandbox has sample rows to test against', $demoRows > 0, $demoRows . ' rows');
+
+check('with sample rows present, the banner shows',
+    \FixListed\Core\Demo::isVisible() && \FixListed\Core\Demo::hasRows($db));
+
+// hasRows() caches for the request, so the empty case is exercised in a
+// subprocess against a real database with the rows removed inside a
+// transaction that is rolled back. Nothing the rest of this suite reads is
+// disturbed.
+$probe = <<<'PHP'
+require __DIR__ . '/../app/bootstrap.php';
+$db = FixListed\Core\Database::fromConfig();
+$db->pdo()->beginTransaction();
+$db->affected('UPDATE pro_profiles SET is_demo = 0');
+$db->affected('UPDATE jobs SET is_demo = 0');
+echo FixListed\Core\Demo::isVisible() ? 'visible' : 'hidden';
+echo ':';
+echo FixListed\Core\Demo::hasRows($db) ? 'rows' : 'norows';
+$db->pdo()->rollBack();
+PHP;
+file_put_contents(BASE_PATH . '/bin/.banner_probe.php', "<?php\n" . $probe . "\n");
+$result = trim((string) shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(BASE_PATH . '/bin/.banner_probe.php')));
+@unlink(BASE_PATH . '/bin/.banner_probe.php');
+
+check('with the sample rows gone, the banner does not show',
+    $result === 'visible:norows',
+    'mode still says show, but there is nothing to disclose');
+
+// And the rollback means the suite's own data is intact.
+check('the probe left the sample data alone',
+    (int) $db->value('SELECT COUNT(*) FROM pro_profiles WHERE is_demo = 1') === $demoRows);
+
 // --- the analytics tag ------------------------------------------------------
 // The container id is interpolated into a <script>, so anything that is not a
 // container id must be refused rather than printed. And a signed-in

@@ -38,6 +38,41 @@ final class Demo
     }
 
     /**
+     * Whether any invented rows are actually on display.
+     *
+     * The mode says whether seeded rows would be shown; this says whether
+     * there are any. They come apart the moment somebody purges the sample
+     * data without also switching the mode — and then the banner announces
+     * that the listings are invented while every listing on the page is real.
+     *
+     * That is worse than the failure the banner exists to prevent. A visitor
+     * told the directory is fake does not ring the one genuine plumber in it.
+     *
+     * Asked once per request, and not at all once the mode is 'hide', because
+     * the caller short-circuits.
+     */
+    public static function hasRows(Database $db): bool
+    {
+        static $has = null;
+
+        if ($has === null) {
+            try {
+                $has = (bool) $db->value(
+                    'SELECT EXISTS(SELECT 1 FROM pro_profiles WHERE is_demo = 1)
+                          OR EXISTS(SELECT 1 FROM jobs WHERE is_demo = 1)'
+                );
+            } catch (\Throwable $e) {
+                // If it cannot be answered, say yes. An unnecessary banner is
+                // a small embarrassment; a missing one is an undisclosed
+                // fabricated business listing.
+                $has = true;
+            }
+        }
+
+        return $has;
+    }
+
+    /**
      * The SQL predicate that hides seeded rows, or an empty string.
      *
      * Returns SQL rather than taking a bound parameter because it is glued

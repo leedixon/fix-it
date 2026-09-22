@@ -61,7 +61,10 @@ abstract class Controller
             'counties'    => $this->counties(),
             'navTrades'   => $this->trades(),
             'path'        => $this->request->path,
-            'showDemo'    => Demo::isVisible(),
+            // Both: the mode must allow it AND there must be something to
+            // disclose. Otherwise a purged site tells visitors its real
+            // listings are invented.
+            'showDemo'    => Demo::isVisible() && Demo::hasRows($this->db),
             'me'          => $this->auth->user(),
             'flashes'     => Session::takeFlashes(),
             'bodyClass'   => '',

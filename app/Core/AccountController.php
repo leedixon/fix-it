@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace FixListed\Core;
 
-use FixListed\Repositories\ProRepository;
+use FixListed\Repositories\GeographyRepository;
 
 /**
  * Base for everything a signed-in tradesperson sees.
@@ -77,14 +77,28 @@ abstract class AccountController
     {
         $profile = $this->profile();
 
+        /*
+         * counties and showDemo are here so this area can render the real
+         * partials/header.php rather than a copy of it.
+         *
+         * layouts/account.php said in its own docblock that it wore the
+         * public header — and carried a duplicate instead, which is why the
+         * account menu never reached a signed-in tradesperson.
+         *
+         * navTrades is deliberately absent: only the footer reads it, and
+         * this layout has no footer. Passing it would be a query per page
+         * for a list nothing draws.
+         */
         $defaults = [
-            'title'    => 'Your account — Fix Listed',
-            'market'   => $this->market,
-            'path'     => $this->request->path,
-            'me'       => $this->auth->user(),
-            'profile'  => $profile,
-            'isLive'   => ($profile['status'] ?? '') === 'active',
-            'flashes'  => Session::takeFlashes(),
+            'title'     => 'Your account — Fix Listed',
+            'market'    => $this->market,
+            'path'      => $this->request->path,
+            'me'        => $this->auth->user(),
+            'profile'   => $profile,
+            'isLive'    => ($profile['status'] ?? '') === 'active',
+            'flashes'   => Session::takeFlashes(),
+            'counties'  => (new GeographyRepository($this->db, $this->scope))->counties(),
+            'showDemo'  => Demo::isVisible() && Demo::hasRows($this->db),
         ];
 
         return Response::html($this->view->render($template, $data + $defaults, 'layouts/account'), $status);

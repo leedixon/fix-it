@@ -641,7 +641,29 @@ td.wrap-cell{white-space:normal;min-width:220px}
 @media (max-width:860px){
   .acct{grid-template-columns:1fr;gap:20px}
   .acct-side{position:static}
-  .acct-nav{flex-direction:row;flex-wrap:wrap}
+
+  /*
+   * Four tabs, two by two — laid out, not left to wrap.
+   *
+   * flex-wrap put "Jobs for you", "Your quotes" and "Your listing" on one
+   * line and "Get seen first" alone underneath, which reads as an accident
+   * rather than a menu. A scroll would fit them in one row and was rejected
+   * for the admin drawer for the same reason it is rejected here: an
+   * affordance you have to discover is one most people never do.
+   *
+   * Four is the whole list, so nothing is hidden and nothing needs a button
+   * to reveal it. If a fifth tab is ever added this becomes three rows of
+   * two, which is still a grid and still legible.
+   */
+  .acct-nav{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .acct-nav a{
+    border:1px solid var(--line);
+    padding:11px 12px;
+    min-width:0;
+  }
+  /* The label, not the icon, is what gives on a narrow phone. */
+  .acct-nav a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acct-nav a.on{border-color:var(--ink)}
 }
 
 /* =========================================================================

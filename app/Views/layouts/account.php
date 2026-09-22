@@ -33,24 +33,18 @@ $status = (string) ($profile['status'] ?? '');
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="chrome">
-  <div class="wrap chrome-in">
-    <a class="logo" href="<?= e(url('/')) ?>"><b>Fix</b> <i>Listed</i></a>
-    <nav class="nav" aria-label="Primary">
-      <a href="<?= e(url('/jobs')) ?>">Jobs board</a>
-      <a href="<?= e(url('/pros')) ?>">Directory</a>
-    </nav>
-    <div class="chrome-r">
-      <?php if (in_array($me['role'] ?? '', ['superadmin', 'market_admin'], true)): ?>
-        <a class="btn btn-ghost btn-sm" href="<?= e(url('/admin')) ?>">Admin</a>
-      <?php endif; ?>
-      <form method="post" action="<?= e(url('/sign-out')) ?>">
-        <?= \FixListed\Core\Csrf::field() ?>
-        <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>
-      </form>
-    </div>
-  </div>
-</header>
+<?php
+/*
+ * The real header, not a copy of it.
+ *
+ * This file used to carry its own — the same shape, two fewer nav links, and
+ * Admin and Sign out as separate buttons. So the account menu that replaced
+ * those buttons everywhere else never arrived here, and a tradesperson got
+ * chrome one commit behind the rest of the site. Requiring the partial is
+ * what the docblock above always claimed was happening.
+ */
+require __DIR__ . '/../partials/header.php';
+?>
 
 <main id="main" class="wrap acct">
   <aside class="acct-side">

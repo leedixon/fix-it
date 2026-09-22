@@ -834,6 +834,42 @@ check('and preview mode still cannot conjure a tag that is switched off',
 check('a signed-in tradesperson is a real visitor and is counted',
     str_contains($gtm('GTM-TX649KRG', $pro), 'GTM-TX649KRG'));
 
+// --- one header, not three copies of one -----------------------------------
+//
+// layouts/account.php said in its docblock that it wore the public header and
+// carried a hand-copied one instead, so the account menu shipped to every
+// page on the site except the one a tradesperson lives on. Nothing failed;
+// the copy rendered perfectly, one commit behind.
+//
+// Two mechanical checks, because that is the kind of drift a human reading a
+// diff does not see.
+$headerSrc  = (string) file_get_contents(BASE_PATH . '/app/Views/partials/header.php');
+$chromeHtml = [];
+foreach ((array) glob(BASE_PATH . '/app/Views/layouts/*.php') as $layout) {
+    if (str_contains((string) file_get_contents($layout), '<header class="chrome"')) {
+        $chromeHtml[] = basename($layout);
+    }
+}
+check('only partials/header.php builds the site header', $chromeHtml === [],
+    $chromeHtml === [] ? 'layouts require it' : 'own copy in ' . implode(', ', $chromeHtml));
+
+// And the header only renders if it is handed what it asks for. Its @var
+// block is the contract; both base controllers have to honour it, or the
+// layout that requires the partial gets notices instead of a nav.
+preg_match_all('/@var\s+[^\s]+\s+\$([a-zA-Z_]+)/', $headerSrc, $m);
+$wants  = array_unique($m[1]);
+$unfed  = [];
+foreach (['Controller', 'AccountController'] as $base) {
+    $src = (string) file_get_contents(BASE_PATH . '/app/Core/' . $base . '.php');
+    foreach ($wants as $var) {
+        if (!str_contains($src, "'" . $var . "'")) {
+            $unfed[] = $base . ' is missing $' . $var;
+        }
+    }
+}
+check('both base controllers supply every variable the header documents',
+    $unfed === [], $unfed === [] ? implode(', ', $wants) : implode('; ', $unfed));
+
 // Only the public layout. The admin and account areas are private, noindex,
 // and nobody's funnel.
 foreach (['layouts/admin', 'layouts/account'] as $private) {

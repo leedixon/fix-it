@@ -21,6 +21,7 @@ require_once $root . '/app/Core/Config.php';
 require_once $root . '/app/Core/Smtp.php';
 require_once $root . '/app/Core/MailApi.php';
 require_once $root . '/app/Core/Stripe.php';
+require_once __DIR__ . '/configure_input.php';
 
 function ask(string $label, string $default = '', bool $hidden = false): string
 {
@@ -31,11 +32,11 @@ function ask(string $label, string $default = '', bool $hidden = false): string
         // Keep the password off the screen and out of any scrollback someone
         // might screenshot.
         shell_exec('stty -echo 2>/dev/null');
-        $value = trim((string) fgets(STDIN));
+        $value = cleanInput((string) fgets(STDIN));
         shell_exec('stty echo 2>/dev/null');
         fwrite(STDOUT, "\n");
     } else {
-        $value = trim((string) fgets(STDIN));
+        $value = cleanInput((string) fgets(STDIN));
     }
 
     return $value !== '' ? $value : $default;
@@ -119,13 +120,17 @@ if (in_array('--stripe', $argv, true)) {
         echo "  keeping the existing secret key\n";
     } elseif (!\FixListed\Core\Stripe::looksLikeSecretKey($secret)) {
         fwrite(STDERR, "\nThat does not look like a Stripe secret key. Expected one starting\n");
-        fwrite(STDERR, "sk_test_, sk_live_, rk_test_ or rk_live_. Nothing was written.\n\n");
+        fwrite(STDERR, "sk_test_, sk_live_, rk_test_ or rk_live_.\n");
+        fwrite(STDERR, "Received: " . describeInput($secret, $secret) . ".\n");
+        fwrite(STDERR, "Nothing was written.\n\n");
         exit(1);
     }
 
     $publishable = ask('Stripe publishable key (pk_...)', (string) ($current['publishable_key'] ?? ''));
     if ($publishable !== '' && !str_starts_with($publishable, 'pk_')) {
-        fwrite(STDERR, "\nA publishable key starts with pk_. Nothing was written.\n\n");
+        fwrite(STDERR, "\nA publishable key starts with pk_.\n");
+        fwrite(STDERR, "Received: " . describeInput($publishable, $publishable) . ".\n");
+        fwrite(STDERR, "Nothing was written.\n\n");
         exit(1);
     }
 
@@ -143,7 +148,9 @@ if (in_array('--stripe', $argv, true)) {
         $webhook = (string) ($current['webhook_secret'] ?? '');
         echo "  keeping the existing webhook secret\n";
     } elseif (!str_starts_with($webhook, 'whsec_')) {
-        fwrite(STDERR, "\nA webhook signing secret starts with whsec_. Nothing was written.\n\n");
+        fwrite(STDERR, "\nA webhook signing secret starts with whsec_.\n");
+        fwrite(STDERR, "Received: " . describeInput($webhook, $webhook) . ".\n");
+        fwrite(STDERR, "Nothing was written.\n\n");
         exit(1);
     }
 

@@ -665,6 +665,29 @@ check('the new invoice.parent.subscription_details is read',
 check('an invoice naming no subscription is not mistaken for one',
     $refl->invoke($hook, []) === '');
 
+// --- what a terminal adds to a paste ----------------------------------------
+// A terminal with bracketed paste on — cPanel's Terminal, and most modern
+// emulators — wraps pasted text in \e[200~ and \e[201~. At a prompt with the
+// echo off they are invisible AND unguessable: a correct Stripe key is
+// rejected and the only visible fact is that it was rejected.
+require_once BASE_PATH . '/bin/configure_input.php';
+
+foreach ([
+    ['rk_live_ABC',                      'rk_live_ABC', 'a plain paste is untouched'],
+    ["\e[200~rk_live_ABC\e[201~",        'rk_live_ABC', 'bracketed paste markers are stripped'],
+    ["rk_live_ABC\r\n",                  'rk_live_ABC', 'a Windows line ending is stripped'],
+    ["  rk_live_ABC  ",                  'rk_live_ABC', 'surrounding whitespace is stripped'],
+    ["rk_live_ABC\x00",                  'rk_live_ABC', 'a stray null is stripped'],
+    ["\e[200~whsec_ABC\e[201~\n",        'whsec_ABC',   'a webhook secret pastes cleanly too'],
+    ['',                                 '',            'nothing in, nothing out'],
+] as [$raw, $want, $label]) {
+    check($label, cleanInput($raw) === $want, strlen($raw) . ' bytes in, ' . strlen($want) . ' out');
+}
+
+// The sanitiser must not quietly rescue a genuinely wrong key.
+check('a publishable key in the secret slot is still wrong',
+    !\FixListed\Core\Stripe::looksLikeSecretKey(cleanInput("\e[200~pk_live_ABC\e[201~")));
+
 // --- Stripe key shapes ------------------------------------------------------
 // A restricted key is rk_live_…, not sk_live_…. Matching the whole 'sk_live_'
 // prefix read a live restricted key as test mode — and told somebody no real

@@ -834,6 +834,59 @@ check('and preview mode still cannot conjure a tag that is switched off',
 check('a signed-in tradesperson is a real visitor and is counted',
     str_contains($gtm('GTM-TX649KRG', $pro), 'GTM-TX649KRG'));
 
+// --- the social images exist and are the right shape ------------------------
+//
+// layouts/app.php names its og:image as a string. Rename or lose that file
+// and every link preview on the site reverts to a grey box — on Facebook, in
+// iMessage, in Slack — while the page still renders perfectly and every other
+// test still passes. Nothing on the site looks wrong; the breakage is only
+// visible somewhere else, days later, in somebody's feed.
+//
+// The sizes are not arbitrary either. A profile picture is cropped to a
+// circle, so it must be square; a cover photo at the wrong aspect gets
+// centre-cropped by Facebook and loses the wording at both ends.
+$pngSize = static function (string $file): ?array {
+    // The IHDR chunk is fixed-position: 8 bytes of signature, 8 of chunk
+    // header, then width and height as big-endian 32-bit integers.
+    $head = (string) file_get_contents($file, false, null, 0, 24);
+    if (strlen($head) < 24 || substr($head, 1, 3) !== 'PNG') {
+        return null;
+    }
+    $dim = unpack('Nw/Nh', substr($head, 16, 8));
+    return [$dim['w'], $dim['h']];
+};
+
+$social = [
+    'og.png'                => [1200, 630],
+    'square.png'            => [1080, 1080],
+    'facebook-profile.png'  => [1080, 1080],
+    'facebook-cover.png'    => [1640, 624],
+];
+foreach ($social as $file => [$w, $h]) {
+    $path = BASE_PATH . '/public/assets/social/' . $file;
+    $got  = is_file($path) ? $pngSize($path) : null;
+    check('social/' . $file . ' is a ' . $w . 'x' . $h . ' PNG',
+        $got === [$w, $h],
+        $got === null ? 'missing or not a PNG' : $got[0] . 'x' . $got[1]);
+}
+
+// The profile picture is cropped to a circle, so a non-square file loses
+// content on two sides. Stated separately from the size check because this
+// is the reason for it.
+check('the Facebook profile picture is square, because Facebook cuts a circle from it',
+    $pngSize(BASE_PATH . '/public/assets/social/facebook-profile.png')[0]
+    === $pngSize(BASE_PATH . '/public/assets/social/facebook-profile.png')[1]);
+
+// The layout's default must name a file that is actually there.
+preg_match(
+    "/\\\$ogImage\s*=\s*abs_asset\(\\\$ogImage\s*\?\?\s*'([^']+)'\)/",
+    (string) file_get_contents(BASE_PATH . '/app/Views/layouts/app.php'),
+    $om,
+);
+check('the og:image the layout falls back to is a file on disk',
+    isset($om[1]) && is_file(BASE_PATH . '/public/' . $om[1]),
+    $om[1] ?? 'could not find the default in layouts/app.php');
+
 // --- one header, not three copies of one -----------------------------------
 //
 // layouts/account.php said in its docblock that it wore the public header and

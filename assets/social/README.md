@@ -25,6 +25,34 @@ PNGs are committed, so the server only ever serves finished files.
 | --- | --- | --- |
 | `public/assets/social/og.png` | 1200 × 630 | Open Graph, Twitter, LinkedIn, Slack, SMS |
 | `public/assets/social/square.png` | 1080 × 1080 | Instagram, square previews |
+| `public/assets/social/facebook-profile.png` | 1080 × 1080 | Facebook Page profile picture |
+| `public/assets/social/facebook-cover.png` | 1640 × 624 | Facebook Page cover photo |
+
+The first two are served by the site. The Facebook pair is not — nothing links
+to them. They are uploaded by hand once to the Page and live here so they are
+versioned with the brand they came from rather than only in somebody's
+downloads folder.
+
+## The two Facebook rules that are easy to get wrong
+
+**The profile picture is cropped to a circle and shown as small as 36px.**
+Both facts shaped it. The corners are thrown away, so nothing lives in them.
+And the plumb bob is *filled* here rather than drawn in line art like the
+cards: a 2.4px stroke scaled down to a comment-thread avatar is a tenth of a
+pixel, and the mark simply disappears. There is no wordmark on it, because no
+wordmark is readable at that size and Facebook prints the Page name beside the
+avatar anyway.
+
+**The cover is authored at twice its display size.** The file is 1640 wide and
+Facebook shows it at 820, so every type size in `.card.fbc` is double what it
+looks like it should be. Set at face value, the county line came out around
+six pixels on a real page. Nothing in the render says so — you only catch it
+by putting the cover next to a browser at the size it is actually shown.
+
+Mobile fills a taller frame and throws away about a third of the width, split
+evenly, so everything that has to be read sits in the `--safe` band. The bottom
+strip is kept clear because the profile picture overlaps the cover there:
+bottom-left on desktop, lower-centre on mobile.
 
 `prototype/build.py` copies `og.png` to `maintenance/dist/og.png`, because the
 holding page's preview points at `https://fixlisted.com/og.png` — a path that

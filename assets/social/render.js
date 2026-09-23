@@ -13,8 +13,13 @@ const SOURCE = 'file://' + path.join(__dirname, 'card.html');
 const OUT    = path.join(__dirname, '..', '..', 'public', 'assets', 'social');
 
 const CARDS = [
-  { id: 'og', file: 'og.png',     width: 1200, height: 630,  label: 'Open Graph / Twitter / LinkedIn' },
-  { id: 'sq', file: 'square.png', width: 1080, height: 1080, label: 'Instagram / square previews' },
+  { id: 'og',  file: 'og.png',              width: 1200, height: 630,  label: 'Open Graph / Twitter / LinkedIn' },
+  { id: 'sq',  file: 'square.png',          width: 1080, height: 1080, label: 'Instagram / square previews' },
+  // Facebook. The profile is rendered square and cropped to a circle by
+  // Facebook itself, so the guide ring drawn in card.html is hidden here —
+  // it exists to check the render against, not to ship.
+  { id: 'fbp', file: 'facebook-profile.png', width: 1080, height: 1080, label: 'Facebook / Page profile picture', hide: '.ring' },
+  { id: 'fbc', file: 'facebook-cover.png',   width: 1640, height: 624,  label: 'Facebook / Page cover photo' },
 ];
 
 (async () => {
@@ -29,6 +34,15 @@ const CARDS = [
 
   for (const card of CARDS) {
     const el = await page.$('#' + card.id);
+    if (card.hide) {
+      await page.evaluate(
+        ([id, sel]) => {
+          const node = document.querySelector('#' + id + ' ' + sel);
+          if (node) { node.style.display = 'none'; }
+        },
+        [card.id, card.hide],
+      );
+    }
     const box = await el.boundingBox();
     if (Math.round(box.width) !== card.width || Math.round(box.height) !== card.height) {
       throw new Error(

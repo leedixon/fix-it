@@ -97,6 +97,124 @@
     --fact-gap:32px; --foot-pad:34px; --bob-right:44px;
   }
   .card.sq .bob{opacity:.34}
+
+  /* =====================================================================
+   * Facebook.
+   *
+   * These two do NOT share the template above, and that is deliberate. og
+   * and square are the same card at two sizes, so one content block is
+   * right for them. A profile picture and a cover photo are different
+   * things saying different things, and forcing them through one template
+   * would mean writing a card that is wrong in both places.
+   *
+   * What they do share is everything that must not drift: the :root tokens,
+   * the typefaces, the glow, the mark.
+   * ================================================================== */
+
+  /* ---------- 1080x1080 — the profile picture ----------
+   *
+   * Facebook crops this to a CIRCLE and shows it as small as 36px in a
+   * comment thread. Two consequences drive the whole design.
+   *
+   * The corners are thrown away, so nothing may live in them.
+   *
+   * And line art dies. The plumb bob on the cards above is drawn with a
+   * 2.4px stroke: scaled to 36px that stroke is a tenth of a pixel and the
+   * mark is simply gone. So this one is filled rather than drawn — the same
+   * tool, same silhouette, solid brass. It is the only version of the mark
+   * that survives the size Facebook actually shows it at.
+   *
+   * There is no wordmark on it. At 36px no wordmark is readable, and
+   * Facebook prints the Page name next to the avatar everywhere it appears
+   * anyway. The avatar's job is recognition, not reading.
+   */
+  .card.fbp{
+    width:1080px; height:1080px; padding:0;
+    align-items:center; justify-content:center;
+  }
+  .card.fbp::after{
+    background:radial-gradient(70% 70% at 50% 34%, rgba(199,154,62,.26), transparent 62%);
+  }
+  /* The circle Facebook will cut, drawn as a hairline so the render can be
+     checked against it rather than guessed at. Hidden in the output. */
+  .card.fbp .ring{
+    position:absolute; inset:74px; border-radius:50%;
+    border:2px solid var(--brass); opacity:.22;
+  }
+  /* The body's mass sits below the middle of the svg box, so centring the
+     box leaves the mark hanging low in the circle. Shifted up by the
+     difference. */
+  .card.fbp .bob-solid{position:relative; z-index:2; margin-top:-76px}
+
+  /* ---------- 1640x624 — the cover photo ----------
+   *
+   * Two crops, one file. Desktop shows the whole 820x312; mobile fills a
+   * 640x360 frame, which is a taller shape, so it scales the image up and
+   * throws away the sides — roughly a third of the width, split evenly.
+   *
+   * --safe is the centre band that survives that crop. Everything that has
+   * to be read lives inside it; the bob sits at the inner edge of it rather
+   * than out in the decorative margin, so the mobile cover is not just text.
+   *
+   * The bottom strip is kept quiet because the profile picture overlaps the
+   * cover there — bottom-left on desktop, lower-centre on mobile. A tagline
+   * with an avatar parked on top of it is the commonest way a cover photo
+   * goes wrong.
+   */
+  .card.fbc{
+    width:1640px; height:624px; padding:0;
+    /* Measured against a rendered mobile crop, not calculated from the
+       aspect ratios — the theoretical band left the headline three percent
+       from the edge, which reads as a mistake. */
+    --safe:960px; --quiet:140px;
+  }
+  .card.fbc::after{
+    background:radial-gradient(90% 150% at 78% 0%, rgba(199,154,62,.22), transparent 60%);
+  }
+  /*
+   * The bob is taken out of the flow rather than sat beside the copy.
+   *
+   * As a flex sibling it stole 200px from the column and the county line
+   * wrapped, leaving "JO DAVIESS" alone on a second row — which reads as a
+   * mistake rather than a list. Hung from the top right instead, it ends
+   * well above that line, so the counties get the full band and stay on one
+   * row. It is decoration; it should not be setting the measure.
+   */
+  .card.fbc .cover-in{
+    position:relative; z-index:1;
+    width:var(--safe); margin:0 auto;
+    height:calc(100% - var(--quiet));
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  .card.fbc .bob{
+    position:absolute; z-index:0; top:0;
+    right:calc((100% - var(--safe)) / 2);
+  }
+  /*
+   * Everything below is set at TWICE the size it looks like it should be,
+   * and that is not a mistake to tidy up later.
+   *
+   * This file is 1640 wide and Facebook displays it at 820 — so every value
+   * here is halved on screen. Set at what reads correctly in the source,
+   * the county line came out around six pixels on a desktop page and the
+   * URL was not legible at all. Nothing in the render says so; you only see
+   * it by looking at the cover at the size it is actually shown.
+   */
+  .card.fbc .cover-copy{flex:1; min-width:0}
+  .card.fbc .eyebrow{font-size:24px}
+  .card.fbc .claim{font-size:76px; max-width:13ch; margin-top:22px}
+  .card.fbc .line{margin:30px 0 24px; width:150px; height:3px}
+  .card.fbc .where{
+    white-space:nowrap;
+    font-family:var(--mono); font-weight:500; font-size:21px;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--on-ink-2);
+  }
+  .card.fbc .url{
+    font-family:var(--mono); font-weight:500; font-size:26px;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--brass-3);
+    margin-top:20px;
+  }
+  .card.fbc .bob{opacity:.55}
 </style>
 </head>
 <body>
@@ -151,6 +269,62 @@
 
 <div class="card og" id="og"></div>
 <div class="card sq" id="sq"></div>
+
+<!-- ---------- Facebook profile picture ---------- -->
+<div class="card fbp" id="fbp">
+  <div class="ring"></div>
+  <svg class="bob-solid" width="672" height="941" viewBox="0 0 400 560" fill="none" aria-hidden="true">
+    <defs>
+      <!-- Lit from the left, the way the site's hero glow falls. A gradient
+           rather than a drawn highlight: a stroke laid on top reads as a
+           stray hair at small sizes, a gradient just reads as metal. -->
+      <linearGradient id="brass" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0"   stop-color="#E8C579"/>
+        <stop offset=".38" stop-color="#D5A948"/>
+        <stop offset="1"   stop-color="#A97F2C"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Short. A long line reads as empty space at 36px and drags the
+         whole mark off centre; this says "hanging" and stops. -->
+    <path d="M200 6v78" stroke="#C79A3E" stroke-width="10" stroke-linecap="round" opacity=".9"/>
+    <!-- brass cap -->
+    <path d="M166 124h68l-15-40h-38z" fill="#DCB25C"/>
+    <!-- The body. Wider and shorter than the line-art version on the cards,
+         because a slim silhouette closes up into a sliver once Facebook
+         scales it into a comment thread. -->
+    <path d="M200 120 L344 284 C344 408 298 502 200 590 C102 502 56 408 56 284 Z" fill="url(#brass)"/>
+    <!-- Two turned bands, cut in the background colour. Two, not three:
+         at 36px a third becomes noise and the thing starts reading as a
+         leaf rather than a machined tool. -->
+    <path d="M62 336h276" stroke="#0E1513" stroke-width="13" opacity=".34"/>
+    <path d="M84 386h232" stroke="#0E1513" stroke-width="10" opacity=".22"/>
+  </svg>
+</div>
+
+<!-- ---------- Facebook cover photo ---------- -->
+<div class="card fbc" id="fbc">
+  <div class="cover-in">
+    <div class="cover-copy">
+      <div class="eyebrow">Northwest Illinois</div>
+      <h1 class="claim">Keep the whole job. <em>We take nothing.</em></h1>
+      <div class="line"></div>
+      <div class="where">Stephenson · Winnebago · Ogle · Boone · Carroll · Jo Daviess</div>
+      <div class="url">fixlisted.com</div>
+    </div>
+
+    <svg class="bob" width="150" height="330" viewBox="0 0 240 520" fill="none"
+         stroke="#C79A3E" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"
+         aria-hidden="true">
+      <path d="M96 0v206" stroke-width="2.2" opacity=".75"/>
+      <path d="M78 218h36l-8-12H86z" opacity=".9"/>
+      <path d="M96 220l40 62c0 60-16 104-40 142-24-38-40-82-40-142z"/>
+      <path d="M60 288h72" opacity=".5" stroke-width="2.2"/>
+      <path d="M64 322h64" opacity=".32" stroke-width="2.2"/>
+      <path d="M96 424v44" stroke-width="1.9" opacity=".5"/>
+    </svg>
+  </div>
+</div>
 
 <script>
   // One content block, cloned into both frames.

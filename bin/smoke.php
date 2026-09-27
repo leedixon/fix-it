@@ -2,16 +2,47 @@
 declare(strict_types=1);
 
 /**
- * Foundation smoke test.
+ * Foundation smoke test. DEVELOPMENT ONLY — see the guard below.
  *
  * Proves the stack actually works against a real database, and — more
  * importantly — proves the tenant boundary holds. Run after any change to
  * Repository, TenantScope or a repository query:
  *
  *   php bin/smoke.php
+ *
+ * This is not a health check. It asserts against the seeded sample dataset
+ * and it WRITES — probe users, applications, quotes, jobs and payments, each
+ * removed again in a finally block. For the production equivalent, which
+ * only ever reads, run bin/check.php.
  */
 
 require __DIR__ . '/../app/bootstrap.php';
+
+use FixListed\Core\Config;
+
+/*
+ * Never against production.
+ *
+ * This was run once on the live server, on my instructions, and it failed in
+ * the only lucky way available: on line 143, reading a seeded pro that does
+ * not exist there, forty-four lines before the first INSERT. Past that point
+ * it would have written probe rows into the real database and depended on
+ * its own cleanup surviving a suite that had already started failing.
+ *
+ * The cleanup is careful. It is also not a reason to allow this — a test
+ * that creates a user and a payment has no business pointing at live data,
+ * however tidy it is afterwards. Refused outright rather than documented,
+ * because a warning in a docblock is not a guard.
+ */
+if (Config::get('app.env') === 'production') {
+    fwrite(STDERR, PHP_EOL
+        . "  Refusing to run: app.env is 'production'." . PHP_EOL . PHP_EOL
+        . "  bin/smoke.php asserts against the seeded sample dataset and writes" . PHP_EOL
+        . "  probe rows. It is a development suite, not a health check." . PHP_EOL . PHP_EOL
+        . "  On a live server, run this instead:" . PHP_EOL
+        . "      php bin/check.php" . PHP_EOL . PHP_EOL);
+    exit(1);
+}
 
 use FixListed\Core\Auth;
 use FixListed\Core\Database;
@@ -833,6 +864,17 @@ check('and preview mode still cannot conjure a tag that is switched off',
     trim($gtm('', $staff, true)) === '');
 check('a signed-in tradesperson is a real visitor and is counted',
     str_contains($gtm('GTM-TX649KRG', $pro), 'GTM-TX649KRG'));
+
+// --- this suite must never point at live data -------------------------------
+//
+// Circular, slightly: the guard is at the top of this very file. It still
+// earns its place, because what it protects against is somebody deleting
+// those eight lines to "just run it quickly on the server", which is exactly
+// how it got run there the first time.
+$self = (string) file_get_contents(__FILE__);
+check('smoke.php refuses to run when app.env is production',
+    str_contains($self, "Config::get('app.env') === 'production'")
+    && str_contains($self, 'Refusing to run'));
 
 // --- the rating scale -------------------------------------------------------
 //

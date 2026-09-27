@@ -138,6 +138,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .acct-panel a:hover,.acct-panel button:hover{background:var(--paper-2)}
 .acct-panel svg{opacity:.55}
 .acct-panel form{margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+/* Groups the staff "do what a visitor does" pair away from their own
+   account links, so the menu reads as two jobs rather than one long list. */
+.acct-sep{height:1px;background:var(--line);margin:6px 0}
 
 /* ---- surfaces ---- */
 .card{background:var(--paper-3);border:1px solid var(--line);border-radius:4px}

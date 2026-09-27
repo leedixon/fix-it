@@ -53,6 +53,32 @@ $isAdmin = in_array($me['role'] ?? '', ['superadmin', 'market_admin'], true);
       <a href="<?= e(url('/my/listing')) ?>"><?= icon('tools', 15) ?> Your listing</a>
     <?php else: ?>
       <a href="<?= e(url('/my')) ?>"><?= icon('user', 15) ?> Your account</a>
+
+      <?php
+      /*
+       * The two things a visitor can do, for the people who run the place.
+       *
+       * Neither flow was ever gated — an administrator could always post a
+       * job or list a business by typing the URL. What they could not do was
+       * find it. The header's "Post a job" button is hidden below 700px on
+       * the assumption the mobile action bar is carrying it, and that bar
+       * deliberately shows staff nothing. Between the two, a signed-in
+       * superadmin on a phone had no route to either flow at all.
+       *
+       * They belong here rather than in the bar: an administrator reading
+       * the public site is usually checking it, not converting on it, and a
+       * button pinned over every page is in the way of that. In the menu
+       * they are one tap away and nowhere near the thumb.
+       *
+       * Nothing is special-cased once the link is followed. Staff pay the
+       * same $10 and go through the same Stripe checkout, because a flow
+       * that behaves differently for the person testing it is a flow nobody
+       * has actually tested.
+       */
+      ?>
+      <div class="acct-sep" role="separator"></div>
+      <a href="<?= e(url('/post-a-job')) ?>"><?= icon('clipboard', 15) ?> Post a job</a>
+      <a href="<?= e(url('/list-your-business')) ?>"><?= icon('tools', 15) ?> List a business</a>
     <?php endif; ?>
 
     <form method="post" action="<?= e(url('/sign-out')) ?>">

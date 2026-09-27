@@ -59,7 +59,7 @@ $name      = (string) ($pro['display_name'] ?? $pro['business_name']);
 
   <?php if ($reviews > 0): ?>
     <div class="stars">
-      <span class="s" aria-hidden="true"><?= e(stars($rating)) ?></span>
+      <?= rating_marks($rating, 14) ?>
       <b class="mono"><?= e(number_format($rating, 1)) ?></b>
       <span class="muted tiny"><?= $reviews ?> review<?= $reviews === 1 ? '' : 's' ?></span>
     </div>

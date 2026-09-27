@@ -49,7 +49,11 @@ $verified = !empty($pro['license_verified_at']) && !empty($pro['insurance_verifi
         <?php if ($verified): ?><span class="badge b-verified">Licence &amp; insurance verified</span><?php endif; ?>
         <?php if (!empty($pro['background_checked_at'])): ?><span class="badge b-verified">Background checked</span><?php endif; ?>
         <?php if ($reviewN > 0): ?>
-          <span class="badge b-flat"><?= e(stars($rating)) ?> <?= e(number_format($rating, 1)) ?> · <?= $reviewN ?> reviews</span>
+          <span class="stars">
+            <?= rating_marks($rating, 16) ?>
+            <b class="mono"><?= e(number_format($rating, 1)) ?></b>
+            <span class="muted tiny">· <?= $reviewN ?> reviews</span>
+          </span>
         <?php endif; ?>
       </div>
 
@@ -85,7 +89,7 @@ $verified = !empty($pro['license_verified_at']) && !empty($pro['insurance_verifi
         <div class="grid" style="gap:14px;margin-top:16px">
           <?php foreach ($reviews as $r): ?>
             <div class="rev">
-              <div class="stars"><span class="s"><?= e(stars((float) $r['rating'])) ?></span></div>
+              <div class="stars"><?= rating_marks((float) $r['rating'], 14) ?></div>
               <q><?= e($r['body']) ?></q>
               <div class="who">
                 <span class="small"><?= e($r['first_name']) ?> <?= e(mb_substr((string) $r['last_name'], 0, 1)) ?>.</span>

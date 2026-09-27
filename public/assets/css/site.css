@@ -212,9 +212,15 @@ button,input,select,textarea{font:inherit;color:inherit}
 .rate{margin-left:auto;text-align:right;flex:none}
 .rate .v{font-family:var(--mono);font-size:17px;font-weight:600}
 .rate .u{font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em}
-.stars{display:flex;align-items:center;gap:6px;font-size:13px}
+.stars{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
 .stars b{font-weight:600}
 .stars .s{color:var(--brass-2);letter-spacing:1px}
+/* The hammer scale — see rating_marks() in app/helpers.php.
+   An unearned hammer is dimmed rather than hidden, so the row is always
+   five wide and the filled length is what your eye measures. */
+.marks{display:inline-flex;align-items:center;gap:2px;color:var(--brass-2);flex:none}
+.marks .mk{opacity:.26}
+.marks .mk.on{opacity:1}
 .tags{display:flex;flex-wrap:wrap;gap:6px}
 .tag{font-size:11.5px;border:1px solid var(--line);background:var(--paper-2);border-radius:2px;padding:3px 8px;color:var(--text-2)}
 .badge{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;border-radius:2px;white-space:nowrap}

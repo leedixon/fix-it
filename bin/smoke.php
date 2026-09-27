@@ -834,6 +834,47 @@ check('and preview mode still cannot conjure a tag that is switched off',
 check('a signed-in tradesperson is a real visitor and is counted',
     str_contains($gtm('GTM-TX649KRG', $pro), 'GTM-TX649KRG'));
 
+// --- the rating scale -------------------------------------------------------
+//
+// Five hammers, filled to the score. The count is fixed at five whatever the
+// rating, because the row's length is what the eye measures — a 2 that draws
+// two marks and a 5 that draws five are not comparable at a glance, which is
+// the entire job of the thing.
+foreach ([0 => 0, 1 => 1, 3 => 3, 5 => 5, 4 => 4] as $rating => $lit) {
+    $svg = rating_marks((float) $rating);
+    check('a rating of ' . $rating . ' draws five hammers, ' . $lit . ' of them filled',
+        substr_count($svg, '<svg') === 5 && substr_count($svg, 'class="mk on"') === $lit);
+}
+
+// Rounded, and the halfway cases have to land somewhere predictable.
+check('4.6 rounds up to five filled, 3.4 down to three',
+    substr_count(rating_marks(4.6), 'class="mk on"') === 5
+    && substr_count(rating_marks(3.4), 'class="mk on"') === 3);
+
+// Out-of-range input must not draw six hammers or a negative number of them.
+check('a rating outside 0-5 is clamped rather than trusted',
+    substr_count(rating_marks(9.0), 'class="mk on"') === 5
+    && substr_count(rating_marks(-2.0), 'class="mk on"') === 0
+    && substr_count(rating_marks(9.0), '<svg') === 5);
+
+// The marks are decoration; the number beside them carries the meaning. A
+// screen reader announcing five hammers is worse than silence.
+check('the hammers are hidden from screen readers',
+    str_contains(rating_marks(4.0), 'aria-hidden="true"'));
+
+// Nothing draws text stars any more. Asserted so the helper is not quietly
+// reintroduced alongside the hammers, leaving two rating scales on one site.
+//
+// The /u is load-bearing. Without it the class is a set of BYTES, not
+// characters — and 0xE2 opens both a star and an em-dash, so the pattern
+// matched 48 of the 71 view files on its first run. A test that fires on
+// every em-dash in the codebase is not a test.
+check('no template renders a text star',
+    preg_grep('/[★☆]/u', array_map(
+        static fn (string $f): string => (string) file_get_contents($f),
+        (array) glob(BASE_PATH . '/app/Views/**/*.php'),
+    )) === []);
+
 // --- the social images exist and are the right shape ------------------------
 //
 // layouts/app.php names its og:image as a string. Rename or lose that file

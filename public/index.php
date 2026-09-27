@@ -19,6 +19,7 @@ use FixListed\Controllers\JobsController;
 use FixListed\Controllers\PageController;
 use FixListed\Controllers\PostJobController;
 use FixListed\Controllers\ProSignupController;
+use FixListed\Controllers\ReviewController as HomeownerReviewController;
 use FixListed\Controllers\SeoController;
 use FixListed\Controllers\ServiceController;
 use FixListed\Controllers\WebhookController;
@@ -31,7 +32,9 @@ use FixListed\Controllers\Account\SessionController as AccountSession;
 use FixListed\Controllers\Admin\DashboardController;
 use FixListed\Controllers\Admin\MaintenanceController;
 use FixListed\Controllers\Admin\ManageController;
-use FixListed\Controllers\Admin\ReviewController;
+// Reviews pro APPLICATIONS, despite the name. Aliased so the two do not
+// collide and so each route below says which one it means.
+use FixListed\Controllers\Admin\ReviewController as ApplicationReviewController;
 use FixListed\Controllers\Admin\SessionController;
 use FixListed\Controllers\Admin\TeamController;
 use FixListed\Core\AdTracker;
@@ -149,6 +152,15 @@ try {
     // chrome — see WebhookController for why it stands apart.
     $router->post('/webhooks/stripe', static fn () => (new WebhookController($db, $request, $view))->stripe());
 
+    /*
+     * Leaving a review. No sign-in: a homeowner has no account, so the token
+     * in the emailed link is the authorisation. See ReviewController — it is
+     * deliberately not the job reference, which is public on the jobs board.
+     */
+    $router->get('/review/{token}',         static fn (array $p) => $make(HomeownerReviewController::class)->form($p['token']));
+    $router->post('/review/{token}',        static fn (array $p) => $make(HomeownerReviewController::class)->submit($p['token']));
+    $router->get('/review/{token}/thanks',  static fn (array $p) => $make(HomeownerReviewController::class)->thanks($p['token']));
+
     // --- signing in, and the tradesperson's own area ---------------------
     $router->get('/sign-in',          static fn () => $make(AccountSession::class)->form());
     $router->post('/sign-in',         static fn () => $make(AccountSession::class)->login());
@@ -179,14 +191,16 @@ try {
     $router->get('/admin',          static fn () => $admin(DashboardController::class)->index());
     $router->get('/admin/activity', static fn () => $admin(DashboardController::class)->activity());
 
-    $router->get('/admin/applications',      static fn () => $admin(ReviewController::class)->index());
-    $router->get('/admin/applications/{id}', static fn (array $p) => $admin(ReviewController::class)->show($p['id']));
-    $router->post('/admin/applications/{id}/approve', static fn (array $p) => $admin(ReviewController::class)->approve($p['id']));
-    $router->post('/admin/applications/{id}/reject',  static fn (array $p) => $admin(ReviewController::class)->reject($p['id']));
+    $router->get('/admin/applications',      static fn () => $admin(ApplicationReviewController::class)->index());
+    $router->get('/admin/applications/{id}', static fn (array $p) => $admin(ApplicationReviewController::class)->show($p['id']));
+    $router->post('/admin/applications/{id}/approve', static fn (array $p) => $admin(ApplicationReviewController::class)->approve($p['id']));
+    $router->post('/admin/applications/{id}/reject',  static fn (array $p) => $admin(ApplicationReviewController::class)->reject($p['id']));
 
     $router->get('/admin/pros',                static fn () => $admin(ManageController::class)->pros());
     $router->post('/admin/pros/{id}/status',   static fn (array $p) => $admin(ManageController::class)->setProStatus($p['id']));
     $router->post('/admin/pros/{id}/resend',   static fn (array $p) => $admin(ManageController::class)->resendProLink($p['id']));
+    $router->get('/admin/reviews',             static fn () => $admin(ManageController::class)->reviews());
+    $router->post('/admin/reviews/{id}',       static fn (array $p) => $admin(ManageController::class)->moderateReview($p['id']));
     $router->get('/admin/jobs',                static fn () => $admin(ManageController::class)->jobs());
     $router->post('/admin/jobs/{id}/remove',   static fn (array $p) => $admin(ManageController::class)->removeJob($p['id']));
     $router->get('/admin/users',               static fn () => $admin(ManageController::class)->users());

@@ -10,6 +10,7 @@ use FixListed\Core\PasswordReset;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
 use FixListed\Repositories\AdminRepository;
+use FixListed\Repositories\ReviewRepository;
 use FixListed\Repositories\LicenceRepository;
 use FixListed\Repositories\MarketRepository;
 use FixListed\Repositories\TeamRepository;
@@ -32,6 +33,65 @@ final class ManageController extends AdminController
             'status'  => $status,
             'pending' => $admin->counts()['applications'],
         ]);
+    }
+
+    /**
+     * Reviews waiting to go up.
+     *
+     * Everything a homeowner submits lands here first. This is text a
+     * stranger typed about a named local business that the site then
+     * publishes under that business's name — one libellous paragraph going
+     * straight live is a problem for the tradesperson and for Fix Listed
+     * both, and this queue is the only thing between those two facts.
+     */
+    public function reviews(): Response
+    {
+        if ($denied = $this->guardCan('listings.moderate')) {
+            return $denied;
+        }
+
+        return $this->page('admin/reviews', [
+            'title'   => 'Reviews — Fix Listed admin',
+            'waiting' => (new ReviewRepository($this->db, $this->scope))->awaitingModeration(),
+            'pending' => (new AdminRepository($this->db, $this->scope))->counts()['applications'],
+        ]);
+    }
+
+    /**
+     * Publish a review, or take it down.
+     *
+     * Either way the tradesperson's stored average is recomputed, inside
+     * ReviewRepository::moderate — removing a review that inflated a rating
+     * has to deflate it again, or moderation is theatre.
+     */
+    public function moderateReview(string $id): Response
+    {
+        if ($denied = $this->guardCan('listings.moderate')) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was changed.');
+            return Response::redirect('/admin/reviews');
+        }
+
+        $status = (string) $this->request->input('status', '');
+        $reviews = new ReviewRepository($this->db, $this->scope);
+
+        if (!$reviews->moderate((int) $id, $status)) {
+            Session::flash('bad', 'That review could not be updated.');
+            return Response::redirect('/admin/reviews');
+        }
+
+        $this->record(
+            $status === 'published' ? 'review.published' : 'review.removed',
+            'review',
+            (int) $id,
+        );
+        Session::flash('ok', $status === 'published'
+            ? 'Published. It is on their profile now and counts towards their rating.'
+            : 'Removed. It will not appear, and their rating has been recalculated.');
+
+        return Response::redirect('/admin/reviews');
     }
 
     /** Suspend or reinstate a listing. */

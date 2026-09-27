@@ -20,7 +20,16 @@
  * @var string     $path
  * @var array|null $me
  */
-$hideOn = ['/post-a-job', '/list-your-business', '/sign-in', '/forgot-password', '/set-password'];
+/*
+ * /review is on this list because the bar was sitting on top of the form.
+ *
+ * Somebody who followed a link out of a "how did it go?" email is doing one
+ * thing, and two fixed buttons selling them a job posting were covering the
+ * field they came to fill in. Caught by rendering the page at 390px; the
+ * markup gives no hint, because the bar is position:fixed and belongs to a
+ * different part of the document.
+ */
+$hideOn = ['/post-a-job', '/list-your-business', '/sign-in', '/forgot-password', '/set-password', '/review'];
 
 foreach ($hideOn as $prefix) {
     if ($path === $prefix || str_starts_with($path, $prefix . '/')) {

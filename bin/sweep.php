@@ -31,7 +31,9 @@ use FixListed\Core\Config;
 use FixListed\Core\Database;
 use FixListed\Core\Mailer;
 use FixListed\Core\Stripe;
+use FixListed\Core\TenantScope;
 use FixListed\Core\View;
+use FixListed\Repositories\ReviewRepository;
 
 $dryRun = in_array('--dry-run', $argv, true);
 $db     = Database::fromConfig();
@@ -165,7 +167,40 @@ $stale = $dryRun
             SET pl.status = 'expired', pl.ends_at = NOW()
           WHERE pl.status = 'active' AND s.status IN ('canceled','unpaid')");
 
-echo "5. Placements outliving their subscription: {$stale}" . ($dryRun ? ' (would expire)' : ' expired') . "\n\n";
+echo "5. Placements outliving their subscription: {$stale}" . ($dryRun ? ' (would expire)' : ' expired') . "\n";
+
+// --- 6. ask how it went -----------------------------------------------------
+//
+// A fortnight after posting, once, to homeowners whose job actually got
+// quotes. Not to the ones nobody answered — step 1 is refunding those, and
+// "how did it go?" landing next to a refund is a site not paying attention.
+//
+// Ratings are the only thing on a profile a tradesperson cannot write
+// themselves, which makes them the only part a stranger has reason to
+// believe. Nobody was ever asked for one before this, so every rating on the
+// site came out of the seed.
+//
+// Safe to run twice: review_invited_at is set in the same statement that
+// mints the token, and dueForInvite only returns rows where it is null.
+$invited = 0;
+$wouldInvite = 0;
+
+foreach ($db->all('SELECT id, slug FROM markets WHERE status = :s', ['s' => 'live']) as $mk) {
+    $reviews = new ReviewRepository($db, TenantScope::market((int) $mk['id']));
+
+    foreach ($reviews->dueForInvite() as $job) {
+        if ($dryRun) {
+            $wouldInvite++;
+            continue;
+        }
+
+        $token = $reviews->issueToken((int) $job['id']);
+        askHowItWent($view, (string) $job['email'], (string) $job['first_name'], $job, $token);
+        $invited++;
+    }
+}
+
+echo '6. Review invitations: ' . ($dryRun ? $wouldInvite . ' (would send)' : $invited . ' sent') . "\n\n";
 
 /** Tells the homeowner the money is on its way back, before they ask. */
 function tell(View $view, string $email, string $name, array $job): void
@@ -189,5 +224,43 @@ function tell(View $view, string $email, string $name, array $job): void
         );
     } catch (Throwable $e) {
         error_log('Refund email failed for ' . $job['reference'] . ': ' . $e->getMessage());
+    }
+}
+
+/**
+ * Asks the homeowner how the work went, once.
+ *
+ * The link carries a token minted for this job and nothing else. It is not
+ * the job reference — that is printed on the public jobs board, so anyone
+ * reading the board could rate anyone's tradesperson.
+ *
+ * @param array<string,mixed> $job
+ */
+function askHowItWent(View $view, string $email, string $name, array $job, string $token): void
+{
+    $url = abs_url('/review/' . $token);
+
+    try {
+        Mailer::fromConfig()->send(
+            $email,
+            'How did it go? — ' . $job['reference'],
+            $view->render('emails.review_invite', [
+                'title'     => 'How did it go?',
+                'preheader' => 'Two questions about the job you posted, and about a minute.',
+                'name'      => $name,
+                'jobTitle'  => (string) $job['title'],
+                'reference' => (string) $job['reference'],
+                'url'       => $url,
+                'replyTo'   => (string) Config::get('mail.reply_to', ''),
+            ], 'emails.layout'),
+            "A couple of weeks ago you posted \"{$job['title']}\" ({$job['reference']}) and some "
+            . "tradespeople quoted for it.\n\n"
+            . "If one of them did the work, would you tell us how they got on? Two questions, about "
+            . "a minute:\n\n"
+            . $url . "\n\n"
+            . "If you did not hire anybody, ignore this — we will not ask again either way.\n",
+        );
+    } catch (Throwable $e) {
+        error_log('Review invite failed for ' . $job['reference'] . ': ' . $e->getMessage());
     }
 }

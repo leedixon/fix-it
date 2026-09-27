@@ -72,6 +72,7 @@ $nav = static function (string $href, string $label, string $icon, string $curre
       <?php endif; ?>
       <?php if ($can('listings.moderate')): ?>
         <?= $nav('/admin/pros', 'Tradespeople', 'tools', $path) ?>
+        <?= $nav('/admin/reviews', 'Reviews', 'star', $path) ?>
       <?php endif; ?>
       <?php if ($can('jobs.moderate')): ?>
         <?= $nav('/admin/jobs', 'Jobs', 'clipboard', $path) ?>

@@ -865,6 +865,167 @@ check('and preview mode still cannot conjure a tag that is switched off',
 check('a signed-in tradesperson is a real visitor and is counted',
     str_contains($gtm('GTM-TX649KRG', $pro), 'GTM-TX649KRG'));
 
+// --- leaving a review -------------------------------------------------------
+//
+// Everything below writes. It is all undone in the finally, and this suite
+// refuses to run against production, which is the other half of that promise.
+$reviews  = new ReviewRepository($db, TenantScope::market($marketId));
+$probeJob = $db->one(
+    "SELECT j.id, j.user_id FROM jobs j
+      WHERE j.market_id = :m AND j.quote_count > 0
+        AND NOT EXISTS (SELECT 1 FROM reviews rv WHERE rv.job_id = j.id)
+      LIMIT 1",
+    ['m' => $marketId],
+);
+
+if ($probeJob === null) {
+    check('a job exists to test the review flow against', false, 'no quoted, unreviewed job in the seed');
+} else {
+    $jobId      = (int) $probeJob['id'];
+    $reviewId   = null;
+    $flippedPro = null;
+
+    try {
+        // --- the token ------------------------------------------------------
+        $token = $reviews->issueToken($jobId);
+        check('the invitation token is 64 hex characters',
+            strlen($token) === 64 && ctype_xdigit($token));
+
+        // Minted once. A second invitation must open the same form, not a
+        // second one that would let the same job be rated twice.
+        check('re-issuing returns the same token rather than minting another',
+            $reviews->issueToken($jobId) === $token);
+
+        check('the token resolves to its job', ($reviews->findByToken($token)['id'] ?? null) == $jobId);
+
+        // Rejected before the query runs, so a malformed token cannot become
+        // an index scan.
+        check('a token of the wrong length is refused', $reviews->findByToken('abc') === null);
+        check('a non-hex token is refused', $reviews->findByToken(str_repeat('z', 64)) === null);
+        check('an unissued token matches nothing', $reviews->findByToken(str_repeat('a', 64)) === null);
+
+        // The job reference must never work here. It is printed on the public
+        // jobs board, so if it did, anyone reading the board could rate
+        // anyone's tradesperson.
+        $ref = (string) $db->value('SELECT reference FROM jobs WHERE id = :i', ['i' => $jobId]);
+        check('the public job reference is not accepted as a review token',
+            $reviews->findByToken($ref) === null, $ref);
+
+        // --- who may be rated -------------------------------------------------
+        $quoted = $reviews->quotedOn($jobId);
+        check('only the businesses that quoted the job are offered', $quoted !== []
+            && count($quoted) === (int) $db->value(
+                'SELECT COUNT(DISTINCT pro_id) FROM quotes WHERE job_id = :j', ['j' => $jobId]));
+
+        // --- submitting -------------------------------------------------------
+        $proId  = (int) $quoted[0]['id'];
+        $wasDemo = (int) $db->value('SELECT is_demo FROM pro_profiles WHERE id = :i', ['i' => $proId]);
+        $before  = $db->one('SELECT rating_avg, rating_count FROM pro_profiles WHERE id = :i', ['i' => $proId]);
+
+        $reviewId = $reviews->submit($jobId, $proId, (int) $probeJob['user_id'], 2, 'Probe review.');
+
+        check('a submitted review is held for moderation, not published',
+            $db->value('SELECT status FROM reviews WHERE id = :i', ['i' => $reviewId]) === 'pending_review');
+
+        // hired_pro_id has been in the schema since the first migration with
+        // nothing ever writing to it. The review form is what fills it.
+        check('submitting records which tradesperson was hired',
+            (int) $db->value('SELECT hired_pro_id FROM jobs WHERE id = :i', ['i' => $jobId]) === $proId);
+
+        check('a review awaiting moderation shows in the queue',
+            in_array($reviewId, array_map('intval', array_column($reviews->awaitingModeration(), 'id')), true));
+
+        // A pending review must not touch the public rating. If it did, the
+        // moderation queue would be decoration.
+        $held = $db->one('SELECT rating_avg, rating_count FROM pro_profiles WHERE id = :i', ['i' => $proId]);
+        check('a pending review does not move the rating',
+            $held['rating_avg'] === $before['rating_avg']
+            && $held['rating_count'] === $before['rating_count']);
+
+        // One per job, enforced by the database rather than only by PHP —
+        // a double-submitted form must not double a pro's review count.
+        $dup = false;
+        try {
+            $reviews->submit($jobId, $proId, (int) $probeJob['user_id'], 5, 'Second.');
+        } catch (\Throwable) {
+            $dup = true;
+        }
+        check('a second review on the same job is refused by the database', $dup);
+
+        // --- moderation moves the rating, both ways ---------------------------
+        //
+        // Tested on a non-demo profile because recalculate() deliberately
+        // leaves sample profiles alone — see the docblock there.
+        $db->affected('UPDATE pro_profiles SET is_demo = 0 WHERE id = :i', ['i' => $proId]);
+        $flippedPro = $wasDemo === 1 ? $proId : null;
+
+        $reviews->moderate($reviewId, 'published');
+        $live = $db->one('SELECT rating_avg, rating_count FROM pro_profiles WHERE id = :i', ['i' => $proId]);
+        $realPublished = (int) $db->value(
+            "SELECT COUNT(*) FROM reviews WHERE pro_id = :p AND status = 'published'", ['p' => $proId]);
+        check('publishing recomputes the rating from the published reviews',
+            (int) $live['rating_count'] === $realPublished && $realPublished > 0,
+            $live['rating_avg'] . ' over ' . $live['rating_count']);
+
+        // Removing has to deflate it again, or moderation is theatre: a
+        // libellous five-star could be taken down and still be counted.
+        $reviews->moderate($reviewId, 'removed');
+        $pulled = (int) $db->value('SELECT rating_count FROM pro_profiles WHERE id = :i', ['i' => $proId]);
+        check('removing a review takes its rating back off the profile',
+            $pulled === $realPublished - 1);
+
+        check('a status the moderator did not offer is refused',
+            $reviews->moderate($reviewId, 'published; DROP') === false);
+
+        // --- sample profiles are left alone -----------------------------------
+        //
+        // The seed writes rating_count onto nine profiles without creating the
+        // rows to back them — three review rows against profiles claiming 187
+        // and 143. Recalculating one of those does not correct anything, it
+        // just makes one invented profile disagree with the other eight.
+        $sample = $db->one('SELECT id, rating_avg, rating_count FROM pro_profiles
+                             WHERE is_demo = 1 AND rating_count > 0 LIMIT 1');
+        if ($sample !== null) {
+            $reviews->recalculate((int) $sample['id']);
+            $stillSample = $db->one('SELECT rating_avg, rating_count FROM pro_profiles WHERE id = :i',
+                ['i' => $sample['id']]);
+            check('recalculating leaves a sample profile untouched',
+                $stillSample['rating_avg'] === $sample['rating_avg']
+                && $stillSample['rating_count'] === $sample['rating_count'],
+                'still ' . $sample['rating_avg'] . ' over ' . $sample['rating_count']);
+        }
+
+        // --- who gets asked ---------------------------------------------------
+        //
+        // The job above has just been invited, so it must have dropped out of
+        // the queue. Asking the same person twice reads as a site not paying
+        // attention.
+        check('a job already invited is not queued for another invitation',
+            !in_array($jobId, array_map('intval', array_column($reviews->dueForInvite(0), 'id')), true));
+
+        foreach ($reviews->dueForInvite(0, 200) as $due) {
+            if ((int) $due['quote_count'] < 1) {
+                check('no invitation is sent for a job nobody quoted', false, 'job ' . $due['reference']);
+                break;
+            }
+        }
+        check('every queued invitation is for a job that got quotes', true,
+            count($reviews->dueForInvite(0, 200)) . ' queued');
+    } finally {
+        if ($reviewId !== null) {
+            $db->affected('DELETE FROM reviews WHERE id = :i', ['i' => $reviewId]);
+        }
+        if ($flippedPro !== null) {
+            $db->affected('UPDATE pro_profiles SET is_demo = 1 WHERE id = :i', ['i' => $flippedPro]);
+        }
+        $db->affected('UPDATE jobs SET review_token = NULL, review_invited_at = NULL,
+                              hired_pro_id = NULL WHERE id = :i', ['i' => $jobId]);
+        foreach ($db->all('SELECT DISTINCT pro_id FROM quotes WHERE job_id = :j', ['j' => $jobId]) as $q) {
+            $reviews->recalculate((int) $q['pro_id']);
+        }
+    }
+}
+
 // --- this suite must never point at live data -------------------------------
 //
 // Circular, slightly: the guard is at the top of this very file. It still

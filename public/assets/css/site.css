@@ -219,6 +219,36 @@ button,input,select,textarea{font:inherit;color:inherit}
    An unearned hammer is dimmed rather than hidden, so the row is always
    five wide and the filled length is what your eye measures. */
 .marks{display:inline-flex;align-items:center;gap:2px;color:var(--brass-2);flex:none}
+
+/* ---- leaving a review ----
+ *
+ * Both controls are radio groups wearing something nicer. No JavaScript, so
+ * they work on a phone in a van with a bad signal, they work with a keyboard,
+ * and a screen reader announces them as the radio groups they are. The real
+ * input is clipped rather than display:none, which would take it out of the
+ * tab order entirely.
+ */
+.leg{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-3)}
+.err{display:block;color:var(--clay);font-size:12.5px;margin-top:5px}
+
+.pick{display:flex;flex-direction:column;gap:6px}
+.pick-row{display:flex;align-items:center;gap:11px;cursor:pointer;
+  border:1px solid var(--line-2);border-radius:3px;padding:12px 14px;background:var(--paper-2)}
+.pick-row:hover{border-color:var(--brass-2)}
+.pick-row input{flex:none;accent-color:var(--brass)}
+.pick-row:has(input:checked){border-color:var(--ink);background:var(--paper-3)}
+.pick-row:has(input:focus-visible){outline:2px solid var(--brass);outline-offset:2px}
+
+.hammers{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.hammer-opt{display:flex;align-items:center;gap:12px;cursor:pointer;
+  border:1px solid var(--line-2);border-radius:3px;padding:10px 14px;background:var(--paper-2)}
+.hammer-opt:hover{border-color:var(--brass-2)}
+.hammer-opt input{position:absolute;width:1px;height:1px;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden}
+.hammer-opt:has(input:checked){border-color:var(--ink);background:var(--paper-3)}
+.hammer-opt:has(input:focus-visible){outline:2px solid var(--brass);outline-offset:2px}
+.hammer-word{font-size:14px;color:var(--text-2)}
+.hammer-opt:has(input:checked) .hammer-word{color:var(--text);font-weight:600}
 .marks .mk{opacity:.26}
 .marks .mk.on{opacity:1}
 .tags{display:flex;flex-wrap:wrap;gap:6px}

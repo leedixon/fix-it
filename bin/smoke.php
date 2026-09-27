@@ -52,6 +52,7 @@ use FixListed\Core\Repository;
 use FixListed\Core\Seo;
 use FixListed\Core\TenantScope;
 use FixListed\Core\TradeCopy;
+use FixListed\Repositories\AdminRepository;
 use FixListed\Repositories\AdvertisingRepository;
 use FixListed\Repositories\GeographyRepository;
 use FixListed\Repositories\JobRepository;
@@ -1025,6 +1026,73 @@ if ($probeJob === null) {
         }
     }
 }
+
+// --- seeded money must never be counted as real ------------------------------
+//
+// The admin dashboard read "Revenue, 30 days: $496" on a site with one
+// listing, nothing sold and no open jobs. $486 of it was seeded. Migration
+// 003 gave is_demo to the four tables a VISITOR sees; the seed writes to
+// twenty-one, and the ones holding money were not among them — so there was
+// no flag to filter on and nothing filtered.
+$adminRepo = new AdminRepository($db, TenantScope::market($marketId));
+$counts    = $adminRepo->counts();
+
+$seededMoney = (int) $db->value(
+    "SELECT COALESCE(SUM(amount_cents),0) FROM payments
+      WHERE market_id = :m AND status = 'succeeded' AND is_demo = 1
+        AND paid_at >= NOW() - INTERVAL 30 DAY",
+    ['m' => $marketId],
+);
+check('the seed does put money in the payments table', $seededMoney > 0,
+    money($seededMoney) . ' of it');
+check('and the dashboard does not count a penny of it',
+    (int) $counts['revenue_30d'] === (int) $db->value(
+        "SELECT COALESCE(SUM(amount_cents),0) FROM payments
+          WHERE market_id = :m AND status = 'succeeded' AND is_demo = 0
+            AND paid_at >= NOW() - INTERVAL 30 DAY", ['m' => $marketId]),
+    'reports ' . money((int) $counts['revenue_30d']));
+
+// Every table the seed writes transactional rows into needs the flag, or
+// there is nothing to filter on and nothing to purge. Checked against the
+// schema rather than a list, so a table that gains seeded rows later is
+// caught by the purge test below rather than by nobody.
+foreach (['payments', 'subscriptions', 'quotes', 'ad_placements',
+          'ad_creatives', 'ad_stats_daily', 'moderation_items'] as $t) {
+    check('the ' . $t . ' table can tell seeded rows from real ones',
+        (int) $db->value(
+            "SELECT COUNT(*) FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = :t AND column_name = 'is_demo'",
+            ['t' => $t]) === 1);
+}
+
+// The flag is only worth having if the purge acts on it. This is the check
+// that would have caught the original bug: demo.php deleted four tables and
+// left the other seven, so "purged" left the invented revenue behind.
+$purgeSrc = (string) file_get_contents(BASE_PATH . '/bin/demo.php');
+$unpurged = [];
+foreach ($db->all(
+    "SELECT table_name AS t FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND column_name = 'is_demo' ORDER BY table_name") as $row) {
+    if (!str_contains($purgeSrc, 'DELETE FROM ' . $row['t'] . ' WHERE is_demo = 1')) {
+        $unpurged[] = (string) $row['t'];
+    }
+}
+check('every table carrying the demo flag is emptied by demo.php purge',
+    $unpurged === [],
+    $unpurged === [] ? 'all of them' : 'left behind: ' . implode(', ', $unpurged));
+
+// And it has to report them, or an owner runs status, reads "0 sample", and
+// believes the database is clean when it is holding a hundred invented rows.
+$unreported = [];
+foreach ($db->all(
+    "SELECT table_name AS t FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND column_name = 'is_demo' ORDER BY table_name") as $row) {
+    if (!str_contains($purgeSrc, "'" . $row['t'] . "'")) {
+        $unreported[] = (string) $row['t'];
+    }
+}
+check('and demo.php status counts every one of them', $unreported === [],
+    $unreported === [] ? 'all of them' : 'missing: ' . implode(', ', $unreported));
 
 // --- this suite must never point at live data -------------------------------
 //

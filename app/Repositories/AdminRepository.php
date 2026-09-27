@@ -37,9 +37,20 @@ final class AdminRepository extends Repository
             'jobs_unpaid'  => $one("SELECT COUNT(*) FROM jobs WHERE market_id = :market_id AND status = 'pending_payment'"),
             'people'       => $one("SELECT COUNT(*) FROM users WHERE market_id = :market_id"),
             'waitlist'     => (int) $this->db->value('SELECT COUNT(*) FROM waitlist'),
-            'moderation'   => $one("SELECT COUNT(*) FROM moderation_items WHERE market_id = :market_id AND status = 'open'"),
+            'moderation'   => $one("SELECT COUNT(*) FROM moderation_items WHERE market_id = :market_id AND status = 'open' AND is_demo = 0"),
+            /*
+             * is_demo = 0 is the whole point of this line.
+             *
+             * Without it this read $496 on a site with one listing, nothing
+             * sold and no open jobs — $486 of seeded payments plus a real
+             * $10 test card. An owner looks at this number to decide whether
+             * the thing is working, and it was answering yes on evidence it
+             * had invented. Migration 009 added the flag; this is what reads
+             * it.
+             */
             'revenue_30d'  => $one("SELECT COALESCE(SUM(amount_cents),0) FROM payments
                                      WHERE market_id = :market_id AND status = 'succeeded'
+                                       AND is_demo = 0
                                        AND paid_at >= NOW() - INTERVAL 30 DAY"),
         ];
     }

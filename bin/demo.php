@@ -22,9 +22,22 @@ use FixListed\Core\Demo;
 $command = $argv[1] ?? 'status';
 $db      = Database::fromConfig();
 
+/*
+ * Every table the seed writes transactional rows into — not just the four a
+ * visitor sees.
+ *
+ * This listed users, pro_profiles, jobs and reviews only, so on a database
+ * holding 104 rows of seeded payments, subscriptions, placements and stats it
+ * printed "0 sample" and purge answered "Nothing to purge". The report was
+ * true about the four tables it looked at and wrong about the database.
+ */
 $counts = static function (Database $db): array {
     $out = [];
-    foreach (['users', 'pro_profiles', 'jobs', 'reviews'] as $table) {
+    foreach ([
+        'users', 'pro_profiles', 'jobs', 'reviews',
+        'payments', 'subscriptions', 'quotes',
+        'ad_placements', 'ad_creatives', 'ad_stats_daily', 'moderation_items',
+    ] as $table) {
         $out[$table] = [
             'demo' => (int) $db->value("SELECT COUNT(*) FROM {$table} WHERE is_demo = 1"),
             'real' => (int) $db->value("SELECT COUNT(*) FROM {$table} WHERE is_demo = 0"),
@@ -40,9 +53,9 @@ if ($command === 'status') {
         : "  Seeded listings are HIDDEN from every page.\n";
     echo "  Change it with app.demo_data in config/config.php ('label' or 'hide').\n\n";
 
-    printf("  %-14s %8s %8s\n", '', 'sample', 'real');
+    printf("  %-17s %8s %8s\n", '', 'sample', 'real');
     foreach ($counts($db) as $table => $n) {
-        printf("  %-14s %8d %8d\n", $table, $n['demo'], $n['real']);
+        printf("  %-17s %8d %8d\n", $table, $n['demo'], $n['real']);
     }
     echo "\n";
 
@@ -105,9 +118,30 @@ if (trim((string) fgets(STDIN)) !== 'purge') {
     exit(0);
 }
 
-// Order matters even with cascades: deleting the users last means a row whose
-// owner is gone can never be left behind pointing at nothing.
+/*
+ * Order matters even with cascades: deleting the users last means a row whose
+ * owner is gone can never be left behind pointing at nothing.
+ *
+ * The money tables come first, and they were missing entirely until the admin
+ * dashboard was caught reporting $496 of revenue on a site that had sold
+ * nothing. This command deleted the demo pros and jobs and left their
+ * payments, subscriptions, placements, creatives, stats and quotes behind —
+ * so "purged" left a hundred rows of invented activity feeding every figure
+ * an owner reads. Migration 009 gave those tables the flag; this deletes on
+ * it.
+ *
+ * ad_stats_daily before ad_placements before subscriptions, because each
+ * points at the one after it.
+ */
 $db->transaction(static function (Database $db): void {
+    $db->affected('DELETE FROM ad_stats_daily WHERE is_demo = 1');
+    $db->affected('DELETE FROM ad_placements WHERE is_demo = 1');
+    $db->affected('DELETE FROM ad_creatives WHERE is_demo = 1');
+    $db->affected('DELETE FROM payments WHERE is_demo = 1');
+    $db->affected('DELETE FROM subscriptions WHERE is_demo = 1');
+    $db->affected('DELETE FROM quotes WHERE is_demo = 1');
+    $db->affected('DELETE FROM moderation_items WHERE is_demo = 1');
+
     $db->affected('DELETE r FROM reviews r JOIN pro_profiles p ON p.id = r.pro_id WHERE p.is_demo = 1');
     $db->affected('DELETE FROM reviews WHERE is_demo = 1');
     $db->affected('DELETE FROM jobs WHERE is_demo = 1');
@@ -117,7 +151,7 @@ $db->transaction(static function (Database $db): void {
 
 echo "\nPurged.\n\n";
 foreach ($counts($db) as $table => $n) {
-    printf("  %-14s %d sample, %d real\n", $table, $n['demo'], $n['real']);
+    printf("  %-17s %d sample, %d real\n", $table, $n['demo'], $n['real']);
 }
 echo "\nNext: set app.demo_data to 'hide' in config/config.php so the sample\n";
 echo "banner stops appearing, then  php bin/check.php\n\n";

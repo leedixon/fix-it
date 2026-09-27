@@ -31,3 +31,7 @@ storage/maintenance.json
 *.log
 node_modules/
 vendor/
+
+# Scratch output from screenshot scripts. A shell-escaping slip once created
+# a literal directory called $SP and committed two PNGs into it.
+$SP/

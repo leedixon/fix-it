@@ -137,6 +137,25 @@ final class TeamRepository
      * inbox still works — the account is switched off and the way back in is
      * not.
      */
+    /**
+     * Correct somebody's name.
+     *
+     * The only field on this screen anybody may edit about another person,
+     * and the only one where editing it in place is obviously safe: a name is
+     * a label. It grants nothing, it is not how anyone signs in, and getting
+     * it wrong costs a typo rather than an account.
+     *
+     * Email is deliberately not here — see TeamController::setName.
+     */
+    public function setName(int $userId, string $firstName, string $lastName): void
+    {
+        $this->db->affected(
+            'UPDATE users SET first_name = :first, last_name = :last, updated_at = NOW()
+              WHERE id = :id',
+            ['first' => $firstName, 'last' => $lastName, 'id' => $userId],
+        );
+    }
+
     public function setStatus(int $userId, string $status): void
     {
         $this->db->affected(

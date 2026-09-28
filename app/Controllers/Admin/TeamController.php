@@ -208,6 +208,74 @@ final class TeamController extends AdminController
         return Response::redirect('/admin/team');
     }
 
+    /**
+     * Correct a team member's name.
+     *
+     * The one field here anybody may edit about somebody else, and unlike
+     * role and status it is allowed on your own account: renaming yourself
+     * grants you nothing, so the self-action rule that guards the rest of
+     * this screen has nothing to protect against.
+     *
+     * Email is not editable, and that is a decision rather than an omission.
+     * An admin who can change another admin's address can point it at one
+     * they control and then use "forgot password" to walk into that account.
+     * Changing an email is a change of identity and it belongs behind proof
+     * that the new address is reachable — which is a confirmation flow, not
+     * a text box on a list screen.
+     *
+     * The name is barely validated on purpose. Every rule anyone writes about
+     * what a name may contain is wrong about somebody: apostrophes, hyphens,
+     * accents, one word, four words, a name in a script this validator's
+     * author cannot read. It is trimmed, it is bounded, and it is escaped on
+     * the way out, which is the whole of what is actually required.
+     */
+    public function setName(string $id): Response
+    {
+        if ($denied = $this->guardCan('team.manage')) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was changed.');
+            return Response::redirect('/admin/team');
+        }
+
+        $team   = new TeamRepository($this->db);
+        $userId = (int) $id;
+        $user   = $team->find($userId);
+
+        if ($user === null) {
+            Session::flash('bad', 'No such team member.');
+            return Response::redirect('/admin/team');
+        }
+
+        $v = new Validator($this->request->body);
+        $v->required('first_name', 'First name')->max('first_name', 80, 'First name')
+          ->max('last_name', 80, 'Last name');
+
+        if (!$v->passes()) {
+            Session::flash('bad', $v->error('first_name') ?: $v->error('last_name'));
+            return Response::redirect('/admin/team');
+        }
+
+        $first = trim((string) $v->value('first_name'));
+        $last  = trim((string) $v->value('last_name'));
+        $was   = trim($user['first_name'] . ' ' . $user['last_name']);
+        $now   = trim($first . ' ' . $last);
+
+        if ($now === $was) {
+            return Response::redirect('/admin/team');
+        }
+
+        $team->setName($userId, $first, $last);
+        $this->record('team.renamed', 'user', $userId, ['from' => $was, 'to' => $now]);
+
+        Session::flash('good', $was !== ''
+            ? $was . ' is now shown as ' . $now . '.'
+            : 'Name set to ' . $now . '.');
+
+        return Response::redirect('/admin/team');
+    }
+
     public function setStatus(string $id): Response
     {
         if ($denied = $this->guardCan('team.manage')) {

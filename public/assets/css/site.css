@@ -142,6 +142,58 @@ button,input,select,textarea{font:inherit;color:inherit}
    account links, so the menu reads as two jobs rather than one long list. */
 .acct-sep{height:1px;background:var(--line);margin:6px 0}
 
+/* ---- correcting a team member's name ----
+ *
+ * Checkbox, label, revealed panel. No JavaScript, same as every other
+ * disclosure on this site. The checkbox is clipped rather than hidden so it
+ * keeps its place in the tab order and is announced as expanded/collapsed.
+ *
+ * The Edit affordance only appears on hover or keyboard focus, because a
+ * pencil beside every row turns a list you read into a list you operate.
+ */
+.rename{position:relative}
+.rename-state{position:absolute;width:1px;height:1px;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden}
+.rename-btn{
+  display:inline-flex;align-items:center;gap:4px;cursor:pointer;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text-3);border:1px solid var(--line);border-radius:2px;padding:2px 6px;
+  margin-left:6px;opacity:0;transition:opacity .12s
+}
+.rename:hover .rename-btn,
+.rename-state:focus-visible ~ .rename-btn,
+.rename-btn:hover{opacity:1}
+.rename-btn:hover{color:var(--text);border-color:var(--line-2)}
+.rename-state:focus-visible ~ .rename-btn{outline:2px solid var(--brass);outline-offset:2px}
+
+/*
+ * Stacked, and no min-width.
+ *
+ * Side by side with a 260px floor the panel was wider than the Name column,
+ * so opening it stretched the row and pushed the role, status and last-seen
+ * cells out to the middle of a box twice their height. Two fields one above
+ * the other fit the column they live in.
+ */
+.rename-form{display:none;margin-top:10px;padding:12px;border:1px solid var(--line-2);
+  border-radius:3px;background:var(--paper-2);max-width:230px}
+.rename-state:checked ~ .rename-form{display:block}
+/* Once it is open the trigger is redundant and the row is already busy. */
+.rename-state:checked ~ .rename-btn{display:none}
+.rename-fields{display:flex;flex-direction:column;gap:8px}
+.rename-fields label{display:block}
+/* The caption has to be block, or it sits inline beside the input and the
+   input's width:100% then measures past it and out of the panel. */
+.rename-fields label span{display:block;margin-bottom:3px}
+.rename-fields input{width:100%;padding:7px 9px;border:1px solid var(--line-2);
+  border-radius:3px;background:var(--paper-3);font-size:13.5px;margin-top:3px}
+.rename-act{display:flex;gap:6px;margin-top:10px}
+
+@media (prefers-reduced-motion:reduce){.rename-btn{transition:none}}
+/* No hover on a touch screen, so the control is simply always there. */
+@media (hover:none){.rename-btn{opacity:1}}
+/* A row that grows because one cell opened should keep the rest of its
+   cells where they were, not float them to the new centre. */
+.adm .tablewrap td{vertical-align:top}
+
 /* ---- surfaces ---- */
 .card{background:var(--paper-3);border:1px solid var(--line);border-radius:4px}
 .sect{padding-block:72px}

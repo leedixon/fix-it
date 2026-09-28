@@ -43,12 +43,54 @@ $myId = (int) ($me['id'] ?? 0);
         ?>
         <tr>
           <td>
-            <strong><?= e($name !== '' ? $name : '—') ?></strong>
-            <?php if ($isMe): ?><span class="badge b-flat">You</span><?php endif; ?>
-            <div class="tiny muted"><?= e($u['email']) ?></div>
-            <?php if ($u['invited_by_email'] !== null): ?>
-              <div class="tiny muted">invited by <?= e($u['invited_by_email']) ?></div>
-            <?php endif; ?>
+            <?php
+            /*
+             * The name, and a way to fix it.
+             *
+             * Checkbox, label, and a panel the checkbox reveals — the same
+             * pattern as the account menu and the admin drawer, for the same
+             * reason: this site ships one JavaScript file and it is not this.
+             * The input is clipped rather than display:none so it keeps its
+             * place in the tab order.
+             *
+             * The email sits under the name as plain text and stays that way.
+             * Changing it is a change of identity, not a correction, and it
+             * belongs behind proof that the new address is reachable.
+             */
+            ?>
+            <div class="rename">
+              <input type="checkbox" id="rn-<?= $uid ?>" class="rename-state"
+                     aria-label="Edit name for <?= e($name !== '' ? $name : $u['email']) ?>">
+              <strong><?= e($name !== '' ? $name : '—') ?></strong>
+              <?php if ($isMe): ?><span class="badge b-flat">You</span><?php endif; ?>
+              <label class="rename-btn" for="rn-<?= $uid ?>" title="Edit name"><?= icon('tools', 12) ?> Edit</label>
+
+              <div class="tiny muted"><?= e($u['email']) ?></div>
+              <?php if ($u['invited_by_email'] !== null): ?>
+                <div class="tiny muted">invited by <?= e($u['invited_by_email']) ?></div>
+              <?php endif; ?>
+
+              <form class="rename-form" method="post"
+                    action="<?= e(url('/admin/team/' . $uid . '/name')) ?>">
+                <?= \FixListed\Core\Csrf::field() ?>
+                <div class="rename-fields">
+                  <label>
+                    <span class="tiny muted">First name</span>
+                    <input type="text" name="first_name" maxlength="80" required
+                           value="<?= e($u['first_name']) ?>">
+                  </label>
+                  <label>
+                    <span class="tiny muted">Last name</span>
+                    <input type="text" name="last_name" maxlength="80"
+                           value="<?= e($u['last_name']) ?>">
+                  </label>
+                </div>
+                <div class="rename-act">
+                  <button class="btn btn-primary btn-sm" type="submit">Save</button>
+                  <label class="btn btn-ghost btn-sm" for="rn-<?= $uid ?>">Cancel</label>
+                </div>
+              </form>
+            </div>
           </td>
 
           <td>

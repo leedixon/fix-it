@@ -212,6 +212,7 @@ try {
     $router->get('/admin/team',                static fn () => $admin(TeamController::class)->index());
     $router->post('/admin/team',               static fn () => $admin(TeamController::class)->invite());
     $router->post('/admin/team/{id}/role',     static fn (array $p) => $admin(TeamController::class)->setRole($p['id']));
+    $router->post('/admin/team/{id}/name',     static fn (array $p) => $admin(TeamController::class)->setName($p['id']));
     $router->post('/admin/team/{id}/status',   static fn (array $p) => $admin(TeamController::class)->setStatus($p['id']));
     $router->post('/admin/team/{id}/resend',   static fn (array $p) => $admin(TeamController::class)->resend($p['id']));
     $router->post('/admin/team/{id}/remove',   static fn (array $p) => $admin(TeamController::class)->remove($p['id']));

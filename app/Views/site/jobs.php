@@ -16,7 +16,7 @@ require_once __DIR__ . '/../partials/icons.php';
     <div class="head">
       <div>
         <div class="eyebrow">Open jobs</div>
-        <h2><?= e($trade['name'] ?? 'Work') ?> available in <?= e($market['name']) ?></h2>
+        <h1><?= e($trade['name'] ?? 'Work') ?> available in <?= e($market['name']) ?></h1>
         <p>Free to quote, and you keep the whole job — Fix Listed takes nothing from what the
            homeowner pays you.</p>
       </div>

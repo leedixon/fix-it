@@ -2280,5 +2280,63 @@ check('the academy index has an anchor per track, clear of the sticky header',
     str_contains($acadIndex, 'id="homeowners"') && str_contains($acadIndex, 'id="tradespeople"')
     && str_contains($acadIndex, 'scroll-margin-top'));
 
+// --- on-page basics --------------------------------------------------------
+//
+// The directory and the jobs board — the two pages this site most wants
+// found — both opened with an h2 and carried no h1 at all.
+check('the directory page has an h1',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Views/site/directory.php'), '<h1>'));
+check('the jobs board has an h1',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Views/site/jobs.php'), '<h1>'));
+
+// .head h2 carried the size. Without this the h1 renders at the browser
+// default and the page looks wrong in a way nobody would connect to SEO.
+check('and it is sized like the heading it replaced',
+    str_contains($css, '.head h1,.head h2{font-size:'));
+
+/*
+ * Two pages under one title tag compete for the query instead of adding up.
+ *
+ * Only literal titles can be compared — a title built from the market name
+ * is different per market by construction. /list-your-business/received is
+ * excluded: it is Disallowed in robots.txt and never reaches a result page.
+ */
+$titlesByView = [];
+foreach (glob(BASE_PATH . '/app/Controllers/*.php') as $ctl) {
+    $src = (string) file_get_contents($ctl);
+    /*
+     * Two passes, because a comment can sit between the view and its title
+     * and a single regex spanning both quietly matches nothing — which is a
+     * test that passes because it looked at no pages at all. Find each
+     * page('view', [ call, then the first literal title after it.
+     */
+    if (preg_match_all("~page\\('([a-z0-9_/]+)'\\s*,~", $src, $m, PREG_OFFSET_CAPTURE) > 0) {
+        foreach ($m[1] as $hit) {
+            $after = substr($src, (int) $hit[1], 1200);
+            if (preg_match("~'title'\\s*=>\\s*'([^']{10,})'~", $after, $t) === 1) {
+                $titlesByView[$t[1]][$hit[0]] = true;
+            }
+        }
+    }
+}
+
+// A scan that finds nothing would report no duplicates and pass forever.
+check('the title scan actually reads the controllers',
+    count($titlesByView) >= 8, count($titlesByView) . ' literal titles found');
+
+// The same title with the same view twice is a form and its own validation
+// failure — one URL, one title, correct. The same title across two different
+// views is two pages competing for one query.
+$shared = array_filter($titlesByView, static fn (array $views): bool => count($views) > 1);
+check('no two pages share a title tag',
+    $shared === [],
+    $shared === [] ? '' : 'shared: ' . implode('; ', array_keys($shared)));
+
+// A page with no description gets a snippet Google writes from the first
+// text it finds, which on a legal page is half a sentence of boilerplate.
+check('the legal pages describe themselves',
+    preg_match("~legal_' . \\\$which.*?'description'~s",
+        (string) file_get_contents(BASE_PATH . '/app/Controllers/PageController.php')) === 1);
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail === 0 ? 0 : 1);

@@ -21,7 +21,7 @@ $count = count($pros);
     <div class="head">
       <div>
         <div class="eyebrow">Directory</div>
-        <h2><?= e($what) ?> in <?= e($where) ?></h2>
+        <h1><?= e($what) ?> in <?= e($where) ?></h1>
         <p>Licence and insurance are checked before a profile goes live. Paid placement is
            labelled wherever it appears.</p>
       </div>

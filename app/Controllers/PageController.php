@@ -32,7 +32,13 @@ final class PageController extends Controller
     public function forPros(): Response
     {
         return $this->page('site/for_pros', [
-            'title'       => 'List your trade business — Fix Listed',
+            /*
+             * Not "List your trade business" — /list-your-business already
+             * has that title, and two URLs under one title compete with each
+             * other for the query rather than adding up. This page argues the
+             * case; that one is the form.
+             */
+            'title'       => 'Why list with Fix Listed — no commission, no lead resale',
             'description' => 'A profile is free, quoting is free, and you keep the whole job. '
                 . 'No commission and no lead resale in ' . $this->market['name'] . '.',
             'openJobs'    => (new JobRepository($this->db, $this->scope))->countOpen(),
@@ -86,6 +92,14 @@ final class PageController extends Controller
     {
         return $this->page('site/legal_' . $which, [
             'title'   => ($which === 'terms' ? 'Terms of use' : 'Privacy') . ' — Fix Listed',
+            // Both pages shipped with no description, so the snippet was
+            // whatever Google chose to lift — usually the first clause of a
+            // legal sentence, which reads badly and says nothing.
+            'description' => $which === 'terms'
+                ? 'The terms you agree to when you post a job or list a business on Fix Listed: '
+                    . 'fees, refunds, reviews, and what we do and do not do.'
+                : 'What Fix Listed collects, why, who it is shared with, and how to get it '
+                    . 'deleted. No lead reselling, here or anywhere.',
             'updated' => 'September 2026',
             'crumbs'  => [
                 ['label' => 'Home', 'href' => '/'],

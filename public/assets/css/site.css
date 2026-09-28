@@ -220,7 +220,14 @@ button,input,select,textarea{font:inherit;color:inherit}
 .dark .eyebrow{color:var(--on-ink-2)}
 .hr{height:1px;background:var(--line);border:0;margin:0}
 .head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:26px;flex-wrap:wrap}
-.head h2{font-size:clamp(26px,3.4vw,36px)}
+/*
+ * The directory and the jobs board open with an h1 now.
+ *
+ * Both used to start at h2 — the two pages the site most wants found, with
+ * no h1 between them. Sized here rather than on the element so the heading
+ * looks exactly as it did; only its level changed.
+ */
+.head h1,.head h2{font-size:clamp(26px,3.4vw,36px)}
 .head p{color:var(--text-2);margin-top:8px;max-width:58ch}
 
 /* ---- hero ---- */

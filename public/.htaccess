@@ -40,3 +40,24 @@
   ExpiresByType image/svg+xml "access plus 1 year"
   ExpiresByType image/webp "access plus 1 year"
 </IfModule>
+
+# --- progressive web app ----------------------------------------------------
+#
+# Two files Apache does not know about by default, and getting either wrong
+# is silent: a manifest served as text/plain is ignored, and a service worker
+# cached for a year is one that can never be updated or switched off.
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+# The service worker must never be cached. Browsers do check for a new one,
+# but a long max-age from the server is the one way to end up with a worker
+# on somebody's phone that cannot be replaced — including a broken one.
+<Files "sw.js">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-cache, max-age=0, must-revalidate"
+  </IfModule>
+</Files>
+
+# The worker registers at the root, so it has to be reachable there and must
+# not be swallowed by the front-controller rewrite.

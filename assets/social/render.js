@@ -6,6 +6,7 @@
  * Run from a machine with Playwright, not from the shared host — the output
  * is committed, so the server only ever serves the finished files.
  */
+const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 
@@ -20,6 +21,11 @@ const CARDS = [
   // it exists to check the render against, not to ship.
   { id: 'fbp', file: 'facebook-profile.png', width: 1080, height: 1080, label: 'Facebook / Page profile picture', hide: '.ring' },
   { id: 'fbc', file: 'facebook-cover.png',   width: 1640, height: 624,  label: 'Facebook / Page cover photo' },
+  // App icons. These land in public/assets/icons rather than social/ —
+  // the manifest points at them and they are not social cards.
+  { id: 'i192', file: 'icon-192.png',        width: 192,  height: 192,  label: 'PWA / maskable', dir: 'icons' },
+  { id: 'i512', file: 'icon-512.png',        width: 512,  height: 512,  label: 'PWA / maskable', dir: 'icons' },
+  { id: 'iOS',  file: 'apple-touch-icon.png', width: 180, height: 180,  label: 'iOS / home screen', dir: 'icons' },
 ];
 
 (async () => {
@@ -50,7 +56,11 @@ const CARDS = [
         `expected ${card.width}x${card.height}`
       );
     }
-    await el.screenshot({ path: path.join(OUT, card.file) });
+    const out = card.dir
+      ? path.join(__dirname, '..', '..', 'public', 'assets', card.dir)
+      : OUT;
+    fs.mkdirSync(out, { recursive: true });
+    await el.screenshot({ path: path.join(out, card.file) });
     console.log(`${card.file.padEnd(12)} ${card.width}x${card.height}  ${card.label}`);
   }
 

@@ -171,6 +171,8 @@ try {
     $router->get('/terms',          static fn () => $make(PageController::class)->legal('terms'));
     $router->get('/privacy',        static fn () => $make(PageController::class)->legal('privacy'));
     $router->get('/contact',        static fn () => $make(PageController::class)->contact());
+    // Cached by the service worker at install. See public/sw.js.
+    $router->get('/offline',        static fn () => $make(PageController::class)->offline());
 
     // --- posting a job, and paying for it --------------------------------
     $router->get('/post-a-job',         static fn () => $make(PostJobController::class)->form());

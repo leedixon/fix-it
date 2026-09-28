@@ -68,6 +68,26 @@ $ogDesc  = $description !== '' ? $description
 <meta name="robots" content="noindex, nofollow">
 <?php endif; ?>
 <meta name="theme-color" content="#0E1513">
+
+<?php
+/*
+ * Add to home screen.
+ *
+ * Two platforms, two mechanisms. Android reads the manifest and — given a
+ * service worker with a fetch handler — offers to install. iOS reads none of
+ * it: Safari wants an apple-touch-icon, uses its own meta tags for the status
+ * bar, and never prompts at all. Somebody on an iPhone has to find Share,
+ * then Add to Home Screen, which is why there is a hint for them further
+ * down and nothing for anybody else.
+ */
+?>
+<link rel="manifest" href="<?= e(asset('manifest.webmanifest')) ?>">
+<link rel="apple-touch-icon" href="<?= e(asset('assets/icons/apple-touch-icon.png')) ?>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fix Listed">
+<meta name="application-name" content="Fix Listed">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Hanken+Grotesk:ital,wght@0,300..800;1,300..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -86,5 +106,16 @@ $ogDesc  = $description !== '' ? $description
 <?php require __DIR__ . '/../partials/footer.php'; ?>
 <?php require __DIR__ . '/../partials/mobilebar.php'; ?>
 <script src="<?= e(asset('assets/js/password.js')) ?>" defer></script>
+<?php
+/*
+ * The second and last script on the site.
+ *
+ * Everything here is an enhancement in the strict sense: with it blocked,
+ * the site is exactly what it was before — every page, every form, every
+ * link. A home screen icon is a convenience, and a convenience is the one
+ * thing that may depend on JavaScript.
+ */
+?>
+<script src="<?= e(asset('assets/js/app.js')) ?>" defer></script>
 </body>
 </html>

@@ -1030,6 +1030,82 @@ if ($probeJob === null) {
     }
 }
 
+// --- the progressive web app ------------------------------------------------
+//
+// Most of these check the service worker, which is the most dangerous file
+// on the site. A worker that caches the wrong thing serves a stale page to a
+// returning visitor for as long as the cache lives, and there is nothing
+// they can do about it short of clearing site data.
+$manifestPath = BASE_PATH . '/public/manifest.webmanifest';
+check('the manifest is there and is valid JSON',
+    is_file($manifestPath) && json_decode((string) file_get_contents($manifestPath), true) !== null);
+
+$manifest = json_decode((string) file_get_contents($manifestPath), true) ?: [];
+check('it asks to open as an app rather than a tab',
+    ($manifest['display'] ?? '') === 'standalone');
+check('and names a start URL inside its own scope',
+    str_starts_with((string) ($manifest['start_url'] ?? ''), '/'));
+
+// Maskable is a promise Android holds you to: it crops the icon to whatever
+// shape the launcher uses and guarantees only the middle 80% survives.
+$maskable = array_filter((array) ($manifest['icons'] ?? []),
+    static fn (array $i): bool => str_contains((string) ($i['purpose'] ?? ''), 'maskable'));
+check('both icons are declared maskable', count($maskable) === 2);
+
+foreach ((array) ($manifest['icons'] ?? []) as $icon) {
+    $file = BASE_PATH . '/public' . $icon['src'];
+    $dim  = is_file($file) ? getimagesize($file) : false;
+    [$w]  = $dim !== false ? $dim : [0];
+    check('icon ' . $icon['sizes'] . ' exists at the size it claims',
+        $dim !== false && $w . 'x' . $dim[1] === $icon['sizes']);
+}
+
+check('iOS has its own icon, which is the only way Safari gets one',
+    is_file(BASE_PATH . '/public/assets/icons/apple-touch-icon.png'));
+
+$layout = (string) file_get_contents(BASE_PATH . '/app/Views/layouts/app.php');
+check('every page links the manifest and the Apple icon',
+    str_contains($layout, 'rel="manifest"') && str_contains($layout, 'rel="apple-touch-icon"'));
+
+// --- the worker -------------------------------------------------------------
+$sw = (string) file_get_contents(BASE_PATH . '/public/sw.js');
+
+// The rule the whole thing rests on. A cached page would show an old price,
+// an old job, or a listing that has since been suspended.
+check('a page is always fetched from the network, never the cache',
+    str_contains($sw, "req.mode === 'navigate'")
+    && str_contains($sw, 'fetch(req).catch(() => caches.match(OFFLINE_URL)'));
+
+// A cached admin page on a shared phone is somebody else's data sitting in
+// a browser; a cached photo is one moderation cannot withdraw.
+foreach (['admin', 'my', 'review', 'img', 'webhooks'] as $private) {
+    check('the worker never touches /' . $private, str_contains($sw, $private));
+}
+
+check('only GET is ever intercepted, so a payment cannot be replayed',
+    str_contains($sw, "req.method !== 'GET'"));
+check('and only this origin', str_contains($sw, 'url.origin !== self.location.origin'));
+
+// Bumping the version is the kill switch: every other cache is deleted on
+// the next activate, on every device that visits.
+check('the cache is versioned and old ones are deleted',
+    str_contains($sw, 'const VERSION') && str_contains($sw, 'caches.delete'));
+
+check('the offline page it falls back to is a real route',
+    str_contains((string) file_get_contents(BASE_PATH . '/public/index.php'), "'/offline'"));
+
+// A service worker cached by the server is one that can never be replaced —
+// including a broken one.
+check('Apache is told never to cache the worker',
+    str_contains((string) file_get_contents(BASE_PATH . '/public/.htaccess'), 'sw.js')
+    && str_contains((string) file_get_contents(BASE_PATH . '/public/.htaccess'), 'AddType application/manifest+json'));
+
+// The second and last script. Both are enhancements: blocked, the site is
+// exactly what it was.
+check('the install script is an enhancement, not a dependency',
+    is_file(BASE_PATH . '/public/assets/js/app.js')
+    && count(glob(BASE_PATH . '/public/assets/js/*.js') ?: []) === 2);
+
 // --- the academies ----------------------------------------------------------
 //
 // Two of them sharing one lesson store: a public one that earns search

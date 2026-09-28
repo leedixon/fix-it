@@ -86,6 +86,22 @@ final class PageController extends Controller
         ]);
     }
 
+    /**
+     * The page the service worker shows when the network is gone.
+     *
+     * A real route rather than a static file, so it wears the same chrome as
+     * everything else and cannot drift out of the design. noindex, because a
+     * search result reading "You are offline" would be a strange thing to
+     * find.
+     */
+    public function offline(): Response
+    {
+        return $this->page('site/offline', [
+            'title'   => 'You are offline — Fix Listed',
+            'noindex' => true,
+        ]);
+    }
+
     public function contact(): Response
     {
         return $this->page('site/contact', [

@@ -979,3 +979,31 @@ td.wrap-cell{white-space:normal;min-width:220px}
   .lesson-wrap{grid-template-columns:1fr;gap:28px}
   .lesson-side{position:static;order:2}
 }
+
+/* =========================================================================
+ * "Add to Home Screen" — the hint Safari will not give them.
+ *
+ * iOS only, built by app.js and never in the markup, so nobody else
+ * downloads it and no crawler reads it. It sits above the mobile action bar
+ * rather than on top of it, because two fixed things fighting over the
+ * bottom of a phone is how you cover the button somebody came for.
+ * ====================================================================== */
+.a2hs{
+  position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom));
+  z-index:60; display:flex; gap:10px; align-items:flex-start;
+  padding:13px 14px; border-radius:6px;
+  background:var(--ink); color:var(--on-ink);
+  box-shadow:0 8px 28px rgba(0,0,0,.28);
+  animation:a2hs-in .22s ease-out;
+}
+.a2hs p{margin:0;font-size:13.5px;line-height:1.5;flex:1}
+.a2hs-x{
+  flex:none; background:transparent; border:0; cursor:pointer;
+  color:var(--on-ink-2); font-size:22px; line-height:1; padding:0 2px;
+}
+.a2hs-x:hover{color:var(--on-ink)}
+/* The action bar owns the bottom of the screen where it exists. */
+body:has(.mobilebar) .a2hs{bottom:calc(74px + env(safe-area-inset-bottom))}
+
+@keyframes a2hs-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.a2hs{animation:none}}

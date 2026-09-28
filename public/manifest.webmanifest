@@ -1,0 +1,49 @@
+{
+  "name": "Fix Listed — Northwest Illinois trades",
+  "short_name": "Fix Listed",
+  "description": "A flat-fee trades directory for Northwest Illinois. Post a job once for $10 and tradespeople quote you directly — no commission.",
+  "id": "/",
+  "start_url": "/?source=homescreen",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0E1513",
+  "background_color": "#0E1513",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["business", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Post a job",
+      "short_name": "Post a job",
+      "description": "Describe what needs doing and get quotes.",
+      "url": "/post-a-job?source=homescreen"
+    },
+    {
+      "name": "Open jobs",
+      "short_name": "Jobs",
+      "description": "Work available in Northwest Illinois.",
+      "url": "/jobs?source=homescreen"
+    },
+    {
+      "name": "Find a tradesperson",
+      "short_name": "Directory",
+      "description": "Browse licensed local businesses.",
+      "url": "/pros?source=homescreen"
+    }
+  ]
+}

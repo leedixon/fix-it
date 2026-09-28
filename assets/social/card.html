@@ -146,6 +146,34 @@
      difference. */
   .card.fbp .bob-solid{position:relative; z-index:2; margin-top:-76px}
 
+  /* ---------- app icons ----------
+   *
+   * Maskable, which is a specific promise: Android crops these to whatever
+   * shape the launcher uses — circle, squircle, rounded square, teardrop —
+   * and guarantees only the middle 80% survives. So the background bleeds to
+   * every edge and the mark sits well inside a centred circle, which is why
+   * it looks over-padded here and correct on a phone.
+   *
+   * The same source as the social cards on purpose. An icon drawn separately
+   * is an icon that stops matching the brand the first time either changes.
+   */
+  .card.icon{
+    padding:0; align-items:center; justify-content:center;
+    background:var(--ink);
+  }
+  .card.icon::after{
+    background:radial-gradient(70% 70% at 50% 34%, rgba(199,154,62,.22), transparent 64%);
+  }
+  .card.icon .bob-solid{position:relative; z-index:2}
+
+  .card.i192{width:192px; height:192px}
+  .card.i512{width:512px; height:512px}
+
+  /* iOS does not mask. It rounds the corners itself and puts a black square
+     behind anything transparent, so this one is opaque, square, and drawn a
+     little larger because nothing will be cropped off it. */
+  .card.iOS{width:180px; height:180px}
+
   /* ---------- 1640x624 — the cover photo ----------
    *
    * Two crops, one file. Desktop shows the whole 820x312; mobile fills a
@@ -270,6 +298,31 @@
 <div class="card og" id="og"></div>
 <div class="card sq" id="sq"></div>
 
+<!-- ---------- app icons ----------
+     The same filled plumb bob as the Facebook avatar, cloned into three
+     frames. Line art disappears at 36px and a launcher icon is smaller
+     still on a crowded home screen. -->
+<template id="bobmark">
+  <svg class="bob-solid" viewBox="0 0 400 560" fill="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="brassIcon" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0"   stop-color="#E8C579"/>
+        <stop offset=".38" stop-color="#D5A948"/>
+        <stop offset="1"   stop-color="#A97F2C"/>
+      </linearGradient>
+    </defs>
+    <path d="M200 6v78" stroke="#C79A3E" stroke-width="10" stroke-linecap="round" opacity=".9"/>
+    <path d="M166 124h68l-15-40h-38z" fill="#DCB25C"/>
+    <path d="M200 120 L344 284 C344 408 298 502 200 590 C102 502 56 408 56 284 Z" fill="url(#brassIcon)"/>
+    <path d="M62 336h276" stroke="#0E1513" stroke-width="13" opacity=".34"/>
+    <path d="M84 386h232" stroke="#0E1513" stroke-width="10" opacity=".22"/>
+  </svg>
+</template>
+
+<div class="card icon i192" id="i192"></div>
+<div class="card icon i512" id="i512"></div>
+<div class="card icon iOS"  id="iOS"></div>
+
 <!-- ---------- Facebook profile picture ---------- -->
 <div class="card fbp" id="fbp">
   <div class="ring"></div>
@@ -331,6 +384,34 @@
   const tpl = document.getElementById('content');
   for (const id of ['og', 'sq']) {
     document.getElementById(id).appendChild(tpl.content.cloneNode(true));
+  }
+
+  /*
+   * The icons, sized by HEIGHT rather than width.
+   *
+   * The mark is 1.4 times taller than it is wide, so sizing it as a
+   * fraction of the frame's width overshoots vertically — at 52% wide it
+   * came out 73% tall and the hanging line ran straight into the edge of
+   * the mask. A maskable icon guarantees only a centred circle covering the
+   * middle 80%; anything outside that can be cut off by the launcher, and
+   * on a round mask the top centre is the first thing to go.
+   *
+   * 56% of the height keeps the whole mark, line included, inside that
+   * circle with room to spare. It looks over-padded in a file viewer and
+   * correct on a home screen, which is the whole trade.
+   */
+  const bob = document.getElementById('bobmark');
+  for (const [id, heightFraction] of [['i192', 0.56], ['i512', 0.56], ['iOS', 0.64]]) {
+    const frame = document.getElementById(id);
+    const node  = bob.content.cloneNode(true);
+    const svg   = node.querySelector('svg');
+    const h     = frame.offsetHeight * heightFraction;
+    svg.setAttribute('height', h);
+    svg.setAttribute('width',  h * (400 / 560));
+    // The body's mass sits below the middle of the box, so centring the box
+    // alone leaves the mark hanging low.
+    svg.style.marginTop = (-h * 0.07) + 'px';
+    frame.appendChild(node);
   }
 </script>
 </body>

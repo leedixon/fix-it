@@ -237,6 +237,35 @@ that cannot help fill it.
 
 ---
 
+## Link previews while the site is closed
+
+Facebook's crawler obeys `robots.txt`. A closed site that says `Disallow: /`
+to everybody therefore refuses `facebookexternalhit`, which never reaches the
+page and never reads the `og:` tags — so a shared link comes out as a bare
+card with no image. It looks exactly like a broken image and is not one.
+
+`SeoController::PREVIEW_CRAWLERS` names the crawlers that build preview cards
+rather than search indexes, and the pre-launch `robots.txt` gives each one a
+group of its own with an empty `Disallow`, above the blanket refusal. A group
+is chosen by the most specific matching name and only that group applies, so
+the named ones ignore the `Disallow: /` below them and everything else does
+not.
+
+This does not put a closed site into a search index. The `noindex` meta tag
+on every page is what does that job, and it stays on. These crawlers do not
+index.
+
+After launch they are not named at all: `User-agent: *` already allows them,
+and a second copy of the rules is a second thing to keep in step.
+
+**Facebook caches what it scraped.** Fixing the file does not fix a card that
+was already fetched — paste the URL into the
+[Sharing Debugger](https://developers.facebook.com/tools/debug/) and press
+**Scrape Again**. `php bin/socialcheck.php https://fixlisted.com/` checks
+everything else first, and prints the debugger link for you.
+
+---
+
 ## Turning it on, in order
 
 The switch is one line. The sequencing around it is what decides whether the

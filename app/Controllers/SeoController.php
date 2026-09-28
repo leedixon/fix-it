@@ -30,6 +30,29 @@ use FixListed\Repositories\TradeRepository;
  */
 final class SeoController extends Controller
 {
+    /**
+     * Crawlers that build a link preview rather than a search index.
+     *
+     * Named so they can be let through while the site is still closed. A
+     * robots.txt group is chosen by the most specific matching name and only
+     * that group applies, so each of these ignores the blanket Disallow
+     * below it — which is the whole point.
+     *
+     * Substring matching means 'Slackbot' also covers
+     * 'Slackbot-LinkExpanding', and 'facebookexternalhit' covers the
+     * version suffix Facebook appends.
+     */
+    private const PREVIEW_CRAWLERS = [
+        'facebookexternalhit',
+        'facebookcatalog',
+        'Twitterbot',
+        'LinkedInBot',
+        'Slackbot',
+        'WhatsApp',
+        'Discordbot',
+        'TelegramBot',
+    ];
+
     public function robots(): Response
     {
         $sitemap = abs_url('/sitemap.xml');
@@ -46,14 +69,48 @@ final class SeoController extends Controller
          * is nothing indexed yet for the subtlety to damage.
          */
         if ((bool) Config::get('app.noindex', true)) {
-            return Response::text(implode("\n", [
+            $lines = [
                 '# Fix Listed is not open yet.',
                 '# This file and the noindex tag on every page come from one setting,',
                 '# app.noindex — see docs/launch.md. Both change together, or neither does.',
-                'User-agent: *',
-                'Disallow: /',
                 '',
-            ]));
+                '# Link previews are not search.',
+                '#',
+                '# These crawlers fetch a page once to build the card that appears when',
+                '# somebody pastes the link into a post, a message or a chat. They do not',
+                '# index anything, so letting them in does not put a closed site into any',
+                '# search engine — the noindex tag on every page is what does that job,',
+                '# and it stays on.',
+                '#',
+                '# Without this the card comes out bare: the crawler is refused at',
+                '# robots.txt, never reaches the page, and so never reads the og: tags',
+                '# that name the image. Which looks exactly like a broken image, and is',
+                '# not one.',
+                '#',
+                '# An empty Disallow means "everything is allowed" — the original form,',
+                '# understood by every parser, including the ones that do not implement',
+                '# the later Allow directive.',
+                '',
+            ];
+
+            /*
+             * One group per crawler rather than a stack of User-agent lines
+             * sharing a rule set. Grouping is legal and widely supported, but
+             * "widely" is doing work there, and this file has exactly one job
+             * on the day somebody shares the link.
+             */
+            foreach (self::PREVIEW_CRAWLERS as $agent) {
+                $lines[] = 'User-agent: ' . $agent;
+                $lines[] = 'Disallow:';
+                $lines[] = '';
+            }
+
+            $lines[] = '# Everything else: not yet.';
+            $lines[] = 'User-agent: *';
+            $lines[] = 'Disallow: /';
+            $lines[] = '';
+
+            return Response::text(implode("\n", $lines));
         }
 
         return Response::text(implode("\n", [

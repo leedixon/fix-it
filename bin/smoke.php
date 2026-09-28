@@ -2429,5 +2429,52 @@ foreach (Academy::all() as $slug => $lesson) {
 }
 check('every lesson is complete', $broken === [], implode('; ', $broken));
 
+// --- a shared link has to show its card -------------------------------------
+//
+// Facebook's crawler obeys robots.txt. While the site was closed the file
+// said Disallow: / to everybody, so facebookexternalhit never reached the
+// page, never read the og: tags, and every shared link came out as a bare
+// card with no image. Which looks like a broken image and is not one.
+$seoSrc = (string) file_get_contents(BASE_PATH . '/app/Controllers/SeoController.php');
+
+check('the preview crawlers are named so they can be let past the block',
+    str_contains($seoSrc, 'PREVIEW_CRAWLERS'));
+
+foreach (['facebookexternalhit', 'Twitterbot', 'LinkedInBot', 'Slackbot', 'WhatsApp'] as $bot) {
+    check('  ' . $bot . ' is one of them', str_contains($seoSrc, "'" . $bot . "'"));
+}
+
+// An empty Disallow is the original "everything is allowed" and every parser
+// implements it; Allow: came later. The closed site depends on this line.
+check('and each gets a group of its own with an empty Disallow',
+    str_contains($seoSrc, "\$lines[] = 'Disallow:';")
+    && str_contains($seoSrc, "\$lines[] = 'User-agent: ' . \$agent;"));
+
+// The blanket refusal still has to be there, after them: a group is chosen by
+// the most specific matching name, so the named ones ignore it and everything
+// else does not.
+check('while everything else is still refused before launch',
+    str_contains($seoSrc, "\$lines[] = 'Disallow: /';"));
+
+// The card needs these to render at full size. Without width and height
+// Facebook fetches the image asynchronously and the first share of a link
+// often appears with no picture at all.
+$appLayout = (string) file_get_contents(BASE_PATH . '/app/Views/layouts/app.php');
+foreach (['og:image', 'og:image:width', 'og:image:height', 'og:title', 'og:url',
+          'twitter:card'] as $tag) {
+    check('the page declares ' . $tag, str_contains($appLayout, $tag));
+}
+
+// 1200x630 is what Facebook asks for, and the file has to still be that after
+// anybody re-renders it from assets/social/card.html.
+$og = BASE_PATH . '/public/assets/social/og.png';
+$dim = is_file($og) ? getimagesize($og) : false;
+check('the share image is still 1200x630',
+    $dim !== false && $dim[0] === 1200 && $dim[1] === 630,
+    $dim === false ? 'missing' : $dim[0] . 'x' . $dim[1]);
+check('and small enough that Facebook will take it',
+    is_file($og) && filesize($og) < 8 * 1024 * 1024,
+    is_file($og) ? round(filesize($og) / 1024) . ' KB' : '');
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail === 0 ? 0 : 1);

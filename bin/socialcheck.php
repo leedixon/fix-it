@@ -119,9 +119,19 @@ if ($robots['status'] === 404) {
 } elseif ($robots['status'] !== 200) {
     $say(false, 'robots.txt returned ' . $robots['status']);
 } else {
+    /*
+     * Whether the file names Facebook is not the question — whether Facebook
+     * may fetch the page is, and that is tested below.
+     *
+     * A closed site has to name the preview crawlers to let them past its
+     * blanket Disallow. An open one does not: they match User-agent: * and
+     * are allowed already. This used to be a hard failure, which would have
+     * started crying wolf the day the site launched.
+     */
     $named = str_contains(strtolower($robots['body']), 'facebookexternalhit');
-    $say($named, 'robots.txt names facebookexternalhit',
-        $named ? '' : 'this is the OLD file — the new one was not copied to the document root');
+    printf("       robots.txt %s\n", $named
+        ? 'names the preview crawlers explicitly'
+        : 'does not name them — fine if User-agent: * already allows them');
 
     $fb = robotsAllows($robots['body'], 'facebookexternalhit', $path);
     $say($fb !== false, 'facebookexternalhit may fetch ' . $path,

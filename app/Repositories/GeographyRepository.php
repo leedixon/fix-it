@@ -38,6 +38,50 @@ final class GeographyRepository extends Repository
     }
 
     /**
+     * The city pages that have something on them.
+     *
+     * A city page is a list of the tradespeople covering that town and the
+     * jobs open in it. With neither, it is a heading, one sentence and a row
+     * of filter links — the same shape nineteen times over, which is what
+     * "doorway page" and "thin content" describe, and asking to be indexed
+     * anyway is asking to be judged on the worst version of the site.
+     *
+     * So the sitemap offers a town once it has something, and not before.
+     * Nothing has to be switched on by hand: the first real tradesperson to
+     * cover a county puts every town in that county into the next sitemap
+     * read, and the first job posted in a town does it for that town alone.
+     *
+     * Demo rows do not count. A crawler cannot see the SAMPLE badge, and a
+     * page full of invented businesses is worse to have indexed than an
+     * empty one.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function pageCitiesWithContent(): array
+    {
+        return $this->scopedAll(
+            "SELECT ci.id, ci.name, ci.slug, ci.state, co.short_name AS county, co.slug AS county_slug
+               FROM cities ci
+               JOIN counties co ON co.id = ci.county_id
+              WHERE ci.market_id = :market_id AND ci.has_page = 1
+                AND (EXISTS (SELECT 1
+                               FROM pro_profiles p
+                               JOIN pro_county_areas a ON a.pro_id = p.id
+                              WHERE p.market_id = ci.market_id
+                                AND p.status = 'active'
+                                AND p.is_demo = 0
+                                AND a.county_id = ci.county_id)
+                  OR EXISTS (SELECT 1
+                               FROM jobs j
+                              WHERE j.market_id = ci.market_id
+                                AND j.city_id = ci.id
+                                AND j.status = 'active'
+                                AND j.is_demo = 0))
+              ORDER BY ci.sort_order, ci.name"
+        );
+    }
+
+    /**
      * A city from its URL segment — 'freeport-il' rather than 'freeport'.
      *
      * The suffix is matched in SQL instead of being parsed off in PHP, so

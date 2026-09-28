@@ -139,7 +139,14 @@ final class SeoController extends Controller
             $entries[] = ['loc' => abs_url(Seo::servicePath((string) $trade['slug']))];
         }
 
-        foreach ($geo->pageCities() as $city) {
+        /*
+         * Only the towns that have something on them.
+         *
+         * Offering nineteen near-identical pages with no listings and no
+         * jobs is offering to be judged on them. They come back on their
+         * own as supply arrives — see pageCitiesWithContent().
+         */
+        foreach ($geo->pageCitiesWithContent() as $city) {
             $entries[] = ['loc' => abs_url(Seo::cityPath($city))];
         }
 

@@ -2338,5 +2338,46 @@ check('the legal pages describe themselves',
     preg_match("~legal_' . \\\$which.*?'description'~s",
         (string) file_get_contents(BASE_PATH . '/app/Controllers/PageController.php')) === 1);
 
+// --- thin city pages are not offered to Google ------------------------------
+//
+// Nineteen towns, and once the sample listings are stripped each page is a
+// heading, one sentence and a row of filter links. Asking to be indexed on
+// that is asking to be judged on the worst version of the site.
+$geoScope3 = TenantScope::market($marketId);
+$geo3      = new GeographyRepository($db, $geoScope3);
+
+$withContent = $geo3->pageCitiesWithContent();
+$allPages    = $geo3->pageCities();
+
+check('there are city pages to be careful about', $allPages !== [],
+    count($allPages) . ' towns with a landing page');
+
+// The seed is all sample data, which is exactly the state this guards.
+check('a town whose only listings are samples is left out of the sitemap',
+    $withContent === [],
+    count($withContent) . ' of ' . count($allPages) . ' offered');
+
+// The decision has to be made on real rows in BOTH places. inCity() honours
+// the demo display setting and returns sample jobs in 'label' mode, so a
+// page built on it called itself indexable while the sitemap left it out.
+$cityCtl = (string) file_get_contents(BASE_PATH . '/app/Controllers/CityController.php');
+check('the page and the sitemap decide on the same rows',
+    str_contains($cityCtl, 'countRealInCity') && str_contains($cityCtl, 'countReal($countyId) === 0'));
+
+check('and the page only ever adds noindex, never removes it',
+    str_contains($cityCtl, "\$data['noindex'] = true;")
+    && !str_contains($cityCtl, "'noindex'     => false"));
+
+check('the sitemap asks for the filtered list',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Controllers/SeoController.php'),
+        'pageCitiesWithContent()'));
+
+// Sample rows must not count, in either direction.
+check('sample listings do not qualify a town',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Repositories/GeographyRepository.php'),
+        'p.is_demo = 0')
+    && str_contains((string) file_get_contents(BASE_PATH . '/app/Repositories/JobRepository.php'),
+        "AND j.is_demo = 0"));
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail === 0 ? 0 : 1);

@@ -52,15 +52,37 @@ final class CityController extends Controller
         $countyId = (int) $city['county_id'];
         $proCount = $pros->countActive($countyId);
         $path     = Seo::cityPath($city);
+        $jobs     = new JobRepository($this->db, $this->scope);
+        $cityJobs = $jobs->inCity((int) $city['id'], 8);
 
-        return $this->page('site/city', [
+        /*
+         * An empty town is shown, not indexed.
+         *
+         * The page stays useful to a person who followed a link — it tells
+         * them nobody covers the town yet and offers them the form. It is
+         * just not worth a crawler's time or Google's judgement until it
+         * has listings or jobs on it, and the sitemap agrees: see
+         * GeographyRepository::pageCitiesWithContent().
+         *
+         * Counted on real rows only. Sample listings fill the page for a
+         * visitor, who can see the badge, and mean nothing to a crawler,
+         * who cannot.
+         *
+         * Only ever set to true. Leaving it unset lets the sitewide setting
+         * decide, so a thin page cannot accidentally argue its way into the
+         * index while the site is still closed.
+         */
+        $thin = $pros->countReal($countyId) === 0
+            && $jobs->countRealInCity((int) $city['id']) === 0;
+
+        $data = [
             'title'       => 'Handymen and trades in ' . $city['name'] . ', IL — Fix Listed',
             'description' => 'Licensed tradespeople serving ' . $city['name']
                 . ' and the rest of ' . $city['county'] . '. Post a job, get quotes directly, pay no commission.',
             'city'        => $city,
             'pros'        => $pros->directory(null, $countyId, 24),
             'proCount'    => $proCount,
-            'cityJobs'    => (new JobRepository($this->db, $this->scope))->inCity((int) $city['id'], 8),
+            'cityJobs'    => $cityJobs,
             'tradeTiles'  => (new TradeRepository($this->db))->withProCounts((int) $this->market['id']),
             'otherCities' => $geo->pageCities(),
             'crumbs'      => [
@@ -74,7 +96,14 @@ final class CityController extends Controller
             ]),
             // The real count, not $proCount — see ProRepository::countReal().
             'jsonLd'      => [$this->serviceNode($city, $path, $pros->countReal($countyId))],
-        ]);
+        ];
+
+        // Set, never unset: leaving it alone lets the sitewide setting decide.
+        if ($thin) {
+            $data['noindex'] = true;
+        }
+
+        return $this->page('site/city', $data);
     }
 
     /**

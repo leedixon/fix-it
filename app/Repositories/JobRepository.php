@@ -91,6 +91,31 @@ final class JobRepository extends Repository
     }
 
     /** Open jobs in one city — what a city landing page shows. */
+    /**
+     * Real open jobs in a city, whatever the demo display setting says.
+     *
+     * inCity() goes through Demo::filter(), which in 'label' mode returns
+     * sample jobs with a badge — right for a page a person reads, wrong for
+     * deciding whether that page is worth indexing. A crawler cannot see the
+     * badge, so a town whose only jobs are invented has nothing real on it.
+     *
+     * The sitemap already counts this way. If this did not, a city page
+     * would tell Google it was indexable while the sitemap left it out —
+     * two stories, and whichever gets believed, somebody loses an afternoon.
+     */
+    public function countRealInCity(int $cityId): int
+    {
+        return (int) $this->scopedValue(
+            "SELECT COUNT(*)
+               FROM jobs j
+              WHERE j.market_id = :market_id
+                AND j.city_id = :city_id
+                AND j.status = 'active'
+                AND j.is_demo = 0",
+            ['city_id' => $cityId],
+        );
+    }
+
     public function inCity(int $cityId, int $limit = 20): array
     {
         $demoFilter = Demo::filter('j');

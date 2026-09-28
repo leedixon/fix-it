@@ -3,10 +3,10 @@
  * The review form — reached only from the link in a "how did it go?" email.
  *
  * Two questions, one screen. Who did you hire, and how was it. Anything more
- * and the thing people actually came to do — press five hammers and leave —
+ * and the thing people actually came to do — press five stars and leave —
  * gets buried under a form.
  *
- * The rating is five radio buttons dressed as hammers. Radios rather than a
+ * The rating is five radio buttons dressed as stars. Radios rather than a
  * star-widget because this site ships one JavaScript file and it is not this:
  * a radio group works with no script, works with a keyboard, is announced
  * properly by a screen reader, and cannot be submitted half-set.
@@ -19,7 +19,7 @@ require_once __DIR__ . '/../partials/icons.php';
 $v   = static fn (string $k, string $d = ''): string => is_string($old[$k] ?? null) ? $old[$k] : $d;
 $err = static fn (string $k): string => $errors[$k] ?? '';
 
-/** The words under each hammer count. A bare number means nothing. */
+/** The words under each star count. A bare number means nothing. */
 $words = [
     1 => 'Poor',
     2 => 'Below par',
@@ -76,20 +76,20 @@ $words = [
         </div>
       </fieldset>
 
-      <?php /* --- how many hammers ---------------------------------------- */ ?>
+      <?php /* --- how many stars ------------------------------------------- */ ?>
       <fieldset style="border:0;padding:0;margin:26px 0 0">
         <legend class="leg">How was the work?</legend>
         <?php if ($err('rating') !== ''): ?>
           <p class="err" style="margin:4px 0 0"><?= e($err('rating')) ?></p>
         <?php endif; ?>
 
-        <div class="hammers">
+        <div class="stars-pick">
           <?php foreach ($words as $n => $word): ?>
-            <label class="hammer-opt">
+            <label class="star-opt">
               <input type="radio" name="rating" value="<?= $n ?>"
                      <?= $v('rating') === (string) $n ? 'checked' : '' ?>>
-              <span class="hammer-mark"><?= rating_marks((float) $n, 17) ?></span>
-              <span class="hammer-word"><?= e($word) ?></span>
+              <span class="star-mark"><?= rating_marks((float) $n, 17) ?></span>
+              <span class="star-word"><?= e($word) ?></span>
             </label>
           <?php endforeach; ?>
         </div>

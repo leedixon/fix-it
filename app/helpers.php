@@ -143,52 +143,43 @@ function avatar_tint(string $seed): string
 }
 
 /**
- * The rating scale: five hammers, filled to the score.
+ * The rating scale: five stars, filled to the score.
  *
- * Hammers rather than stars because this is a trades directory and the mark
- * costs nothing to change. Five identical ones rather than a ladder of
- * different tools — a screwdriver for one, a wrench for two — because the
- * whole job of a rating is to be compared without being read. Five of the
- * same shape you perceive; five different shapes you have to decode, and a
- * directory page is twelve of them in a column.
+ * Hammers were tried first — a trades directory, and the mark costs nothing
+ * to change. They were drawn carefully, a claw hammer with the handle offset
+ * so it still read as a tool at 15px, and in place on a real profile they
+ * looked like a gimmick. A star is what a rating looks like, and a reader
+ * should spend no attention at all working out that a rating is what they
+ * are seeing.
  *
- * Rounded to whole hammers, and that is safe only because the number is
- * printed beside them everywhere this is used. The marks give you the shape
- * of the column at a glance; the number is what is actually true. Never call
- * this without showing the figure next to it.
+ * Five identical marks, rounded to whole ones, and that rounding is only
+ * safe because the number is printed beside them at every call site. The
+ * marks give the shape of the column at a glance; the figure is what is
+ * actually true. Never call this without showing the number next to it.
  *
- * aria-hidden, for the same reason: a screen reader saying "hammer hammer
- * hammer hammer hammer" is worse than silence, and the number is already
- * there in text.
+ * aria-hidden for the same reason: a screen reader saying "star star star
+ * star star" is worse than silence, and the number is already there in text.
  */
 function rating_marks(float $rating, int $size = 15): string
 {
     $on = max(0, min(5, (int) round($rating)));
 
-    /*
-     * A claw hammer: clawed head, handle offset to the right of centre.
-     *
-     * The obvious drawing — a symmetrical bar on a centred stem — is a
-     * letter T. It is tidier than this and it is not a hammer, and five T's
-     * in a row is a rating nobody can name. The asymmetry is what does the
-     * work: it is the only thing still saying "hammer" at 15px, which is the
-     * size this is used at almost everywhere.
-     */
-    $head   = 'M2.4 5.2l3.4-1.4h11.4a1.3 1.3 0 011.3 1.3v3.2a1.3 1.3 0 01-1.3 1.3H5.8L2.4 8.2l1.8-1.5z';
-    $handle = 'M12.6 9.6h3.1v10a1.55 1.55 0 11-3.1 0z';
+    // The same path as icon('star'), so the scale and any star used
+    // elsewhere on the site are one shape rather than two drawings of one.
+    $star = 'M12 3.6l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 17l-5.3 2.8 1.1-5.9L3.5 9.8l5.9-.8z';
 
     $out = '<span class="marks" aria-hidden="true">';
     for ($i = 1; $i <= 5; $i++) {
         $lit  = $i <= $on;
         $out .= '<svg class="' . ($lit ? 'mk on' : 'mk') . '" width="' . $size . '" height="' . $size . '"'
               . ' viewBox="0 0 24 24" focusable="false"'
-              // Filled when earned, drawn when not. An unfilled hammer has to
-              // stay legible as a hammer, so it keeps its outline rather than
-              // fading to a grey blob.
+              // Filled when earned, outlined when not. An unearned star keeps
+              // its outline rather than fading to a grey blob, so the row is
+              // always five wide and the filled length is what the eye reads.
               . ($lit
                   ? ' fill="currentColor" stroke="none"'
-                  : ' fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"')
-              . '><path d="' . $head . '"/><path d="' . $handle . '"/></svg>';
+                  : ' fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"')
+              . '><path d="' . $star . '"/></svg>';
     }
 
     return $out . '</span>';

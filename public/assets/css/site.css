@@ -267,9 +267,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .stars{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
 .stars b{font-weight:600}
 .stars .s{color:var(--brass-2);letter-spacing:1px}
-/* The hammer scale — see rating_marks() in app/helpers.php.
-   An unearned hammer is dimmed rather than hidden, so the row is always
-   five wide and the filled length is what your eye measures. */
+/* The rating scale — see rating_marks() in app/helpers.php.
+   An unearned star is dimmed rather than hidden, so the row is always five
+   wide and the filled length is what your eye measures. */
 .marks{display:inline-flex;align-items:center;gap:2px;color:var(--brass-2);flex:none}
 
 /* ---- leaving a review ----
@@ -292,15 +292,15 @@ button,input,select,textarea{font:inherit;color:inherit}
 .pick-row:has(input:checked){border-color:var(--ink);background:var(--paper-3)}
 .pick-row:has(input:focus-visible){outline:2px solid var(--brass);outline-offset:2px}
 
-.hammers{display:flex;flex-direction:column;gap:6px;margin-top:12px}
-.hammer-opt{display:flex;align-items:center;gap:12px;cursor:pointer;
+.stars-pick{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.star-opt{display:flex;align-items:center;gap:12px;cursor:pointer;
   border:1px solid var(--line-2);border-radius:3px;padding:10px 14px;background:var(--paper-2)}
-.hammer-opt:hover{border-color:var(--brass-2)}
-.hammer-opt input{position:absolute;width:1px;height:1px;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden}
-.hammer-opt:has(input:checked){border-color:var(--ink);background:var(--paper-3)}
-.hammer-opt:has(input:focus-visible){outline:2px solid var(--brass);outline-offset:2px}
-.hammer-word{font-size:14px;color:var(--text-2)}
-.hammer-opt:has(input:checked) .hammer-word{color:var(--text);font-weight:600}
+.star-opt:hover{border-color:var(--brass-2)}
+.star-opt input{position:absolute;width:1px;height:1px;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden}
+.star-opt:has(input:checked){border-color:var(--ink);background:var(--paper-3)}
+.star-opt:has(input:focus-visible){outline:2px solid var(--brass);outline-offset:2px}
+.star-word{font-size:14px;color:var(--text-2)}
+.star-opt:has(input:checked) .star-word{color:var(--text);font-weight:600}
 .marks .mk{opacity:.26}
 .marks .mk.on{opacity:1}
 .tags{display:flex;flex-wrap:wrap;gap:6px}

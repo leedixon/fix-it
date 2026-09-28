@@ -1247,13 +1247,17 @@ check('smoke.php refuses to run when app.env is production',
 
 // --- the rating scale -------------------------------------------------------
 //
-// Five hammers, filled to the score. The count is fixed at five whatever the
+// Five stars, filled to the score. The count is fixed at five whatever the
 // rating, because the row's length is what the eye measures — a 2 that draws
 // two marks and a 5 that draws five are not comparable at a glance, which is
 // the entire job of the thing.
+//
+// Hammers were tried here first and looked like a gimmick on a real profile.
+// The tests did not care, which is the point of writing them against the
+// count and the fill rather than against the shape.
 foreach ([0 => 0, 1 => 1, 3 => 3, 5 => 5, 4 => 4] as $rating => $lit) {
     $svg = rating_marks((float) $rating);
-    check('a rating of ' . $rating . ' draws five hammers, ' . $lit . ' of them filled',
+    check('a rating of ' . $rating . ' draws five stars, ' . $lit . ' of them filled',
         substr_count($svg, '<svg') === 5 && substr_count($svg, 'class="mk on"') === $lit);
 }
 
@@ -1262,19 +1266,19 @@ check('4.6 rounds up to five filled, 3.4 down to three',
     substr_count(rating_marks(4.6), 'class="mk on"') === 5
     && substr_count(rating_marks(3.4), 'class="mk on"') === 3);
 
-// Out-of-range input must not draw six hammers or a negative number of them.
+// Out-of-range input must not draw six stars or a negative number of them.
 check('a rating outside 0-5 is clamped rather than trusted',
     substr_count(rating_marks(9.0), 'class="mk on"') === 5
     && substr_count(rating_marks(-2.0), 'class="mk on"') === 0
     && substr_count(rating_marks(9.0), '<svg') === 5);
 
 // The marks are decoration; the number beside them carries the meaning. A
-// screen reader announcing five hammers is worse than silence.
-check('the hammers are hidden from screen readers',
+// screen reader announcing five stars is worse than silence.
+check('the stars are hidden from screen readers',
     str_contains(rating_marks(4.0), 'aria-hidden="true"'));
 
 // Nothing draws text stars any more. Asserted so the helper is not quietly
-// reintroduced alongside the hammers, leaving two rating scales on one site.
+// reintroduced alongside the drawn ones, leaving two rating scales on one site.
 //
 // The /u is load-bearing. Without it the class is a set of BYTES, not
 // characters — and 0xE2 opens both a star and an em-dash, so the pattern

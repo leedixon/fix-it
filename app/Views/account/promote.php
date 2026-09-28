@@ -53,7 +53,7 @@ foreach ($daily as $row) {
   and if the answer is "not much yet", they should be able to see that and
   keep their money.
 -->
-<div class="adm-stats" style="grid-template-columns:repeat(3,1fr)">
+<div class="adm-stats adm-stats-3">
   <div class="stat">
     <div class="k">Times your listing was shown</div>
     <div class="v"><?= number_format($impressions) ?></div>

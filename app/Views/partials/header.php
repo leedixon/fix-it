@@ -23,7 +23,51 @@ $navItem = static function (string $href, string $label, string $current): strin
 ?>
 <header class="chrome">
   <div class="wrap chrome-in">
-    <a class="logo" href="<?= e(url('/')) ?>"><b>Fix</b> <i>Listed</i></a>
+    <?php
+    /*
+     * The row that stays put.
+     *
+     * On a phone the header is two rows, and both of them used to be pinned:
+     * roughly 130px of a small screen gone for good, with the page sliding
+     * underneath it and coming to rest half-hidden. Only the top row earns
+     * that — the wordmark, and the account menu a signed-in person reaches
+     * for from anywhere. The primary links are the second row, and on a
+     * phone they now scroll away with the page.
+     *
+     * The wrapper is display:contents on a wide screen, so the header there
+     * is the same single flex row it has always been. It is ordering, not
+     * nesting, that puts the nav between the two on a desktop: see .nav and
+     * .chrome-r in the stylesheet.
+     */
+    ?>
+    <div class="chrome-bar">
+      <a class="logo" href="<?= e(url('/')) ?>"><b>Fix</b> <i>Listed</i></a>
+
+      <div class="chrome-r">
+        <?php if ($counties !== []): ?>
+        <form class="mkt" method="get" action="<?= e(url('/pros')) ?>">
+          <?= icon('pin', 15) ?>
+          <label class="tiny" for="county-select" style="position:absolute;left:-9999px">County</label>
+          <select id="county-select" name="county" onchange="this.form.submit()">
+            <option value="">All counties</option>
+            <?php foreach ($counties as $c): ?>
+              <option value="<?= e($c['slug']) ?>"<?= $county === $c['slug'] ? ' selected' : '' ?>><?= e($c['short_name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <noscript><button class="btn btn-sm btn-ghost" type="submit">Go</button></noscript>
+        </form>
+        <?php endif; ?>
+        <?php
+        /*
+         * One control, not three. Admin is inside it and still only shown to
+         * administrators, so the menu never advertises where the back end
+         * lives to anybody who cannot open it.
+         */
+        require __DIR__ . '/account.php';
+        ?>
+        <a class="btn btn-primary btn-sm" href="<?= e(url('/post-a-job')) ?>">Post a job — $10</a>
+      </div>
+    </div>
 
     <nav class="nav" aria-label="Primary">
       <?= $navItem('/pros', 'Find a pro', $path) ?>
@@ -31,31 +75,6 @@ $navItem = static function (string $href, string $label, string $current): strin
       <?= $navItem('/for-pros', 'For tradespeople', $path) ?>
       <?= $navItem('/pricing', 'Pricing', $path) ?>
     </nav>
-
-    <div class="chrome-r">
-      <?php if ($counties !== []): ?>
-      <form class="mkt" method="get" action="<?= e(url('/pros')) ?>">
-        <?= icon('pin', 15) ?>
-        <label class="tiny" for="county-select" style="position:absolute;left:-9999px">County</label>
-        <select id="county-select" name="county" onchange="this.form.submit()">
-          <option value="">All counties</option>
-          <?php foreach ($counties as $c): ?>
-            <option value="<?= e($c['slug']) ?>"<?= $county === $c['slug'] ? ' selected' : '' ?>><?= e($c['short_name']) ?></option>
-          <?php endforeach; ?>
-        </select>
-        <noscript><button class="btn btn-sm btn-ghost" type="submit">Go</button></noscript>
-      </form>
-      <?php endif; ?>
-      <?php
-      /*
-       * One control, not three. Admin is inside it and still only shown to
-       * administrators, so the menu never advertises where the back end
-       * lives to anybody who cannot open it.
-       */
-      require __DIR__ . '/account.php';
-      ?>
-      <a class="btn btn-primary btn-sm" href="<?= e(url('/post-a-job')) ?>">Post a job — $10</a>
-    </div>
   </div>
 </header>
 

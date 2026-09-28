@@ -24,7 +24,7 @@ require_once __DIR__ . '/../partials/icons.php';
   </div>
 <?php endif; ?>
 
-<div class="adm-stats" style="grid-template-columns:repeat(4,1fr)">
+<div class="adm-stats">
   <div class="stat">
     <div class="k">Quotes sent</div>
     <div class="v"><?= (int) $stats['total'] ?></div>

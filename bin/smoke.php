@@ -2167,5 +2167,63 @@ $auth3->attempt('owner@fixlisted.com', 'demo-password');
 check('superadmin administers every market',
     $auth3->canAdminister($marketId) && $auth3->canAdminister((int) $quadCities['id']));
 
+// --- the header on a phone --------------------------------------------------
+//
+// Two rows used to be pinned, about 130px of a small screen, and the page
+// came to rest half-hidden underneath. Only the top row is pinned now, which
+// works only while the nav is a SIBLING of .chrome-bar rather than inside it:
+// a fixed box takes its children with it.
+$header = (string) file_get_contents(BASE_PATH . '/app/Views/partials/header.php');
+
+check('the pinned row wraps the wordmark and the account menu',
+    preg_match('~<div class="chrome-bar">.*?class="logo".*?class="chrome-r".*?</div>~s', $header) === 1);
+
+check('and the primary nav sits outside it, so it scrolls away',
+    preg_match('~</div>\s*<nav class="nav"~s', $header) === 1);
+
+$css = (string) file_get_contents(BASE_PATH . '/public/assets/css/site.css');
+
+check('the wrapper is not there at all on a wide screen',
+    str_contains($css, '.chrome-bar{display:contents}'));
+
+// display:contents drops the wrapper, so the nav's place in the desktop row
+// is decided by order and nothing else.
+check('so the desktop row is ordered, not nested',
+    str_contains($css, '.nav{display:flex;gap:2px;margin-left:10px;order:2}')
+    && str_contains($css, 'order:3}'));
+
+// Fixed means out of flow: without this the page slides up under the bar.
+check('the page gives back the height the fixed bar takes',
+    str_contains($css, 'body:has(.chrome){padding-top:calc(var(--bar)'));
+
+// Scoped to pages that carry this header — the admin shell has its own.
+check('and only on pages that have this header',
+    !str_contains($css, 'body{padding-top:calc(var(--bar)'));
+
+// --- an inline style outranks every media query -----------------------------
+//
+// grid-template-columns lived in a style attribute on the dashboard, so the
+// four stat cards stayed four across on a phone. A 1fr column will not shrink
+// below its longest word, and "HOMEOWNER" held the row about 50px wider than
+// the screen: the rating card was cut off at the edge, the whole page scrolled
+// sideways, and the fixed header stretched to the overflow.
+foreach (['account/dashboard', 'account/promote', 'admin/advertising'] as $view) {
+    check('column counts on ' . $view . ' are a class, not a style attribute',
+        !str_contains((string) file_get_contents(BASE_PATH . '/app/Views/' . $view . '.php'),
+            'style="grid-template-columns'));
+}
+
+check('and the phone override can reach all of them',
+    str_contains($css, '.adm-stats,.adm-stats-3{grid-template-columns:repeat(2,1fr)}'));
+
+// --- the account menu closes when you click away ----------------------------
+//
+// A backdrop-filter makes an element the containing block for every fixed
+// descendant. With it on .chrome the dismiss scrim was sized to the header,
+// so clicking the page below the menu did nothing.
+check('the header blur sits on a pseudo-element, not on the header',
+    str_contains($css, '.chrome::before{content:"";position:absolute;inset:0;z-index:-1;')
+    && preg_match('~\.chrome\{[^}]*backdrop-filter:blur~', $css) !== 1);
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail === 0 ? 0 : 1);

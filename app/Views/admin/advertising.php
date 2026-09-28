@@ -33,7 +33,7 @@ $bar = static function (int $sold, int $cap): string {
   </span>
 </div>
 
-<div class="adm-stats" style="grid-template-columns:repeat(3,1fr)">
+<div class="adm-stats adm-stats-3">
   <div class="stat">
     <div class="k">Spotlight</div>
     <div class="v"><?= $spotlightSold ?> / <?= $spotlightCap ?></div>

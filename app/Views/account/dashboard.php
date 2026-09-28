@@ -1,5 +1,9 @@
 <?php
-/** @var array $jobs @var array $myQuotes @var array $stats @var array|null $profile @var bool $isLive */
+/**
+ * @var array $jobs @var array $myQuotes @var array $stats
+ * @var array|null $profile @var bool $isLive
+ * @var array $reviews @var float $rating @var int $reviewN
+ */
 require_once __DIR__ . '/../partials/icons.php';
 ?>
 <div class="adm-h">
@@ -20,7 +24,7 @@ require_once __DIR__ . '/../partials/icons.php';
   </div>
 <?php endif; ?>
 
-<div class="adm-stats" style="grid-template-columns:repeat(3,1fr)">
+<div class="adm-stats" style="grid-template-columns:repeat(4,1fr)">
   <div class="stat">
     <div class="k">Quotes sent</div>
     <div class="v"><?= (int) $stats['total'] ?></div>
@@ -32,6 +36,26 @@ require_once __DIR__ . '/../partials/icons.php';
   <div class="stat">
     <div class="k">Won</div>
     <div class="v"><?= (int) $stats['won'] ?></div>
+  </div>
+  <?php
+  /*
+   * Your rating, in the place you sign in to.
+   *
+   * It was on the public profile and nowhere here, so the only way for a
+   * tradesperson to see what people had said about them was to go and look
+   * at their own listing like a stranger.
+   */
+  ?>
+  <div class="stat">
+    <div class="k">Your rating</div>
+    <?php if ($reviewN > 0): ?>
+      <div class="v"><?= e(number_format($rating, 1)) ?></div>
+      <div class="d"><?= rating_marks($rating, 13) ?> <?= (int) $reviewN ?>
+        review<?= $reviewN === 1 ? '' : 's' ?></div>
+    <?php else: ?>
+      <div class="v">&mdash;</div>
+      <div class="d down">no reviews yet</div>
+    <?php endif; ?>
   </div>
 </div>
 
@@ -102,5 +126,97 @@ require_once __DIR__ . '/../partials/icons.php';
         </tbody>
       </table>
     </div>
+  </div>
+<?php endif; ?>
+
+<?php
+/*
+ * What people said, and the right of reply.
+ *
+ * Published reviews only. A tradesperson who could see one while it was
+ * still in the moderation queue could work out who wrote it — this is a town
+ * of 23,000 — and lean on them before anyone else read it. They see it when
+ * the public does.
+ *
+ * The reply posts straight to the profile rather than joining the queue, and
+ * the asymmetry is on purpose: a review comes from somebody who typed an
+ * email into a form, a reply comes from a named business with a licence on
+ * file whose listing can be suspended in a click. Making a verified trader
+ * wait a day to answer a bad review in public is its own kind of unfair.
+ */
+?>
+<?php if ($reviews !== []): ?>
+  <div class="panel" style="margin-top:26px">
+    <div class="panel-h">
+      <h3>What people said</h3>
+      <span class="tiny muted" style="margin-left:auto">
+        You can answer a review. You cannot remove one, and neither can we.
+      </span>
+    </div>
+
+    <?php foreach ($reviews as $r): ?>
+      <?php $replied = trim((string) $r['pro_reply']) !== ''; ?>
+      <div style="padding:18px 20px;border-top:1px solid var(--line)">
+        <div class="stars">
+          <?= rating_marks((float) $r['rating'], 15) ?>
+          <b class="mono"><?= (int) $r['rating'] ?></b>
+          <span class="tiny muted">
+            · <?= e($r['first_name']) ?> <?= e(mb_substr((string) $r['last_name'], 0, 1)) ?>.
+            · <?= e(ago((string) $r['created_at'])) ?>
+          </span>
+        </div>
+
+        <?php if (!empty($r['job_title'])): ?>
+          <p class="tiny muted" style="margin-top:6px"><?= e($r['job_title']) ?></p>
+        <?php endif; ?>
+
+        <?php if (trim((string) $r['body']) !== ''): ?>
+          <p style="margin-top:10px;font-size:14.5px;line-height:1.65;white-space:pre-line"><?= e($r['body']) ?></p>
+        <?php else: ?>
+          <p class="tiny muted" style="margin-top:10px"><em>A rating, with nothing written.</em></p>
+        <?php endif; ?>
+
+        <?php if ($replied): ?>
+          <div style="margin-top:12px;padding:12px 14px;background:var(--paper-2);
+                      border-left:2px solid var(--brass-2);border-radius:2px">
+            <div class="tiny muted" style="font-weight:600">Your answer
+              <?php if (!empty($r['pro_replied_at'])): ?>
+                · <?= e(ago((string) $r['pro_replied_at'])) ?>
+              <?php endif; ?>
+            </div>
+            <p style="margin-top:6px;font-size:14px;line-height:1.6;white-space:pre-line"><?= e($r['pro_reply']) ?></p>
+          </div>
+        <?php endif; ?>
+
+        <div class="rename" style="margin-top:12px">
+          <input type="checkbox" id="rep-<?= (int) $r['id'] ?>" class="rename-state"
+                 aria-label="Answer this review">
+          <label class="btn btn-ghost btn-sm" for="rep-<?= (int) $r['id'] ?>">
+            <?= $replied ? 'Edit your answer' : 'Answer this' ?>
+          </label>
+
+          <form class="rename-form" method="post" style="max-width:100%"
+                action="<?= e(url('/my/reviews/' . (int) $r['id'] . '/reply')) ?>">
+            <?= \FixListed\Core\Csrf::field() ?>
+            <label class="field" for="rep-t-<?= (int) $r['id'] ?>">
+              <span>Your answer — shown publicly under this review</span>
+              <textarea id="rep-t-<?= (int) $r['id'] ?>" name="reply" rows="4" maxlength="1500"
+                        placeholder="Thanks for having us out. On the point about…"><?= e((string) $r['pro_reply']) ?></textarea>
+            </label>
+            <div class="rename-act">
+              <button class="btn btn-primary btn-sm" type="submit">
+                <?= $replied ? 'Save' : 'Post it' ?>
+              </button>
+              <label class="btn btn-ghost btn-sm" for="rep-<?= (int) $r['id'] ?>">Cancel</label>
+            </div>
+            <p class="tiny muted" style="margin-top:8px">
+              It goes up straight away. Answer the point, not the person — a calm reply to a bad
+              review persuades more people than the review put off.
+              <?php if ($replied): ?>Clearing the box takes your answer down.<?php endif; ?>
+            </p>
+          </form>
+        </div>
+      </div>
+    <?php endforeach; ?>
   </div>
 <?php endif; ?>

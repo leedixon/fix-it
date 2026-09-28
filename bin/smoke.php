@@ -1028,6 +1028,53 @@ if ($probeJob === null) {
     }
 }
 
+// --- a tradesperson can see and answer their own reviews --------------------
+//
+// The rating was on the public profile and nowhere in the account they sign
+// in to, so the only way to read what people had said was to go and look at
+// your own listing like a stranger.
+$ownerReviews = $reviews->forProOwner((int) $db->value(
+    "SELECT pro_id FROM reviews WHERE status = 'published' AND market_id = :m LIMIT 1",
+    ['m' => $marketId]) ?: 0);
+check('a pro can read their own published reviews', $ownerReviews !== []);
+
+// Never the queue. A pro who saw a review before it was published could work
+// out who wrote it — this is a county, not a city — and lean on them first.
+$heldFrom = (string) $db->value(
+    "SELECT COUNT(*) FROM reviews r WHERE r.status <> 'published'
+       AND r.id IN (" . implode(',', array_map('intval', array_column($ownerReviews, 'id') ?: [0])) . ")");
+check('and never one that is still waiting for a moderator', (int) $heldFrom === 0);
+
+if ($ownerReviews !== []) {
+    $rid   = (int) $ownerReviews[0]['id'];
+    $rpro  = (int) $db->value('SELECT pro_id FROM reviews WHERE id = :i', ['i' => $rid]);
+    try {
+        check('a reply saves and is published straight away',
+            $reviews->reply($rid, $rpro, 'Thanks for having us out.')
+            && $db->value('SELECT pro_replied_at FROM reviews WHERE id = :i', ['i' => $rid]) !== null);
+
+        // The column has been in the schema since the first build with
+        // nothing rendering it, while the page shown after leaving a review
+        // told the homeowner the tradesperson could reply.
+        check('and the public profile actually shows it',
+            str_contains(json_encode($reviews->forPro($rpro)), 'Thanks for having us out')
+            && str_contains((string) file_get_contents(BASE_PATH . '/app/Views/site/pro.php'),
+                "\$r['pro_reply']"));
+
+        // Scoped to the pro as well as the review: changing a number in the
+        // form must not let one business answer another's review.
+        check('one business cannot answer another business\'s review',
+            $reviews->reply($rid, $rpro + 99999, 'hijack') === false);
+
+        check('clearing the box takes the answer down',
+            $reviews->reply($rid, $rpro, '')
+            && $db->value('SELECT pro_reply FROM reviews WHERE id = :i', ['i' => $rid]) === null);
+    } finally {
+        $db->affected('UPDATE reviews SET pro_reply = NULL, pro_replied_at = NULL WHERE id = :i',
+            ['i' => $rid]);
+    }
+}
+
 // --- a waiting review has to be visible somewhere ---------------------------
 //
 // The first real review submitted to this site went into the queue and

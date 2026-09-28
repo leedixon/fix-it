@@ -272,6 +272,12 @@ button,input,select,textarea{font:inherit;color:inherit}
    wide and the filled length is what your eye measures. */
 .marks{display:inline-flex;align-items:center;gap:2px;color:var(--brass-2);flex:none}
 
+/* A tradesperson's answer to a review. Indented and quieter than the review
+   it answers — a reply given equal weight turns a review into an argument. */
+.rev-reply{margin-top:12px;padding:11px 13px;background:var(--paper-2);
+  border-left:2px solid var(--brass-2);border-radius:2px}
+.rev-reply p{margin-top:5px;font-size:13.5px;line-height:1.6;white-space:pre-line;color:var(--text-2)}
+
 /* ---- leaving a review ----
  *
  * Both controls are radio groups wearing something nicer. No JavaScript, so

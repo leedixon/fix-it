@@ -186,6 +186,7 @@ try {
 
     $router->get('/my',            static fn () => $make(AccountDashboard::class)->index());
     $router->get('/my/quotes',     static fn () => $make(AccountDashboard::class)->quotes());
+    $router->post('/my/reviews/{id}/reply', static fn (array $p) => $make(AccountDashboard::class)->reply($p['id']));
     $router->get('/my/promote',    static fn () => $make(PromoteController::class)->index());
     $router->post('/my/promote',   static fn () => $make(PromoteController::class)->subscribe());
     $router->get('/my/promote/done', static fn () => $make(PromoteController::class)->done());

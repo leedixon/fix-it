@@ -28,6 +28,7 @@ final class ReviewRepository extends Repository
 
         return $this->scopedAll(
             "SELECT r.rating, r.body, r.job_value_cents, r.created_at, r.is_demo,
+                    r.pro_reply, r.pro_replied_at,
                     u.first_name, u.last_name
                FROM reviews r
                JOIN users u ON u.id = r.author_user_id
@@ -324,6 +325,62 @@ final class ReviewRepository extends Repository
               ORDER BY j.published_at ASC
               LIMIT {$limit}",
         );
+    }
+
+    /**
+     * A tradesperson's own reviews, for their account area.
+     *
+     * Published only. A pro seeing a review while it is still in the
+     * moderation queue is a pro who can work out who wrote it — this is a
+     * town of 23,000 — and lean on them before anybody else reads it. They
+     * see it when the public does, which is also when it starts counting.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function forProOwner(int $proId, int $limit = 50): array
+    {
+        return $this->scopedAll(
+            "SELECT r.id, r.rating, r.body, r.created_at, r.is_demo,
+                    r.pro_reply, r.pro_replied_at,
+                    u.first_name, u.last_name,
+                    j.title AS job_title, j.reference AS job_reference
+               FROM reviews r
+               JOIN users u ON u.id = r.author_user_id
+               LEFT JOIN jobs j ON j.id = r.job_id
+              WHERE r.market_id = :market_id
+                AND r.pro_id = :pro
+                AND r.status = 'published'
+              ORDER BY r.created_at DESC
+              LIMIT {$limit}",
+            ['pro' => $proId],
+        );
+    }
+
+    /**
+     * The tradesperson's answer, published straight away.
+     *
+     * Reviews are held for moderation and replies are not, and the asymmetry
+     * is deliberate. A review comes from someone who typed an email address
+     * into a form; a reply comes from a named business whose licence and
+     * insurance are on file and whose listing can be suspended in one click.
+     * Those are not the same risk, and making a verified trader wait a day to
+     * answer a bad review in public is its own kind of unfair.
+     *
+     * Scoped to the pro as well as the review, so a signed-in tradesperson
+     * cannot answer somebody else's review by changing a number in a form.
+     */
+    public function reply(int $reviewId, int $proId, string $text): bool
+    {
+        $text = trim($text);
+
+        return $this->scopedAffected(
+            "UPDATE reviews
+                SET pro_reply = :reply,
+                    pro_replied_at = " . ($text === '' ? 'NULL' : 'NOW()') . "
+              WHERE id = :id AND pro_id = :pro AND market_id = :market_id
+                AND status = 'published'",
+            ['reply' => $text === '' ? null : $text, 'id' => $reviewId, 'pro' => $proId],
+        ) > 0;
     }
 
     /** The most recent reviews across the market, for the home page. */

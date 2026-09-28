@@ -98,6 +98,30 @@ $verified = !empty($pro['license_verified_at']) && !empty($pro['insurance_verifi
                 <?php endif; ?>
                 <span class="tiny muted" style="margin-left:auto"><?= e(ago($r['created_at'])) ?></span>
               </div>
+
+              <?php
+              /*
+               * The business's answer.
+               *
+               * The column has been in the schema since the first build and
+               * nothing rendered it — while the page a homeowner sees after
+               * leaving a review told them, in as many words, that the
+               * tradesperson can reply. The promise was live and the feature
+               * was not.
+               *
+               * Shown below the review and visibly attached to it, never
+               * beside it: a reply is an answer to something, and a layout
+               * that gives it equal weight turns a review into an argument.
+               */
+              ?>
+              <?php if (trim((string) ($r['pro_reply'] ?? '')) !== ''): ?>
+                <div class="rev-reply">
+                  <div class="tiny muted">Reply from <?= e($pro['business_name']) ?><?php
+                    if (!empty($r['pro_replied_at'])): ?> · <?= e(ago((string) $r['pro_replied_at'])) ?><?php
+                    endif; ?></div>
+                  <p><?= e($r['pro_reply']) ?></p>
+                </div>
+              <?php endif; ?>
             </div>
           <?php endforeach; ?>
         </div>

@@ -2379,5 +2379,55 @@ check('sample listings do not qualify a town',
     && str_contains((string) file_get_contents(BASE_PATH . '/app/Repositories/JobRepository.php'),
         "AND j.is_demo = 0"));
 
+// --- lessons carry their weight --------------------------------------------
+//
+// The academy is the only thing here that can rank while the directory is
+// empty, which makes a stub lesson the same mistake as a thin town page —
+// a published URL with nothing on it.
+$wordsIn = static function (array $lesson): int {
+    $n = 0;
+    foreach ($lesson['body'] as $block) {
+        foreach ($block as $value) {
+            if (is_array($value)) {
+                foreach ($value as $item) {
+                    $n += str_word_count(is_array($item) ? implode(' ', $item) : (string) $item);
+                }
+                continue;
+            }
+            $n += str_word_count((string) $value);
+        }
+    }
+    return $n;
+};
+
+$public = array_filter(Academy::all(), static fn (array $l): bool
+    => Academy::isPublicTrack((string) $l['track']));
+
+check('the academy has enough public lessons to be worth linking',
+    count($public) >= 12, count($public) . ' public lessons');
+
+$stubs = [];
+foreach ($public as $slug => $lesson) {
+    if ($wordsIn($lesson) < 150) {
+        $stubs[] = $slug . ' (' . $wordsIn($lesson) . 'w)';
+    }
+}
+check('no public lesson is a stub', $stubs === [], implode(', ', $stubs));
+
+// Every lesson needs the fields the page and the sitemap read, or it is a
+// fatal on a URL that is already submitted.
+$broken = [];
+foreach (Academy::all() as $slug => $lesson) {
+    foreach (['track', 'title', 'nav', 'summary', 'minutes', 'published', 'body'] as $field) {
+        if (!array_key_exists($field, $lesson)) {
+            $broken[] = $slug . ' is missing ' . $field;
+        }
+    }
+    if (($lesson['body'] ?? []) === []) {
+        $broken[] = $slug . ' has an empty body';
+    }
+}
+check('every lesson is complete', $broken === [], implode('; ', $broken));
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail === 0 ? 0 : 1);

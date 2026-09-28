@@ -238,6 +238,219 @@ final class Academy
                           . 'anything.'],
                 ],
             ],
+
+            /*
+             * The four below answer questions people type into a search box
+             * whether or not this directory has a single listing in it. That
+             * is the point of them: a page about Illinois permit rules is
+             * useful on a day when /pros is empty, and it brings exactly the
+             * person who is about to need somebody.
+             *
+             * Illinois law is named where it is named, and never paraphrased
+             * into a number nobody checked. Where a figure or a deadline
+             * matters, the reader is sent to the source rather than trusted
+             * to take our word for it — this site is a directory, not a firm,
+             * and a wrong threshold stated confidently is worse than no
+             * lesson at all.
+             */
+            'do-i-need-a-permit-in-illinois' => [
+                'track'   => self::TRACK_HOMEOWNER,
+                'title'   => 'Do I need a permit for this?',
+                'nav'     => 'Permits',
+                'summary' => 'Who issues permits in Illinois, what usually needs one, and why '
+                           . '"no permit needed" is worth a second question.',
+                'minutes' => 4,
+                'published' => true,
+                'body'    => [
+                    ['p' => 'There is no statewide permit office in Illinois. Permits come from '
+                          . 'your municipality, or from the county if you are outside a town, and '
+                          . 'the rules differ between neighbouring places. Anybody who tells you '
+                          . 'what the rule is without knowing which side of a line your house sits '
+                          . 'on is guessing.'],
+                    ['h' => 'Usually needs one'],
+                    ['ul' => [
+                        'Structural work — removing or altering a wall, decks, additions, garages',
+                        'New or moved electrical circuits, service panel work',
+                        'New or moved plumbing, water heaters, sewer and water lines',
+                        'Roof replacement, in many towns',
+                        'Furnaces and air conditioning, in many towns',
+                        'Fences, driveways and sheds, more often than people expect',
+                    ]],
+                    ['h' => 'Usually does not'],
+                    ['ul' => [
+                        'Painting, wallpaper, flooring',
+                        'Replacing a fixture or appliance like for like in the same place',
+                        'Cabinets and countertops, where nothing moves',
+                        'Ordinary repairs that put something back as it was',
+                    ]],
+                    ['note' => 'Both lists say "usually". The only answer that counts is the one '
+                             . 'your local building department gives, and one phone call settles it.'],
+                    ['h' => 'Whose job is it to pull it'],
+                    ['p' => 'Normally the contractor pulls the permit, because the inspection is '
+                          . 'against their work. If a tradesperson asks you to pull it as the '
+                          . 'homeowner, ask why. Sometimes it is legitimate. Sometimes it means '
+                          . 'they cannot, and it puts the liability on you.'],
+                    ['warn' => 'A quote that is cheaper because the work is unpermitted is not '
+                             . 'cheaper. Unpermitted work surfaces when you sell the house, when '
+                             . 'the insurer asks after a fire, or when the next owner\'s inspector '
+                             . 'finds it — and it is you, not the tradesperson, who deals with it.'],
+                    ['h' => 'What to ask before work starts'],
+                    ['steps' => [
+                        'Ask whether this job needs a permit, and who is pulling it.',
+                        'Ask for the permit number once it is issued.',
+                        'Ask when the inspection is, and do not pay the final instalment until it '
+                            . 'has passed.',
+                    ]],
+                ],
+            ],
+
+            'what-a-home-repair-contract-must-say' => [
+                'track'   => self::TRACK_HOMEOWNER,
+                'title'   => 'What a home repair contract has to say in Illinois',
+                'nav'     => 'Contracts',
+                'summary' => 'Illinois requires a written contract for most home repair work over '
+                           . 'a set amount, plus a consumer rights pamphlet.',
+                'minutes' => 4,
+                'published' => true,
+                'body'    => [
+                    ['p' => 'Illinois has a law specifically about this: the Home Repair and '
+                          . 'Remodeling Act. It applies to repair and remodeling work on an '
+                          . 'existing home, and above a threshold amount it requires the work to '
+                          . 'be set down in writing before it starts.'],
+                    ['p' => 'It also requires the contractor to give you a consumer rights '
+                          . 'pamphlet, published by the state, and to get your signature saying '
+                          . 'you received it. A contractor who has never heard of it is telling '
+                          . 'you something about how they work.'],
+                    ['note' => 'The threshold and the exact wording are set by statute and can be '
+                             . 'amended. Read the current Act, or ask the Illinois Attorney '
+                             . 'General\'s office, rather than taking a number from any website '
+                             . 'including this one.'],
+                    ['h' => 'What the written agreement should cover'],
+                    ['ul' => [
+                        'The total price, or how the price is worked out if it is hourly',
+                        'What is included, and in plain words what is not',
+                        'Who supplies the materials, and which ones',
+                        'When work starts and roughly how long it runs',
+                        'The payment schedule — what is due when',
+                        'Who pulls the permit',
+                        'What happens if something unexpected is found behind a wall',
+                    ]],
+                    ['h' => 'Insurance'],
+                    ['p' => 'The Act also deals with liability insurance for the work it covers. '
+                          . 'Ask for a certificate of insurance rather than a photograph of a '
+                          . 'card, and check the dates on it. A policy that lapsed in March is '
+                          . 'not insurance.'],
+                    ['warn' => 'A change to the job is a change to the contract. Get it in writing '
+                             . 'too, even if it is a text message that says what the extra work is '
+                             . 'and what it adds to the price. Almost every serious dispute starts '
+                             . 'as a verbal change nobody wrote down.'],
+                    ['p' => 'None of this is legal advice, and Fix Listed is a directory rather '
+                          . 'than a law firm. It is the shape of what to expect, so that you '
+                          . 'notice when it is missing.'],
+                ],
+            ],
+
+            'deposits-and-paying-safely' => [
+                'track'   => self::TRACK_HOMEOWNER,
+                'title'   => 'Deposits, payment schedules, and not paying twice',
+                'nav'     => 'Paying safely',
+                'summary' => 'What a reasonable deposit looks like, why the last payment matters '
+                           . 'most, and what a lien waiver is for.',
+                'minutes' => 5,
+                'published' => true,
+                'body'    => [
+                    ['p' => 'Most disputes about money are not about the total. They are about '
+                          . 'when it was handed over. Paying in the wrong order removes every bit '
+                          . 'of leverage you have at the exact moment you need it.'],
+                    ['h' => 'Deposits'],
+                    ['p' => 'A deposit is normal, particularly where materials are ordered up '
+                          . 'front. What is not normal is a deposit that covers most of the job. '
+                          . 'A tradesperson with a running business has working capital; one who '
+                          . 'needs the bulk of your money before starting is telling you they do '
+                          . 'not.'],
+                    ['ul' => [
+                        'Ask what the deposit is actually for — a specific order, or just a hold',
+                        'Pay by a method that leaves a record, not cash',
+                        'Get a receipt that says what it was for and what remains owing',
+                    ]],
+                    ['h' => 'The last payment is the one that matters'],
+                    ['p' => 'Keep a meaningful amount outstanding until the work is finished, '
+                          . 'inspected where an inspection applies, and you have walked it. Once '
+                          . 'the final payment is made, a snag list is a favour somebody is doing '
+                          . 'you. Before it, it is part of the job.'],
+                    ['h' => 'Lien waivers'],
+                    ['p' => 'In Illinois, people who worked on your property or supplied materials '
+                          . 'for it can have a claim against the property itself if they are not '
+                          . 'paid — even where you paid your contractor in full and the contractor '
+                          . 'did not pay them. That is what a mechanics lien is.'],
+                    ['p' => 'The protection is a lien waiver: a signed statement from the '
+                          . 'contractor, and where the amounts are significant from the '
+                          . 'subcontractors and suppliers too, confirming they have been paid for '
+                          . 'the work covered by that payment. Ask for one with each instalment on '
+                          . 'a larger job. On a small repair it is overkill.'],
+                    ['warn' => 'The deadlines and the exact notice requirements come from the '
+                             . 'Illinois Mechanics Lien Act. If a lien is threatened or filed '
+                             . 'against your property, that is the point to speak to a lawyer '
+                             . 'rather than to read about it.'],
+                    ['h' => 'On Fix Listed'],
+                    ['p' => 'We are not in the middle of this. You pay a flat fee to post the job, '
+                          . 'and you pay the tradesperson directly for the work — we take no '
+                          . 'commission and never handle that second payment. Which also means we '
+                          . 'cannot hold it back for you, so the schedule you agree is the '
+                          . 'protection you have.'],
+                ],
+            ],
+
+            'handyman-or-licensed-trade' => [
+                'track'   => self::TRACK_HOMEOWNER,
+                'title'   => 'When you need a licensed trade rather than a handyman',
+                'nav'     => 'Handyman or licensed',
+                'summary' => 'The jobs where the cheaper option is the wrong one, and how to tell '
+                           . 'which is which.',
+                'minutes' => 4,
+                'published' => true,
+                'body'    => [
+                    ['p' => 'A good handyman is the right answer to most of the list on your '
+                          . 'fridge, and hiring a licensed specialist for a door that sticks is '
+                          . 'money thrown away. The judgement is knowing which jobs are on the '
+                          . 'other side of the line.'],
+                    ['h' => 'Call a handyman'],
+                    ['ul' => [
+                        'Doors, locks, handles, hinges',
+                        'Shelving, blinds, mounting things to walls',
+                        'Patching and painting, trim and skirting',
+                        'Swapping a like-for-like fixture where nothing is rerouted',
+                        'Fence panels, gates, decking boards',
+                        'The list of ten small things nobody else will come out for',
+                    ]],
+                    ['h' => 'Call the licensed trade'],
+                    ['ul' => [
+                        'Anything inside the electrical panel, new circuits, anything aluminium '
+                            . 'or knob-and-tube',
+                        'Moving or adding pipework, sewer and water lines, water heaters',
+                        'Gas, in any form, at any size',
+                        'Furnaces and air conditioning beyond a filter',
+                        'Anything structural, including "we could just take this wall out"',
+                        'Roofing beyond a couple of shingles',
+                    ]],
+                    ['p' => 'The dividing line is not difficulty. It is what happens when it is '
+                          . 'wrong. A badly hung door annoys you. A badly made electrical '
+                          . 'connection sits inside a wall warming up for two years.'],
+                    ['h' => 'The insurance question'],
+                    ['warn' => 'Ask your insurer, not your contractor, what happens to a claim '
+                             . 'arising from unlicensed or unpermitted work on a system that '
+                             . 'requires a licence. Ask before the work, not after the fire.'],
+                    ['h' => 'What to do when you are not sure'],
+                    ['p' => 'Describe the job on the board and let the trades tell you. A '
+                          . 'handyman who says "that one needs an electrician" has just done you '
+                          . 'a favour and earned the next job. Posting once puts the question in '
+                          . 'front of everybody covering your county at the same time, which is '
+                          . 'faster than working down a list of numbers.'],
+                    ['note' => 'Which trades Illinois actually licenses — and which are licensed '
+                             . 'by your town rather than the state — is its own lesson: see '
+                             . 'Checking a licence.'],
+                ],
+            ],
         ];
     }
 

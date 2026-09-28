@@ -101,6 +101,12 @@ $nav = static function (string $href, string $label, string $icon, string $curre
       <?php if ($can('activity.view')): ?>
         <?= $nav('/admin/activity', 'Activity log', 'clock', $path) ?>
       <?php endif; ?>
+
+      <?php /* Everybody gets the handbook. It is the answer to "where is that". */ ?>
+      <?= $nav('/admin/handbook', 'Handbook', 'info', $path) ?>
+      <?php if ($can('markets.manage')): ?>
+        <?= $nav('/admin/academy', 'Academy', 'clipboard', $path) ?>
+      <?php endif; ?>
     </nav>
 
     <div class="who">

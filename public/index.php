@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
+use FixListed\Controllers\AcademyController;
 use FixListed\Controllers\AdController;
 use FixListed\Controllers\CityController;
 use FixListed\Controllers\DirectoryController;
@@ -33,6 +34,7 @@ use FixListed\Controllers\Account\QuoteController;
 use FixListed\Controllers\Account\SessionController as AccountSession;
 use FixListed\Controllers\Admin\DashboardController;
 use FixListed\Controllers\Admin\MaintenanceController;
+use FixListed\Controllers\Admin\HandbookController;
 use FixListed\Controllers\Admin\ManageController;
 // Reviews pro APPLICATIONS, despite the name. Aliased so the two do not
 // collide and so each route below says which one it means.
@@ -160,6 +162,10 @@ try {
     $router->get('/img/logo/{id}', static fn (array $p) => $make(ImageController::class)->logo($p['id']));
     $router->get('/img/{id}',      static fn (array $p) => $make(ImageController::class)->show($p['id']));
 
+    // Before /academy/{slug}, or the index would be a lesson called "".
+    $router->get('/academy',         static fn () => $make(AcademyController::class)->index());
+    $router->get('/academy/{slug}',  static fn (array $p) => $make(AcademyController::class)->lesson($p['slug']));
+
     $router->get('/pricing',        static fn () => $make(PageController::class)->pricing());
     $router->get('/for-pros',       static fn () => $make(PageController::class)->forPros());
     $router->get('/terms',          static fn () => $make(PageController::class)->legal('terms'));
@@ -226,6 +232,11 @@ try {
     $router->get('/admin/pros',                static fn () => $admin(ManageController::class)->pros());
     $router->post('/admin/pros/{id}/status',   static fn (array $p) => $admin(ManageController::class)->setProStatus($p['id']));
     $router->post('/admin/pros/{id}/resend',   static fn (array $p) => $admin(ManageController::class)->resendProLink($p['id']));
+    $router->get('/admin/handbook',            static fn () => $admin(HandbookController::class)->index());
+    $router->get('/admin/handbook/{slug}',     static fn (array $p) => $admin(HandbookController::class)->lesson($p['slug']));
+    $router->get('/admin/academy',             static fn () => $admin(HandbookController::class)->manage());
+    $router->post('/admin/academy/{slug}',     static fn (array $p) => $admin(HandbookController::class)->save($p['slug']));
+
     $router->get('/admin/photos',              static fn () => $admin(ManageController::class)->photos());
     $router->post('/admin/photos/{id}',        static fn (array $p) => $admin(ManageController::class)->moderatePhoto($p['id']));
     $router->get('/admin/alerts',              static fn () => $admin(ManageController::class)->alerts());

@@ -6,9 +6,11 @@ namespace FixListed\Controllers;
 use FixListed\Core\Config;
 use FixListed\Core\Controller;
 use FixListed\Core\Response;
+use FixListed\Core\Academy;
 use FixListed\Core\Seo;
 use FixListed\Repositories\GeographyRepository;
 use FixListed\Repositories\JobRepository;
+use FixListed\Repositories\AcademyRepository;
 use FixListed\Repositories\ProRepository;
 use FixListed\Repositories\TradeRepository;
 
@@ -113,8 +115,24 @@ final class SeoController extends Controller
         // "today, every day" is the signal that gets lastmod ignored
         // site-wide.
         foreach (['/', '/pros', '/jobs', '/post-a-job', '/list-your-business',
-                  '/pricing', '/for-pros', '/contact', '/terms', '/privacy'] as $path) {
+                  '/pricing', '/for-pros', '/contact', '/terms', '/privacy',
+                  '/academy', '/jobs/alerts'] as $path) {
             $entries[] = ['loc' => abs_url($path)];
+        }
+
+        /*
+         * Academy lessons, and only the public ones.
+         *
+         * These are the pages that answer a question somebody types — "how do
+         * I check a plumber's licence in Illinois" — which a page listing
+         * plumbers cannot. Unpublished lessons are left out, and the staff
+         * handbook is filtered by track rather than trusted to be unlinked.
+         */
+        $academy = new AcademyRepository($this->db);
+        foreach ([Academy::TRACK_HOMEOWNER, Academy::TRACK_PRO] as $track) {
+            foreach ($academy->track($track) as $slug => $lesson) {
+                $entries[] = ['loc' => abs_url('/academy/' . $slug)];
+            }
         }
 
         foreach ($trades as $trade) {

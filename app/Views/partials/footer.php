@@ -40,6 +40,7 @@ require_once __DIR__ . '/icons.php';
           <li><a href="<?= e(url('/pros')) ?>">Find a tradesperson</a></li>
           <li><a href="<?= e(url('/post-a-job')) ?>">Post a job — $10</a></li>
           <li><a href="<?= e(url('/pricing')) ?>">What the fee covers</a></li>
+          <li><a href="<?= e(url('/academy')) ?>">Academy — how it works</a></li>
         </ul>
       </div>
 
@@ -57,6 +58,7 @@ require_once __DIR__ . '/icons.php';
         <h4>Fix Listed</h4>
         <ul>
           <li><a href="<?= e(url('/for-pros')) ?>">Why list with us</a></li>
+          <li><a href="<?= e(url('/academy')) ?>">Academy — how it works</a></li>
           <li><a href="<?= e(url('/contact')) ?>">Contact</a></li>
         </ul>
       </div>

@@ -924,3 +924,58 @@ td.wrap-cell{white-space:normal;min-width:220px}
    .field on a light card — including the admin login, whose .box is white on
    a dark page. Colouring it for the page rather than the card made the eye
    almost invisible against the input it sits in. */
+
+/* =========================================================================
+ * The academy.
+ *
+ * A reading measure, which is the whole design. Everything else on this site
+ * is a card or a table; a lesson is prose, and prose set the full width of a
+ * laptop is prose nobody finishes. 68 characters is the line length these
+ * settle at.
+ * ====================================================================== */
+.lesson-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:12px;margin-top:18px}
+.lesson-card{display:flex;flex-direction:column;gap:7px;padding:18px;
+  border:1px solid var(--line);border-radius:4px;background:var(--paper-3);
+  transition:border-color .12s,transform .12s}
+.lesson-card:hover{border-color:var(--brass-2);transform:translateY(-1px)}
+.lesson-card-t{font-family:var(--serif);font-size:17.5px;line-height:1.3;color:var(--text)}
+.lesson-card-s{font-size:13.5px;line-height:1.55;color:var(--text-2)}
+.lesson-card-m{display:flex;align-items:center;gap:5px;margin-top:auto;padding-top:6px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text-3)}
+
+.lesson-wrap{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:44px;align-items:start}
+.lesson{max-width:68ch}
+.lesson-h{font-family:var(--serif);font-size:23px;line-height:1.25;margin-top:34px}
+.lesson-p{margin-top:14px;font-size:16.5px;line-height:1.75;color:var(--text-2)}
+.lesson-ul,.lesson-ol{margin-top:14px;padding-left:22px;color:var(--text-2)}
+.lesson-ul li,.lesson-ol li{margin-top:8px;font-size:16px;line-height:1.7}
+.lesson-ol{counter-reset:none}
+.lesson-body > *:first-child{margin-top:20px}
+
+.lesson-note{display:flex;gap:11px;margin-top:20px;padding:14px 16px;border-radius:4px;
+  background:var(--paper-2);border-left:2px solid var(--brass-2)}
+.lesson-note p{margin:0;font-size:15px;line-height:1.65;color:var(--text-2)}
+.lesson-note svg{flex:none;margin-top:2px;color:var(--brass)}
+.lesson-note.warn{border-left-color:var(--clay);background:var(--paper-2)}
+.lesson-note.warn svg{color:var(--clay)}
+
+/* 16:9, held by the aspect-ratio rather than the old padding-top trick. */
+.lesson-video{margin-top:26px;aspect-ratio:16/9;border-radius:4px;overflow:hidden;
+  border:1px solid var(--line);background:var(--ink)}
+.lesson-video iframe{width:100%;height:100%;border:0;display:block}
+
+.lesson-foot{margin-top:38px;padding-top:18px;border-top:1px solid var(--line)}
+.lesson-side{position:sticky;top:84px}
+.lesson-nav{display:flex;flex-direction:column;padding:6px}
+.lesson-nav a{padding:9px 11px;border-radius:3px;font-size:14px;color:var(--text-2);line-height:1.4}
+.lesson-nav a:hover{background:var(--paper-2);color:var(--text)}
+.lesson-nav a.on{background:var(--ink);color:var(--on-ink);font-weight:600}
+
+@media (max-width:900px){
+  /* The sidebar goes under the lesson rather than beside it. Sticky on a
+     phone is a box that follows you down somebody else's article. */
+  .lesson-wrap{grid-template-columns:1fr;gap:28px}
+  .lesson-side{position:static;order:2}
+}

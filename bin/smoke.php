@@ -44,6 +44,7 @@ if (Config::get('app.env') === 'production') {
     exit(1);
 }
 
+use FixListed\Core\Academy;
 use FixListed\Core\Auth;
 use FixListed\Core\Database;
 use FixListed\Core\Maintenance;
@@ -52,6 +53,7 @@ use FixListed\Core\Repository;
 use FixListed\Core\Seo;
 use FixListed\Core\TenantScope;
 use FixListed\Core\TradeCopy;
+use FixListed\Repositories\AcademyRepository;
 use FixListed\Repositories\AdminRepository;
 use FixListed\Repositories\AdvertisingRepository;
 use FixListed\Repositories\GeographyRepository;
@@ -1026,6 +1028,78 @@ if ($probeJob === null) {
             $reviews->recalculate((int) $q['pro_id']);
         }
     }
+}
+
+// --- the academies ----------------------------------------------------------
+//
+// Two of them sharing one lesson store: a public one that earns search
+// traffic the directory pages cannot, and a staff handbook that must never
+// have a public URL.
+$academy = new AcademyRepository($db);
+
+check('there are lessons in both public tracks',
+    $academy->track(Academy::TRACK_HOMEOWNER) !== []
+    && $academy->track(Academy::TRACK_PRO) !== []);
+check('and a staff handbook behind the admin gate',
+    $academy->track(Academy::TRACK_STAFF, true) !== []);
+
+// Refused in the one method that could serve it, rather than left unlinked.
+// An unlinked page is a published page.
+$acadSrc = (string) file_get_contents(BASE_PATH . '/app/Controllers/AcademyController.php');
+check('the public controller refuses a staff lesson outright',
+    str_contains($acadSrc, 'Academy::isPublicTrack'));
+check('and isPublicTrack does not include staff',
+    !Academy::isPublicTrack(Academy::TRACK_STAFF)
+    && Academy::isPublicTrack(Academy::TRACK_HOMEOWNER));
+
+// Every lesson has to actually render. A body block with a key the renderer
+// does not know is silently skipped, which is a lesson missing a paragraph
+// that nobody notices.
+$known = ['h', 'p', 'ul', 'steps', 'note', 'warn'];
+$strayBlocks = [];
+foreach (Academy::all() as $slug => $lesson) {
+    if (trim((string) $lesson['title']) === '' || $lesson['body'] === []) {
+        $strayBlocks[] = $slug . ' (empty)';
+        continue;
+    }
+    foreach ($lesson['body'] as $i => $block) {
+        if (array_intersect(array_keys($block), $known) === []) {
+            $strayBlocks[] = $slug . ' block ' . $i;
+        }
+    }
+}
+check('every block in every lesson is one the renderer draws', $strayBlocks === [],
+    $strayBlocks === [] ? count(Academy::all()) . ' lessons' : implode(', ', $strayBlocks));
+
+// Slugs end up in URLs and in the sitemap.
+$badSlugs = array_keys(array_filter(Academy::all(),
+    static fn (array $l, string $slug): bool => preg_match('/^[a-z0-9-]+$/', $slug) !== 1,
+    ARRAY_FILTER_USE_BOTH));
+check('every lesson slug is URL-safe', $badSlugs === [], implode(', ', $badSlugs));
+
+// --- a pasted video link cannot become an arbitrary iframe ------------------
+//
+// The renderer builds the embed URL from an id it has validated, rather than
+// using the string somebody pasted. "Only the owner can paste it" stops being
+// true the first time an admin password is guessed.
+check('YouTube links are rebuilt from a validated id',
+    AcademyRepository::embeddable('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+        === 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+check('short YouTube links work too',
+    AcademyRepository::embeddable('https://youtu.be/dQw4w9WgXcQ') !== '');
+check('Vimeo links are rebuilt from the numeric id',
+    AcademyRepository::embeddable('https://vimeo.com/123456789')
+        === 'https://player.vimeo.com/video/123456789');
+
+foreach ([
+    'https://evil.example.com/x',
+    'javascript:alert(1)',
+    'https://youtube.com/watch?v=<script>alert(1)</script>',
+    'https://youtube.evil.com/watch?v=abcdefghijk',
+    '',
+] as $bad) {
+    check('refused: ' . ($bad === '' ? '(empty)' : substr($bad, 0, 38)),
+        AcademyRepository::embeddable($bad) === '');
 }
 
 // --- uploaded images --------------------------------------------------------

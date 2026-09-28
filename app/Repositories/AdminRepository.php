@@ -38,6 +38,11 @@ final class AdminRepository extends Repository
             'people'       => $one("SELECT COUNT(*) FROM users WHERE market_id = :market_id"),
             'waitlist'     => (int) $this->db->value('SELECT COUNT(*) FROM waitlist'),
             'moderation'   => $one("SELECT COUNT(*) FROM moderation_items WHERE market_id = :market_id AND status = 'open' AND is_demo = 0"),
+            // A submitted review waits for a moderator and shows nowhere
+            // until one acts. Until this existed, nothing on the dashboard
+            // said there was one — you had to already know to look, which
+            // meant the first real review read as a broken feature.
+            'reviews'      => $one("SELECT COUNT(*) FROM reviews WHERE market_id = :market_id AND status = 'pending_review'"),
             /*
              * is_demo = 0 is the whole point of this line.
              *

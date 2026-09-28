@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FixListed\Core;
 
+use FixListed\Repositories\AdminRepository;
+
 /**
  * Base for everything behind /admin.
  *
@@ -87,13 +89,38 @@ abstract class AdminController
             // question the controller asked.
             'can'      => fn (string $capability): bool => $this->auth->can($capability),
             'flashes'  => Session::takeFlashes(),
-            'pending'  => 0,
+            /*
+             * The nav badges, worked out here rather than by each screen.
+             *
+             * Every admin controller was passing 'pending' by hand — the
+             * same query, written out ten times — and a screen that forgot
+             * simply showed no badge. Adding a second counter that way would
+             * have meant ten more chances to miss one, and the one that
+             * mattered was the queue nobody knew was filling up.
+             */
+            'pending'  => $this->queue()['applications'],
+            'pendingReviews' => $this->queue()['reviews'],
         ];
 
         return Response::html(
             $this->view->render($template, $data + $defaults, 'layouts/admin'),
             $status,
         );
+    }
+
+    /**
+     * What is waiting for somebody, counted once per request.
+     *
+     * @return array<string,int>
+     */
+    private function queue(): array
+    {
+        static $counts = null;
+        if ($counts === null) {
+            $counts = (new AdminRepository($this->db, $this->scope))->counts();
+        }
+
+        return $counts;
     }
 
     protected function audit(): AuditLog

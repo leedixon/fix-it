@@ -10,6 +10,7 @@
  * @var bool   $isSuper
  * @var array  $flashes
  * @var int    $pending
+ * @var int    $pendingReviews
  * @var callable $can
  */
 require_once __DIR__ . '/../partials/icons.php';
@@ -72,7 +73,7 @@ $nav = static function (string $href, string $label, string $icon, string $curre
       <?php endif; ?>
       <?php if ($can('listings.moderate')): ?>
         <?= $nav('/admin/pros', 'Tradespeople', 'tools', $path) ?>
-        <?= $nav('/admin/reviews', 'Reviews', 'star', $path) ?>
+        <?= $nav('/admin/reviews', 'Reviews', 'star', $path, $pendingReviews ?? 0) ?>
       <?php endif; ?>
       <?php if ($can('jobs.moderate')): ?>
         <?= $nav('/admin/jobs', 'Jobs', 'clipboard', $path) ?>

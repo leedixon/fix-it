@@ -12,11 +12,26 @@ require_once __DIR__ . '/../partials/icons.php';
 
 <div class="adm-stats">
   <div class="stat">
+    <?php
+    /*
+     * Applications AND reviews.
+     *
+     * This counted applications only, so the first review a homeowner ever
+     * submitted sat in a queue with nothing anywhere saying so — and the
+     * feature read as broken to the person who built it. A number called
+     * "waiting on you" has to mean everything that is.
+     */
+    $waiting = (int) $counts['applications'] + (int) ($counts['reviews'] ?? 0);
+    $what    = match (true) {
+        $waiting === 0                    => 'queue is clear',
+        (int) $counts['applications'] === 0 => 'reviews to approve',
+        (int) ($counts['reviews'] ?? 0) === 0 => 'applications to review',
+        default                           => 'applications and reviews',
+    };
+    ?>
     <div class="k">Waiting on you</div>
-    <div class="v"><?= (int) $counts['applications'] ?></div>
-    <div class="d<?= $counts['applications'] > 0 ? '' : ' down' ?>">
-      <?= $counts['applications'] > 0 ? 'applications to review' : 'queue is clear' ?>
-    </div>
+    <div class="v"><?= $waiting ?></div>
+    <div class="d<?= $waiting > 0 ? '' : ' down' ?>"><?= e($what) ?></div>
   </div>
   <div class="stat">
     <div class="k">Live listings</div>

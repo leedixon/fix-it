@@ -8,6 +8,7 @@ use FixListed\Core\Csrf;
 use FixListed\Core\NotFound;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
+use FixListed\Core\TeamAlert;
 use FixListed\Core\Validator;
 use FixListed\Repositories\ReviewRepository;
 
@@ -91,6 +92,43 @@ final class ReviewController extends Controller
             (int) $job['user_id'],
             (int) $v->value('rating'),
             trim($v->value('body')),
+        );
+
+        // Taken from the list already on screen rather than queried again —
+        // it was validated against that list, so it is certainly in it.
+        $pro = ['business_name' => 'a tradesperson'];
+        foreach ($pros as $candidate) {
+            if ((int) $candidate['id'] === (int) $v->value('pro_id')) {
+                $pro = $candidate;
+                break;
+            }
+        }
+
+        /*
+         * Tell whoever moderates.
+         *
+         * A review lands in a queue and shows nowhere until somebody acts on
+         * it. Without this the first one sat there unseen — and a homeowner
+         * who took the trouble to write about a local business deserves
+         * better than it being found a fortnight later. listings.moderate,
+         * because the people who can publish it are the people to tell.
+         */
+        TeamAlert::send(
+            $this->db,
+            $this->view,
+            (int) $this->market['id'],
+            'listings.moderate',
+            'Review waiting: ' . $pro['business_name'],
+            'A homeowner has rated ' . $pro['business_name'] . '. It is held for moderation and '
+                . 'will not appear on their profile until it is published.',
+            [
+                'Business' => (string) $pro['business_name'],
+                'Rating'   => $v->value('rating') . ' out of 5',
+                'Job'      => (string) $job['reference'],
+                'Comment'  => trim($v->value('body')) !== '' ? 'yes' : 'a rating only',
+            ],
+            abs_url('/admin/reviews'),
+            'Read it',
         );
 
         Session::flash('ok', 'Thank you — that is with us.');

@@ -1028,6 +1028,38 @@ if ($probeJob === null) {
     }
 }
 
+// --- a waiting review has to be visible somewhere ---------------------------
+//
+// The first real review submitted to this site went into the queue and
+// nothing anywhere said so — the dashboard's "waiting on you" counted
+// applications only, and the Reviews nav item had no badge. The feature was
+// working exactly as designed and read as broken, which for the person
+// looking at it is the same thing.
+$adminCounts = (new AdminRepository($db, TenantScope::market($marketId)))->counts();
+check('the admin counts include reviews waiting for a moderator',
+    array_key_exists('reviews', $adminCounts));
+
+$dashSrc = (string) file_get_contents(BASE_PATH . '/app/Views/admin/dashboard.php');
+check('"waiting on you" counts reviews as well as applications',
+    str_contains($dashSrc, "\$counts['applications'] + (int) (\$counts['reviews']"));
+
+// Every admin screen used to pass the badge count by hand — the same query
+// written out ten times — so a screen that forgot simply showed no badge.
+// Computed centrally now, which is what makes a second badge possible at all.
+$adminCtl = (string) file_get_contents(BASE_PATH . '/app/Core/AdminController.php');
+check('nav badge counts are worked out in one place',
+    str_contains($adminCtl, "'pending'  => \$this->queue()['applications']")
+    && str_contains($adminCtl, "'pendingReviews' => \$this->queue()['reviews']"));
+
+check('the Reviews nav item carries its own badge',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Views/layouts/admin.php'),
+        "'/admin/reviews', 'Reviews', 'star', \$path, \$pendingReviews"));
+
+// And somebody is told, so nobody has to be looking at the dashboard.
+check('submitting a review alerts whoever can publish it',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Controllers/ReviewController.php'),
+        "'listings.moderate'"));
+
 // --- job alerts -------------------------------------------------------------
 //
 // The alerts to LISTED pros already existed and worked. This is the other

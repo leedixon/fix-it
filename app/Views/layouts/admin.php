@@ -79,6 +79,7 @@ $nav = static function (string $href, string $label, string $icon, string $curre
       <?php endif; ?>
       <?php if ($can('people.view')): ?>
         <?= $nav('/admin/users', 'People', 'user', $path) ?>
+        <?= $nav('/admin/alerts', 'Job alerts', 'mail', $path) ?>
       <?php endif; ?>
       <?php if ($can('placements.view')): ?>
         <?= $nav('/admin/advertising', 'Advertising', 'megaphone', $path) ?>

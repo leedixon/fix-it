@@ -210,25 +210,34 @@ final class ProSignupController extends Controller
                 . "within two working days.\n\nReply to this email if anything changes.\n",
             );
 
-            $alertTo = (string) \FixListed\Core\Config::get('mail.alert_to', '');
-            if ($alertTo !== '') {
-                $mailer->send(
-                    $alertTo,
-                    'New listing application: ' . $name,
-                    $view->render('emails.pro_application_alert', [
-                        'title'     => 'New listing application',
-                        'preheader' => $name . ' applied to be listed.',
-                        'business'  => $name,
-                        'person'    => $v->value('first_name') . ' ' . $v->value('last_name'),
-                        'email'     => mb_strtolower($v->value('email')),
-                        'phone'     => $v->value('phone'),
-                        'licence'   => trim($v->value('license_state') . ' ' . $v->value('license_number')),
-                        'reviewUrl' => abs_url('/admin/applications/' . $created['pro_id']),
-                    ], 'emails.layout'),
-                    "New listing application from {$name}.\n\nReview it: "
-                    . abs_url('/admin/applications/' . $created['pro_id']) . "\n",
-                );
-            }
+            /*
+             * The whole team, not one address in config.
+             *
+             * This went to mail.alert_to alone, which meant inviting a
+             * moderator gave them a queue to work and no way to know
+             * anything had arrived in it. TeamAlert picks recipients by
+             * capability, so whoever can review applications is told about
+             * one, and mail.alert_to still gets everything as the fallback.
+             */
+            \FixListed\Core\TeamAlert::send(
+                $this->db,
+                $view,
+                (int) $this->market['id'],
+                'applications.review',
+                'New listing application: ' . $name,
+                $name . ' has applied to be listed. Licence and insurance need checking before '
+                    . 'the profile can go live.',
+                [
+                    'Business' => $name,
+                    'Person'   => trim($v->value('first_name') . ' ' . $v->value('last_name')),
+                    'Email'    => mb_strtolower($v->value('email')),
+                    'Phone'    => (string) $v->value('phone'),
+                    'Licence'  => trim($v->value('license_state') . ' ' . $v->value('license_number')),
+                ],
+                abs_url('/admin/applications/' . $created['pro_id']),
+                'Review the application',
+            );
+
         } catch (\Throwable $e) {
             error_log('Pro application mail failed for pro ' . $created['pro_id'] . ': ' . $e->getMessage());
         }

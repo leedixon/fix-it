@@ -84,11 +84,31 @@ $e = static fn($v) => View::e($v);
           </td>
         </tr>
 
-        <!-- footer -->
+        <!--
+          footer
+
+          $unsubUrl is set only by the emails that need it, and that is the
+          whole distinction worth drawing here. A job alert is sent
+          repeatedly and unprompted about new opportunities, so it needs a
+          working one-click opt-out and a postal address in every message.
+          A password link or a refund notice is a reply to something the
+          person just did; offering to unsubscribe them from those would be
+          both meaningless and alarming.
+
+          The postal address is not decoration either — a commercial email
+          without one is non-compliant however good the unsubscribe is.
+        -->
         <tr>
           <td class="sm-pad dk-mute" style="padding:20px 8px 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:12px;line-height:1.6;color:#78857F;">
             Fix Listed &middot; a trades directory for Northwest Illinois<br>
             Questions? Just reply to this email &mdash; it reaches a person.
+            <?php if (!empty($unsubUrl)): ?>
+              <br><br>
+              You are getting this because you asked for job alerts.
+              <a href="<?= $e($unsubUrl) ?>" style="color:#78857F;text-decoration:underline;">Stop these emails</a>.
+              <br>
+              <?= $e((string) ($postalAddress ?? 'Fix Listed, Freeport, Illinois, USA')) ?>
+            <?php endif; ?>
           </td>
         </tr>
 

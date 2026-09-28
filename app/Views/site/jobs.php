@@ -20,7 +20,15 @@ require_once __DIR__ . '/../partials/icons.php';
         <p>Free to quote, and you keep the whole job — Fix Listed takes nothing from what the
            homeowner pays you.</p>
       </div>
-      <a class="btn btn-primary" href="<?= e(url('/for-pros')) ?>">Get these by email</a>
+      <?php
+      /*
+       * This pointed at /for-pros, which is a sales page. The button
+       * promises a signup box, so it now goes to one — and the signup does
+       * not require a listing, which is the whole point of offering it here
+       * rather than on the recruitment page.
+       */
+      ?>
+      <a class="btn btn-primary" href="<?= e(url('/jobs/alerts')) ?>">Get these by email</a>
     </div>
 
     <form class="filters" method="get" action="<?= e(url('/jobs')) ?>">

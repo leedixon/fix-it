@@ -201,7 +201,7 @@ final class JobPostingRepository extends Repository
     public function prosToNotify(int $countyId, int $tradeId): array
     {
         return $this->scopedAll(
-            "SELECT DISTINCT u.email, u.first_name,
+            "SELECT DISTINCT p.id AS pro_id, u.email, u.first_name,
                     COALESCE(NULLIF(p.business_name,''), TRIM(CONCAT(u.first_name,' ',u.last_name))) AS name
                FROM pro_profiles p
                JOIN users u ON u.id = p.user_id
@@ -210,6 +210,10 @@ final class JobPostingRepository extends Repository
               WHERE p.market_id = :market_id
                 AND p.status = 'active'
                 AND p.is_demo = 0
+                -- A listed pro who clicked unsubscribe in a job alert. It is
+                -- a mailing preference, not a resignation: the listing stays
+                -- live and they can still quote anything on the board.
+                AND p.job_alerts_off = 0
                 AND a.county_id = :county
                 AND pt.trade_id = :trade
               LIMIT 200",

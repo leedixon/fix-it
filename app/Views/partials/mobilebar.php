@@ -29,7 +29,20 @@
  * markup gives no hint, because the bar is position:fixed and belongs to a
  * different part of the document.
  */
-$hideOn = ['/post-a-job', '/list-your-business', '/sign-in', '/forgot-password', '/set-password', '/review'];
+/*
+ * This list has now grown three times for the same reason, which is worth
+ * naming: every page whose whole job is one form ends up here, because two
+ * buttons fixed over the bottom of the screen cover the field somebody came
+ * to fill in. If it grows much further the rule should move to a flag the
+ * controller sets, rather than a path list a partial has to keep guessing.
+ *
+ * /jobs stays off the list deliberately. Somebody browsing the board may
+ * well want to post a job, and nothing there is covered.
+ */
+$hideOn = [
+    '/post-a-job', '/list-your-business', '/sign-in', '/forgot-password',
+    '/set-password', '/review', '/jobs/alerts',
+];
 
 foreach ($hideOn as $prefix) {
     if ($path === $prefix || str_starts_with($path, $prefix . '/')) {

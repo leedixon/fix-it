@@ -15,6 +15,7 @@ use FixListed\Controllers\AdController;
 use FixListed\Controllers\CityController;
 use FixListed\Controllers\DirectoryController;
 use FixListed\Controllers\HomeController;
+use FixListed\Controllers\JobAlertController;
 use FixListed\Controllers\JobsController;
 use FixListed\Controllers\PageController;
 use FixListed\Controllers\PostJobController;
@@ -107,6 +108,19 @@ try {
     $router->get('/pros',           static fn () => $make(DirectoryController::class)->index());
     $router->get('/pros/{slug}',    static fn (array $p) => $make(DirectoryController::class)->show($p['slug']));
     $router->get('/jobs',           static fn () => $make(JobsController::class)->index());
+    /*
+     * Job alerts. Registered BEFORE /jobs/{reference}, because that pattern
+     * would otherwise swallow /jobs/alerts and look for a job with the
+     * reference "alerts".
+     */
+    $router->get('/jobs/alerts',                 static fn () => $make(JobAlertController::class)->form());
+    $router->post('/jobs/alerts',                static fn () => $make(JobAlertController::class)->subscribe());
+    $router->get('/jobs/alerts/check-your-email', static fn () => $make(JobAlertController::class)->checkYourEmail());
+    $router->get('/jobs/alerts/confirm/{token}', static fn (array $p) => $make(JobAlertController::class)->confirm($p['token']));
+    // One-click, GET, no form: an unsubscribe that takes work is one people
+    // report as spam instead, which costs far more than the risk it avoids.
+    $router->get('/jobs/alerts/stop/{token}',    static fn (array $p) => $make(JobAlertController::class)->unsubscribe($p['token']));
+
     $router->get('/jobs/{reference}', static fn (array $p) => $make(JobsController::class)->show($p['reference']));
 
     /*
@@ -199,6 +213,7 @@ try {
     $router->get('/admin/pros',                static fn () => $admin(ManageController::class)->pros());
     $router->post('/admin/pros/{id}/status',   static fn (array $p) => $admin(ManageController::class)->setProStatus($p['id']));
     $router->post('/admin/pros/{id}/resend',   static fn (array $p) => $admin(ManageController::class)->resendProLink($p['id']));
+    $router->get('/admin/alerts',              static fn () => $admin(ManageController::class)->alerts());
     $router->get('/admin/reviews',             static fn () => $admin(ManageController::class)->reviews());
     $router->post('/admin/reviews/{id}',       static fn (array $p) => $admin(ManageController::class)->moderateReview($p['id']));
     $router->get('/admin/jobs',                static fn () => $admin(ManageController::class)->jobs());

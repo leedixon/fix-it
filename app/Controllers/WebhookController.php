@@ -9,9 +9,12 @@ use FixListed\Core\Mailer;
 use FixListed\Core\Request;
 use FixListed\Core\Response;
 use FixListed\Core\Stripe;
+use FixListed\Core\TeamAlert;
 use FixListed\Core\TenantScope;
 use FixListed\Core\View;
 use FixListed\Repositories\AdvertisingRepository;
+use FixListed\Controllers\JobAlertController;
+use FixListed\Repositories\JobAlertRepository;
 use FixListed\Repositories\JobPostingRepository;
 
 /**
@@ -635,14 +638,28 @@ final class WebhookController
                 . abs_url('/jobs/' . $job['reference']) . "\n",
             );
 
-            $repo = new JobPostingRepository($this->db, TenantScope::market(
-                (int) $this->db->value('SELECT market_id FROM jobs WHERE id = :i', ['i' => $job['id']])
-            ));
+            $marketId = (int) $this->db->value(
+                'SELECT market_id FROM jobs WHERE id = :i', ['i' => $job['id']]);
+            $scope = TenantScope::market($marketId);
+            $repo  = new JobPostingRepository($this->db, $scope);
 
+            $subject = 'New ' . $job['trade_name'] . ' job in ' . ($job['city_name'] ?? 'your area');
+            $body    = excerpt((string) $job['description'], 220);
+
+            /*
+             * 1. Listed tradespeople, who can quote it from their account.
+             *
+             * Every one of these now carries an unsubscribe link, which none
+             * of them did before. A job alert is sent repeatedly and
+             * unprompted about new opportunities — the kind of message that
+             * needs a working opt-out in every copy. Stopping the alerts
+             * leaves the listing alone; it is a mailing preference, not a
+             * resignation.
+             */
             foreach ($repo->prosToNotify((int) $job['county_id'], (int) $job['trade_id']) as $pro) {
                 $mailer->send(
                     (string) $pro['email'],
-                    'New ' . $job['trade_name'] . ' job in ' . ($job['city_name'] ?? 'your area'),
+                    $subject,
                     $this->view->render('emails.job_alert', [
                         'title'     => 'A job you can quote',
                         'preheader' => (string) $job['title'],
@@ -650,17 +667,100 @@ final class WebhookController
                         'jobTitle'  => (string) $job['title'],
                         'trade'     => (string) $job['trade_name'],
                         'city'      => (string) ($job['city_name'] ?? ''),
-                        'summary'   => excerpt((string) $job['description'], 220),
+                        'summary'   => $body,
                         'quoteUrl'  => abs_url('/my/quote/' . $job['reference']),
+                        'unsubUrl'  => abs_url('/jobs/alerts/stop/'
+                            . JobAlertController::proToken((int) $pro['pro_id'])),
                     ], 'emails.layout'),
                     "New {$job['trade_name']} job: {$job['title']}\n\n"
                     . abs_url('/my/quote/' . $job['reference']) . "\n",
                 );
             }
+
+            /*
+             * 2. Subscribers who have not listed.
+             *
+             * They cannot quote from an account they do not have, so their
+             * link goes to the public job page. Somebody reading these and
+             * watching work go past is the most persuadable tradesperson
+             * this site has, which is the entire reason the list exists.
+             *
+             * matching() excludes anyone whose address is already on an
+             * active listing, so nobody gets the same job twice from the two
+             * systems.
+             */
+            $alerts = new JobAlertRepository($this->db, $scope);
+            foreach ($alerts->matching((int) $job['county_id'], (int) $job['trade_id']) as $sub) {
+                $mailer->send(
+                    (string) $sub['email'],
+                    $subject,
+                    $this->view->render('emails.job_alert', [
+                        'title'     => 'A job in your trade',
+                        'preheader' => (string) $job['title'],
+                        'name'      => (string) $sub['first_name'],
+                        'jobTitle'  => (string) $job['title'],
+                        'trade'     => (string) $job['trade_name'],
+                        'city'      => (string) ($job['city_name'] ?? ''),
+                        'summary'   => $body,
+                        'quoteUrl'  => abs_url('/jobs/' . $job['reference']),
+                        'notListed' => true,
+                        'unsubUrl'  => abs_url('/jobs/alerts/stop/' . $sub['token']),
+                    ], 'emails.layout'),
+                    "New {$job['trade_name']} job: {$job['title']}\n\n"
+                    . abs_url('/jobs/' . $job['reference']) . "\n\n"
+                    . "Stop these: " . abs_url('/jobs/alerts/stop/' . $sub['token']) . "\n",
+                );
+                $alerts->markSent((int) $sub['id']);
+            }
+
+            /*
+             * 3. The team.
+             *
+             * Nobody who runs the site was told a job had been posted. The
+             * owner found out by looking. Staff alerts elsewhere go to a
+             * single address in config, which means inviting a colleague
+             * does not actually give them anything to do.
+             */
+            $this->tellTheTeam(
+                $marketId,
+                'Job posted: ' . $job['title'],
+                'A homeowner has paid for ' . $job['trade_name'] . ' in '
+                    . ($job['city_name'] ?? 'the market') . '.',
+                [
+                    'What'  => (string) $job['title'],
+                    'Trade' => (string) $job['trade_name'],
+                    'Where' => (string) ($job['city_name'] ?? ''),
+                    'Ref'   => (string) $job['reference'],
+                ],
+                abs_url('/jobs/' . $job['reference']),
+                'See the job',
+            );
         } catch (\Throwable $e) {
             // The money is taken and the job is live. A failed email is worth
             // a log line, never an exception that unwinds a completed payment.
             error_log('Could not announce job ' . ($job['reference'] ?? '?') . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * @param array<string,string> $facts
+     */
+    private function tellTheTeam(
+        int $marketId,
+        string $subject,
+        string $lede,
+        array $facts,
+        string $actionUrl = '',
+        string $actionLabel = 'Open the admin',
+    ): void {
+        try {
+            // jobs.moderate, because the people who can act on a job are the
+            // people worth telling about one. The capability that governs the
+            // screen governs the email about the screen.
+            TeamAlert::send($this->db, $this->view, $marketId, 'jobs.moderate',
+                $subject, $lede, $facts, $actionUrl, $actionLabel);
+        } catch (\Throwable $e) {
+            error_log('Team alert failed: ' . $e->getMessage());
         }
     }
 

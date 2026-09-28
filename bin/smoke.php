@@ -55,6 +55,7 @@ use FixListed\Core\TradeCopy;
 use FixListed\Repositories\AdminRepository;
 use FixListed\Repositories\AdvertisingRepository;
 use FixListed\Repositories\GeographyRepository;
+use FixListed\Repositories\JobAlertRepository;
 use FixListed\Repositories\JobRepository;
 use FixListed\Repositories\MarketRepository;
 use FixListed\Repositories\TeamRepository;
@@ -1026,6 +1027,113 @@ if ($probeJob === null) {
         }
     }
 }
+
+// --- job alerts -------------------------------------------------------------
+//
+// The alerts to LISTED pros already existed and worked. This is the other
+// half: a tradesperson who wants to see the work before taking out a
+// profile. "Get these by email" pointed at /for-pros, so there was nowhere
+// for them to go.
+$alertRepo = new JobAlertRepository($db, TenantScope::market($marketId));
+$probeAddr = 'smoke-alert@example.test';
+$aTrade    = (int) $db->value("SELECT id FROM trades WHERE slug = 'plumbing'");
+$aCounty   = (int) $db->value(
+    'SELECT county_id FROM market_counties WHERE market_id = :m LIMIT 1', ['m' => $marketId]);
+
+try {
+    $sub = $alertRepo->subscribe($probeAddr, 'Smoke', 'Smoke Plumbing', [$aTrade], [$aCounty]);
+
+    check('a signup issues a 64-character token',
+        strlen($sub['token']) === 64 && ctype_xdigit($sub['token']));
+
+    // The whole point of confirmed opt-in: an address nobody proved is
+    // reachable never receives anything. This product IS email, so a spam
+    // complaint against a young domain is not a small cost.
+    check('nothing is sent to an address that has not confirmed',
+        $alertRepo->matching($aCounty, $aTrade) === []);
+
+    $alertRepo->confirm($sub['token']);
+    check('a confirmed subscriber matches a job in their trade and county',
+        count($alertRepo->matching($aCounty, $aTrade)) === 1);
+
+    $otherTrade = (int) $db->value(
+        'SELECT id FROM trades WHERE id <> :t LIMIT 1', ['t' => $aTrade]);
+    check('and does not match a trade they did not pick',
+        $alertRepo->matching($aCounty, $otherTrade) === []);
+
+    // Re-subscribing is how somebody changes their mind about what they
+    // want. Merging instead of replacing would make a trade impossible to
+    // remove, and an alert you cannot turn down is one you unsubscribe from.
+    $alertRepo->subscribe($probeAddr, 'Smoke', 'Smoke Plumbing', [$otherTrade], [$aCounty]);
+    check('re-subscribing replaces the choices rather than adding to them',
+        $alertRepo->matching($aCounty, $aTrade) === []
+        && count($alertRepo->matching($aCounty, $otherTrade)) === 1);
+
+    $alertRepo->subscribe($probeAddr, 'Smoke', 'Smoke Plumbing', [$aTrade], [$aCounty]);
+    $alertRepo->confirm($sub['token']);
+
+    $alertRepo->unsubscribe($sub['token']);
+    check('unsubscribing stops the matching', $alertRepo->matching($aCounty, $aTrade) === []);
+    // Kept, not deleted: the record that somebody asked to stop is the one
+    // thing that prevents a later import signing them up again.
+    check('the unsubscribed row is kept rather than deleted',
+        $alertRepo->findByToken($sub['token']) !== null);
+
+    check('a malformed token matches nothing',
+        $alertRepo->findByToken('nope') === null
+        && $alertRepo->findByToken(str_repeat('z', 64)) === null);
+
+    // --- the signed link a listed pro gets -------------------------------
+    $signed = FixListed\Controllers\JobAlertController::proToken(4242);
+    check('a listed pro gets a signed unsubscribe token, with no table behind it',
+        (bool) preg_match('/^p4242\.[0-9a-f]{64}$/', $signed));
+    check('the signature is bound to the profile it names',
+        $signed !== FixListed\Controllers\JobAlertController::proToken(4243));
+} finally {
+    $db->affected('DELETE FROM job_alerts WHERE email = :e', ['e' => $probeAddr]);
+}
+
+// The CTA has to point at the signup. It pointed at /for-pros — a sales
+// page — so the button promised a box to type in and delivered a pitch.
+check('the jobs board sends "Get these by email" to the signup',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Views/site/jobs.php'), "url('/jobs/alerts')"));
+
+// --- who the team alerts reach ----------------------------------------------
+//
+// Staff alerts went to one address in config, so inviting a moderator gave
+// them a queue and no way to know anything was in it. Recipients are chosen
+// by capability now, which means the emailed list and the rendered screen
+// cannot disagree about who counts.
+check('a moderator is told about work they can actually do',
+    Auth::roleCan('moderator', 'jobs.moderate')
+    && Auth::roleCan('moderator', 'applications.review'));
+check('and is not told about money they cannot see',
+    !Auth::roleCan('moderator', 'finance.view')
+    && !Auth::roleCan('market_admin', 'finance.view'));
+check('roleCan agrees with the signed-in check for every capability',
+    Auth::roleCan('superadmin', 'team.manage') && !Auth::roleCan('moderator', 'team.manage'));
+
+// --- every job alert must carry a way out -----------------------------------
+//
+// No email on this site had an unsubscribe link. A job alert is sent
+// repeatedly and unprompted about new opportunities, which is exactly the
+// kind that needs a working opt-out in every copy — enforced per message,
+// not per campaign.
+$layoutSrc = (string) file_get_contents(BASE_PATH . '/app/Views/emails/layout.php');
+check('the email layout can render an unsubscribe footer',
+    str_contains($layoutSrc, 'unsubUrl') && str_contains($layoutSrc, 'Stop these emails'));
+check('and only shows it when the message actually needs one',
+    str_contains($layoutSrc, 'if (!empty($unsubUrl))'));
+
+$hookSrc = (string) file_get_contents(BASE_PATH . '/app/Controllers/WebhookController.php');
+check('both kinds of job alert are sent with an unsubscribe link',
+    substr_count($hookSrc, "'unsubUrl'") === 2);
+
+// A pro who opted out must drop out of the query that picks recipients,
+// without their listing changing in any way.
+check('a listed pro who opted out is left off the alert list',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Repositories/JobPostingRepository.php'),
+        'p.job_alerts_off = 0'));
 
 // --- seeded money must never be counted as real ------------------------------
 //

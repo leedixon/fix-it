@@ -145,9 +145,21 @@ final class Auth
     public function can(string $capability): bool
     {
         $role = $this->role();
-        if ($role === null) {
-            return false;
-        }
+
+        return $role !== null && self::roleCan($role, $capability);
+    }
+
+    /**
+     * The same question about somebody who is not signed in.
+     *
+     * Needed because the team alerts decide who to email by what each person
+     * may actually see: a moderator who cannot open the money screens is not
+     * told a placement sold. Delegating rather than copying the lookup means
+     * the emailed list and the rendered screen can never disagree about who
+     * counts — one table, one rule, and adding a capability updates both.
+     */
+    public static function roleCan(string $role, string $capability): bool
+    {
         return in_array($role, self::CAPABILITIES[$capability] ?? [], true);
     }
 

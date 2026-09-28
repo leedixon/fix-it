@@ -10,6 +10,7 @@ use FixListed\Core\PasswordReset;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
 use FixListed\Repositories\AdminRepository;
+use FixListed\Repositories\JobAlertRepository;
 use FixListed\Repositories\ReviewRepository;
 use FixListed\Repositories\LicenceRepository;
 use FixListed\Repositories\MarketRepository;
@@ -32,6 +33,32 @@ final class ManageController extends AdminController
             'pros'    => $admin->pros($status),
             'status'  => $status,
             'pending' => $admin->counts()['applications'],
+        ]);
+    }
+
+    /**
+     * Who asked to hear about new jobs.
+     *
+     * A prospect list more than a mailing list. Everybody here is a
+     * tradesperson who wants the work and has not taken out a listing — the
+     * warmest names this site has, with their trade and their counties
+     * attached. Converted rows are kept and marked rather than hidden,
+     * because "twelve signed up and four of them listed" is the number worth
+     * knowing.
+     */
+    public function alerts(): Response
+    {
+        if ($denied = $this->guardCan('people.view')) {
+            return $denied;
+        }
+
+        $alerts = new JobAlertRepository($this->db, $this->scope);
+
+        return $this->page('admin/alerts', [
+            'title'   => 'Job alerts — Fix Listed admin',
+            'alerts'  => $alerts->all(),
+            'tally'   => $alerts->counts(),
+            'pending' => (new AdminRepository($this->db, $this->scope))->counts()['applications'],
         ]);
     }
 

@@ -20,7 +20,7 @@ $type = $v('amount_type', 'fixed');
 <div class="adm-review">
   <form class="panel" method="post" action="<?= e(url('/my/quote/' . $job['reference'])) ?>">
     <?= \FixListed\Core\Csrf::field() ?>
-    <div class="panel-h"><h3>Your quote</h3></div>
+    <div class="panel-h"><h3>Your quote</h3><?= learn('writing-a-quote-that-wins', 'How to win it') ?></div>
     <div style="padding:20px">
 
       <label class="field">

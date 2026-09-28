@@ -276,3 +276,27 @@ function quote_price(array $quote): string
         default          => $min !== null ? money($min) : '—',
     };
 }
+
+/**
+ * A link from a screen to the lesson about that screen.
+ *
+ * The academy was reachable from the footer and nowhere else, which is the
+ * weakest placement a page has. The lessons that earn their keep are the ones
+ * offered at the moment the question comes up — "Writing a quote that wins"
+ * next to the quote box, not four screens away under a menu.
+ *
+ * Opens in a new tab wherever it sits beside a form. A pro halfway through a
+ * quote who taps a help link and loses the draft has been actively harmed by
+ * the help, so the tab is stated in the label for anyone who cannot see the
+ * icon rather than left as a surprise.
+ */
+function learn(string $slug, string $label = 'How this works', bool $newTab = true): string
+{
+    require_once __DIR__ . '/Views/partials/icons.php';
+
+    return '<a class="learn" href="' . e(url('/academy/' . $slug)) . '"'
+        . ($newTab ? ' target="_blank" rel="noopener"' : '') . '>'
+        . icon('book', 13) . '<span>' . e($label) . '</span>'
+        . ($newTab ? '<span class="vh"> (opens in a new tab)</span>' : '')
+        . '</a>';
+}

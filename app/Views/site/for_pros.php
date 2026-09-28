@@ -5,6 +5,7 @@
  * @var int   $boost
  * @var int   $spotlight
  * @var array $market
+ * @var array $lessons
  */
 require_once __DIR__ . '/../partials/icons.php';
 ?>
@@ -119,6 +120,38 @@ require_once __DIR__ . '/../partials/icons.php';
     </div>
   </div>
 </section>
+
+<?php
+/*
+ * The academy, before the sign-up ask rather than after it.
+ *
+ * Somebody weighing up whether to list is exactly who these five lessons
+ * were written for, and until now the only route to them on the whole site
+ * was a line in the footer. Read from the repository, so a lesson taken
+ * down in the admin disappears from here rather than 404ing a visitor.
+ */
+?>
+<?php if ($lessons !== []): ?>
+<section class="sect-tight">
+  <div class="wrap" style="max-width:820px">
+    <div class="eyebrow eyebrow-brass">Free · no sign-up</div>
+    <h2 style="font-size:28px;margin-top:10px">Before you decide</h2>
+    <p class="muted" style="margin-top:10px;max-width:58ch">
+      Short, plain guides to getting listed and winning work — written by the people who run the
+      site. No account needed to read them.
+    </p>
+    <div class="lesson-grid" style="margin-top:22px">
+      <?php foreach ($lessons as $slug => $l): ?>
+        <a class="lesson-card" href="<?= e(url('/academy/' . $slug)) ?>">
+          <span class="lesson-card-t"><?= e($l['title']) ?></span>
+          <span class="lesson-card-s"><?= e($l['summary']) ?></span>
+          <span class="lesson-card-m"><?= icon('clock', 12) ?> <?= (int) $l['minutes'] ?> min read</span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
 
 <section class="sect-tight dark">
   <div class="wrap" style="display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap">

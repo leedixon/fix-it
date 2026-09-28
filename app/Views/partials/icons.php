@@ -15,6 +15,7 @@ function icon(string $name, int $size = 16): string
         'bolt'    => '<path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>',
         'pin'     => '<path d="M12 21s7-5.6 7-11a7 7 0 10-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/>',
         'clock'   => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>',
+        'book'    => '<path d="M4 4.5A1.5 1.5 0 015.5 3H19v16H5.5A1.5 1.5 0 014 17.5z"/><path d="M4 17.5A1.5 1.5 0 015.5 16H19"/>',
         'search'  => '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>',
         'arrow'   => '<path d="M5 12h14"/><path d="M13 5l7 7-7 7"/>',
         'back'    => '<path d="M19 12H5"/><path d="M11 19l-7-7 7-7"/>',

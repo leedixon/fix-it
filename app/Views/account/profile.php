@@ -29,7 +29,7 @@ $rate = $profile['hourly_rate_cents'] !== null
 
 <form class="panel" method="post" action="<?= e(url('/my/listing')) ?>">
   <?= \FixListed\Core\Csrf::field() ?>
-  <div class="panel-h"><h3>What homeowners see</h3></div>
+  <div class="panel-h"><h3>What homeowners see</h3><?= learn('getting-listed', 'What makes a good listing') ?></div>
   <div style="padding:20px">
 
     <label class="field">
@@ -168,6 +168,7 @@ $rate = $profile['hourly_rate_cents'] !== null
     <span class="tiny muted" style="margin-left:auto">
       <?= count($photos) ?> of <?= (int) $maxPhotos ?>
     </span>
+    <?= learn('photos-of-your-work', 'What to photograph') ?>
   </div>
 
   <div style="padding:18px 20px">

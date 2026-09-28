@@ -25,6 +25,7 @@ $bad = static fn (string $k): string => isset($errors[$k]) ? ' bad' : '';
         Describe what needs doing. Every tradesperson covering your county sees it, quotes come to
         you, and you deal with them directly.
       </p>
+      <p style="margin-top:12px"><?= learn('how-to-post-a-job', 'How to write one that gets good quotes') ?></p>
 
       <?php if ($err('_form') !== ''): ?>
         <div class="flash flash-bad" style="margin-top:22px">

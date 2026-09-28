@@ -548,6 +548,19 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
  * Beyond the prototype — states a clickable mock never has to show.
  * ====================================================================== */
 
+/* ---- a link to the lesson about this screen ----
+   Quiet by default: it is an offer, not an instruction, and it sits beside
+   the thing it explains rather than competing with it. */
+.learn{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-3);
+  border-bottom:1px solid transparent;padding-bottom:1px}
+.learn:hover{color:var(--brass);border-bottom-color:var(--brass-2)}
+.learn svg{opacity:.7;flex:none}
+.panel-h .learn{margin-left:auto}
+
+/* Said to a screen reader, not shown. */
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
 /* Keyboard users need a way past the header on every page. */
 .skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--ink);color:var(--on-ink);padding:11px 18px;border-radius:0 0 3px 0}
 .skip:focus{left:0}

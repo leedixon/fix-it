@@ -53,6 +53,18 @@ require __DIR__ . '/../partials/header.php';
       <?= $nav('/my/quotes', 'Your quotes', 'inbox', $path) ?>
       <?= $nav('/my/listing', 'Your listing', 'tools', $path) ?>
       <?= $nav('/my/promote', 'Get seen first', 'megaphone', $path) ?>
+      <?php
+      /*
+       * The academy, from the screen the lessons were written for.
+       *
+       * It was reachable from the footer and nowhere else, so the five
+       * lessons aimed squarely at a signed-in tradesperson — winning a
+       * quote, answering a bad review, photographing your work — could not
+       * be reached from where that tradesperson actually sits. It leaves
+       * the dashboard, so it never lights up as a section of it.
+       */
+      ?>
+      <?= $nav('/academy#tradespeople', 'Academy', 'book', $path) ?>
     </nav>
 
     <?php if ($profile !== null): ?>

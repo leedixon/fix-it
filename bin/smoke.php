@@ -2225,5 +2225,60 @@ check('the header blur sits on a pseudo-element, not on the header',
     str_contains($css, '.chrome::before{content:"";position:absolute;inset:0;z-index:-1;')
     && preg_match('~\.chrome\{[^}]*backdrop-filter:blur~', $css) !== 1);
 
+// --- the academy is reachable ----------------------------------------------
+//
+// It was linked from the footer and nowhere else, which is the weakest
+// placement a page has — and the signed-in tradesperson area, which the pro
+// track was written for, had no link at all.
+$viewFiles = [];
+$it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(BASE_PATH . '/app/Views'));
+foreach ($it as $f) {
+    if ($f->isFile() && str_ends_with((string) $f, '.php')) {
+        $viewFiles[(string) $f] = (string) file_get_contents((string) $f);
+    }
+}
+
+// A learn() link pointing at a slug that does not exist is a 404 served from
+// inside somebody's own dashboard, and nothing else would catch it.
+$linked = [];
+foreach ($viewFiles as $path => $src) {
+    if (preg_match_all("~learn\\('([a-z0-9-]+)'~", $src, $m) > 0) {
+        foreach ($m[1] as $slug) {
+            $linked[$slug] = basename($path);
+        }
+    }
+}
+check('the in-context links point at lessons that exist', $linked !== []);
+foreach ($linked as $slug => $where) {
+    $lesson = Academy::find($slug);
+    check('  ' . $where . ' links to a real, public lesson: ' . $slug,
+        $lesson !== null && Academy::isPublicTrack((string) $lesson['track']));
+}
+
+// A staff lesson linked from a public screen would 404 the visitor, because
+// the controller refuses a non-public track rather than serving it.
+check('no public screen links a staff lesson',
+    array_filter($linked, static fn (string $s): bool
+        => ($l = Academy::find($s)) !== null && !Academy::isPublicTrack((string) $l['track']),
+        ARRAY_FILTER_USE_KEY) === []);
+
+check('a signed-in tradesperson can reach the academy from their own area',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Views/layouts/account.php'), "'/academy"));
+
+check('and somebody deciding whether to list is offered it before the sign-up ask',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Views/site/for_pros.php'), 'lesson-card'));
+
+// Read from the repository, not retyped, so a lesson taken down in the admin
+// stops being advertised instead of 404ing whoever follows the link.
+check('that block reads the real lessons rather than a hardcoded list',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Controllers/PageController.php'),
+        'AcademyRepository($this->db))->track(Academy::TRACK_PRO)'));
+
+// The shelves the /my link and any track link land on.
+$acadIndex = (string) file_get_contents(BASE_PATH . '/app/Views/site/academy.php');
+check('the academy index has an anchor per track, clear of the sticky header',
+    str_contains($acadIndex, 'id="homeowners"') && str_contains($acadIndex, 'id="tradespeople"')
+    && str_contains($acadIndex, 'scroll-margin-top'));
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail === 0 ? 0 : 1);

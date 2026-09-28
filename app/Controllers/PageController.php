@@ -3,9 +3,11 @@ declare(strict_types=1);
 
 namespace FixListed\Controllers;
 
+use FixListed\Core\Academy;
 use FixListed\Core\Controller;
 use FixListed\Core\Response;
 use FixListed\Core\Seo;
+use FixListed\Repositories\AcademyRepository;
 use FixListed\Repositories\JobRepository;
 use FixListed\Repositories\ProRepository;
 
@@ -37,6 +39,12 @@ final class PageController extends Controller
             'proCount'    => (new ProRepository($this->db, $this->scope))->countActive(),
             'boost'       => (int) $this->market['boost_price_cents'],
             'spotlight'   => (int) $this->market['spotlight_price_cents'],
+            /*
+             * The tradespeople track, read rather than retyped, so a lesson
+             * taken down in the admin stops being advertised here too — and
+             * so the titles on this page cannot drift from the real ones.
+             */
+            'lessons'     => (new AcademyRepository($this->db))->track(Academy::TRACK_PRO),
             /*
              * No breadcrumbs on this one. The page opens with a full-bleed
              * dark hero and there is nowhere to put a trail that does not

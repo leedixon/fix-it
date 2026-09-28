@@ -152,6 +152,7 @@ require_once __DIR__ . '/../partials/icons.php';
       <span class="tiny muted" style="margin-left:auto">
         You can answer a review. You cannot remove one, and neither can we.
       </span>
+      <?= learn('answering-a-review', 'Answering a bad one') ?>
     </div>
 
     <?php foreach ($reviews as $r): ?>

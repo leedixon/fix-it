@@ -29,6 +29,7 @@ foreach ($daily as $row) {
   <div>
     <h1 style="font-size:28px">Get seen first</h1>
     <p>What your listing does now, and what it costs to move it up the page.</p>
+    <p style="margin-top:8px"><?= learn('getting-seen-first', 'What placement cannot buy') ?></p>
   </div>
   <?php if ($hasBilling): ?>
     <form method="post" action="<?= e(url('/my/billing')) ?>">

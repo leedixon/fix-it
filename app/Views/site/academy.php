@@ -37,11 +37,11 @@ $shelf = static function (array $lessons, string $base): void {
 
 <section class="sect-tight" style="padding-top:8px">
   <div class="wrap" style="max-width:820px">
-    <h2 style="font-size:24px">If you need work doing</h2>
+    <h2 id="homeowners" style="font-size:24px;scroll-margin-top:90px">If you need work doing</h2>
     <p class="muted" style="margin-top:6px">Hiring somebody, and not getting caught out.</p>
     <div class="lesson-grid"><?php $shelf($homeowners, '/academy/'); ?></div>
 
-    <h2 style="font-size:24px;margin-top:44px">If you do the work</h2>
+    <h2 id="tradespeople" style="font-size:24px;margin-top:44px;scroll-margin-top:90px">If you do the work</h2>
     <p class="muted" style="margin-top:6px">Getting listed, winning quotes, and what placement is.</p>
     <div class="lesson-grid"><?php $shelf($pros, '/academy/'); ?></div>
   </div>

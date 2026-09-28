@@ -143,6 +143,15 @@ actually are.
       when posting resolves to a county without asking. It must come from the
       Census file — hand-typed ZIP boundaries are wrong in ways nobody notices
       until a job is invisible to the pros who cover it.
+- [ ] **Read the search sequencing before flipping `noindex`** —
+      [seo.md](seo.md), *Turning it on, in order*. Town pages with nothing on
+      them already keep themselves out of the sitemap, so the remaining
+      judgement is whether `/pros` reads as a directory or as a plan for one.
+- [ ] **A lawyer reads the two academy lessons that describe Illinois law**
+      as well as `/terms` and `/privacy` — *What a home repair contract has
+      to say in Illinois* and *Deposits, payment schedules, and not paying
+      twice*. They name the Acts and state no thresholds on purpose, but they
+      are statements about the law on a commercial site.
 - [ ] **Google Search Console**, once `noindex` is off: verify the domain and
       submit `https://fixlisted.com/sitemap.xml`. The sitemap is generated
       from the database on every request, so there is nothing to upload and

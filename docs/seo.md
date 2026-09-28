@@ -84,6 +84,62 @@ without being edited.
 `sort_order` is how those lists read, and the cheapest available signal about
 which pages matter. Freeport is first.
 
+### A town is offered to Google only once it has something
+
+`has_page` decides whether a town has a page at all. A second gate decides
+whether that page is submitted for indexing, and it is automatic.
+
+`GeographyRepository::pageCitiesWithContent()` returns the towns that have a
+**real** tradesperson covering their county, or a **real** job open in them.
+Only those go in `sitemap.xml`. A town with neither still serves its page —
+somebody who followed a link gets a straight answer and the sign-up form —
+but the page carries `noindex` and stays out of the sitemap until there is
+something on it.
+
+Sample rows do not count, in either place. A crawler cannot see the SAMPLE
+badge, and a page of invented businesses is worse to have indexed than an
+empty one.
+
+Nothing has to be switched on by hand. The first real tradesperson to cover
+a county puts every town in that county into the next sitemap read; the
+first job posted in a town does it for that town alone. Tested both ways in
+`bin/smoke.php`.
+
+**Why this exists.** Strip the sample listings and a town page is a heading,
+one sentence and a row of filter links — the same shape nineteen times over.
+That is what "thin content" and "doorway pages" describe. Submitting them
+anyway is asking to be judged on the worst version of the site, and that
+judgement is far harder to reverse than it is to avoid.
+
+**Why the answer was not to write more words.** There is nothing true to say
+about Stockton that is not equally true of Lena. The `population` column is
+empty, there are no coordinates, and anything written per town would be the
+town name dropped into a template — which is the thing the guidelines are
+actually about, not a workaround for it.
+
+### The duplication that is still there
+
+Coverage is stored per **county**. Every town in Stephenson County therefore
+shows the same list of tradespeople, and always will, however much supply
+arrives. Seven towns, one list, different headings.
+
+Open jobs are the only genuinely town-level content on those pages.
+
+Three honest options, in rough order of preference:
+
+1. **Leave it and watch.** Near-duplicates are not a penalty; Google picks a
+   canonical among them and the others go quiet. The risk is spending crawl
+   budget and looking thinner than the site is.
+2. **Cut `has_page` back to the towns worth defending** — the Tier 1 ten —
+   and let the rest be served by the county filter on `/pros`. One `UPDATE`,
+   and the footer, sitemap and chips follow.
+3. **Make coverage town-level** rather than county-level. The honest fix,
+   and much the largest: it changes what a tradesperson fills in when they
+   apply, which is a real cost to the people you are trying to recruit.
+
+Do not do 3 to solve an SEO problem. Do it if homeowners in Galena start
+complaining that they get quotes from people an hour away.
+
 ---
 
 ## Structured data
@@ -178,6 +234,74 @@ This is the part that makes a trade page worth opening before a single
 plumber has listed, and it is why the "launching soon" empty state is not an
 embarrassment. A page that only works once the directory is full is a page
 that cannot help fill it.
+
+---
+
+## Turning it on, in order
+
+The switch is one line. The sequencing around it is what decides whether the
+first crawl helps or hurts.
+
+### Before you flip it
+
+- [ ] **Sample data purged** — `php bin/demo.php purge`, `app.demo_data` set
+      to `'hide'`. An indexed page of invented businesses is the worst
+      outcome available here.
+- [ ] **Enough real supply that the pages are not empty.** There is no magic
+      number, but the question to ask is: *if a stranger lands on `/pros`
+      from a search, does this look like a directory or like a plan for one?*
+      One listing is a plan.
+- [ ] **Check what the sitemap actually offers.** `curl` it and count. Towns
+      with nothing on them are already excluded, so a small number is the
+      system working, not a fault. What matters is that the URLs in it are
+      ones you would be happy to be judged on.
+- [ ] **A lawyer has read `/terms` and `/privacy`** — and, now, the two
+      academy lessons that describe Illinois law: *What a home repair
+      contract has to say in Illinois* and *Deposits, payment schedules, and
+      not paying twice*. They name the Home Repair and Remodeling Act and the
+      Mechanics Lien Act and deliberately state no thresholds or deadlines,
+      but they are still statements about the law on a commercial site.
+- [ ] **`app.url` has no `/preview` on it.** Every canonical, `og:url`,
+      JSON-LD `@id` and sitemap `<loc>` is built from it.
+
+### Flipping it
+
+`php bin/configure.php --launch`. One flag moves three things together: the
+`robots` meta on every page, what `/robots.txt` says, and whether the sitemap
+has anything in it.
+
+Then delete any `robots.txt` sitting in the document root. A real file wins
+over the router, so a leftover holding-page one keeps saying `Disallow: /`
+after launch — silently, with nothing in the app to show it.
+
+### The first fortnight
+
+Verify the domain in Search Console and submit
+`https://fixlisted.com/sitemap.xml`. Then leave it alone. Indexing a new
+site takes weeks, and there is no lever that makes it faster.
+
+What to read, when it arrives:
+
+- **Pages → Indexed.** The number should climb toward the sitemap count.
+- **"Crawled — currently not indexed"** on a town page is the system telling
+  you that page had nothing on it. That is information about supply, not a
+  bug to fix in code.
+- **"Duplicate, Google chose a different canonical"** across towns in one
+  county is the duplication described above, behaving exactly as expected.
+  Act on it only if it spreads to pages that are genuinely distinct.
+- **Queries.** Expect the academy first. Lessons answer a question; a
+  directory page answers a need, and needs are harder to rank for cold.
+
+### If pages get judged thin
+
+Do not add words. Adding text to a page Google has already decided is thin
+is the pattern that made it thin.
+
+Take the page out of the sitemap, let it go `noindex` until it has
+something, and put the effort into supply. The gate above already does this
+for towns automatically. For anything else — a trade page, a service page —
+the same logic applies by hand: a page nobody should land on is a page that
+should not be offered.
 
 ---
 

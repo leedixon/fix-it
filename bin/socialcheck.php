@@ -33,8 +33,11 @@ $say = static function (bool $ok, string $label, string $detail = '') use (&$pro
     printf(" %-5s %s%s\n", $ok ? 'OK' : 'FAIL', $label, $detail !== '' ? '  — ' . $detail : '');
 };
 
-/** @return array{status:int,body:string,type:string,len:int} */
-function fetch(string $url, string $agent = UA_FACEBOOK): array
+/**
+ * @param int|null $ipVersion 4 or 6 to force one, null to let curl choose.
+ * @return array{status:int,body:string,type:string,len:int}
+ */
+function fetch(string $url, string $agent = UA_FACEBOOK, ?int $ipVersion = null): array
 {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -44,6 +47,11 @@ function fetch(string $url, string $agent = UA_FACEBOOK): array
         CURLOPT_TIMEOUT        => 15,
         CURLOPT_USERAGENT      => $agent,
     ]);
+    if ($ipVersion === 4) {
+        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    } elseif ($ipVersion === 6) {
+        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+    }
     $body = curl_exec($ch);
     $out = [
         'status' => (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
@@ -294,9 +302,58 @@ if (!isset($og['og:image']) || $og['og:image'] === '') {
     }
 }
 
+/*
+ * --- 4. IPv4 and IPv6 are two different servers until proven otherwise ------
+ *
+ * Facebook crawls over IPv6 where a host offers it. A domain with an AAAA
+ * record pointing at a server that does not actually serve this site answers
+ * fine in a browser — which will have quietly used IPv4 — and 403s the
+ * crawler, with nothing in any log the site owner thinks to read.
+ */
+echo "\n4. over each network\n";
+
+$host  = $parts['host'];
+$hasA  = @dns_get_record($host, DNS_A) ?: [];
+$hasQ  = @dns_get_record($host, DNS_AAAA) ?: [];
+
+printf("       A     %s\n", $hasA !== [] ? implode(', ', array_column($hasA, 'ip'))   : 'none');
+printf("       AAAA  %s\n", $hasQ !== [] ? implode(', ', array_column($hasQ, 'ipv6')) : 'none');
+
+$v4 = fetch($url, UA_FACEBOOK, 4);
+$say($v4['status'] === 200, 'IPv4 answers Facebook',
+    $v4['status'] === 200 ? '' : ($v4['error'] !== '' ? $v4['error'] : 'got ' . $v4['status']));
+
+if ($hasQ !== []) {
+    $v6 = fetch($url, UA_FACEBOOK, 6);
+    $say($v6['status'] === 200, 'IPv6 answers Facebook',
+        $v6['status'] === 200
+            ? ''
+            : 'got ' . ($v6['error'] !== '' ? $v6['error'] : (string) $v6['status'])
+              . ' — Facebook prefers IPv6, so this alone breaks every preview');
+} else {
+    echo "       no AAAA record, so Facebook will use IPv4\n";
+}
+
+/*
+ * --- where this was run from ------------------------------------------------
+ *
+ * Everything above is what THIS machine sees. Run on the web server itself,
+ * the request may never leave the building: it can miss a CDN in front, a
+ * firewall that blocks by source address, and a WAF rule scoped to outside
+ * traffic. All three produce exactly the symptom this script would call
+ * healthy.
+ */
+echo "\n";
+echo "Run from: " . (php_sapi_name() === 'cli' ? gethostname() : 'unknown') . "\n";
+echo "This is what this machine sees. If Facebook still reports a bad\n";
+echo "response while everything above passes, run this again from a\n";
+echo "different network — a laptop, not the server — because a block by\n";
+echo "source address, a CDN, or a WAF rule aimed at outside traffic is\n";
+echo "invisible from the server itself.\n";
+
 echo "\n";
 if ($problems === 0) {
-    echo "Nothing is blocking the preview.\n\n";
+    echo "Nothing this machine can see is blocking the preview.\n\n";
     echo "Facebook caches hard, so it will still show the old result until you\n";
     echo "force a refresh. Open the URL in the sharing debugger and press\n";
     echo "Scrape Again:\n";

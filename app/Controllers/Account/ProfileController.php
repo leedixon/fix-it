@@ -3,12 +3,16 @@ declare(strict_types=1);
 
 namespace FixListed\Controllers\Account;
 
+use FixListed\Controllers\ImageController;
 use FixListed\Core\AccountController;
 use FixListed\Core\Database;
+use FixListed\Core\ImageUpload;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
+use FixListed\Core\TeamAlert;
 use FixListed\Core\Validator;
 use FixListed\Repositories\GeographyRepository;
+use FixListed\Repositories\PhotoRepository;
 use FixListed\Repositories\TradeRepository;
 
 /**
@@ -38,9 +42,123 @@ final class ProfileController extends AccountController
             'counties'    => (new GeographyRepository($this->db, $this->scope))->counties(),
             'myTrades'    => $this->myIds('pro_trades', 'trade_id', (int) $profile['id']),
             'myCounties'  => $this->myIds('pro_county_areas', 'county_id', (int) $profile['id']),
+            // Their own gallery, pending ones included: a picture that
+            // vanishes on upload until a moderator gets to it is a picture
+            // people upload twice.
+            'photos'      => (new PhotoRepository($this->db, $this->scope))->forOwner((int) $profile['id']),
+            'maxPhotos'   => PhotoRepository::MAX_PER_PRO,
             'old'         => [],
             'errors'      => [],
         ]);
+    }
+
+    /**
+     * Upload a work photo or a logo — /my/listing/photo.
+     *
+     * Its own endpoint rather than part of the profile form, because a
+     * failed upload must not take the rest of somebody's edits down with
+     * it. A 9MB photo on a van's signal can fail in a dozen ways and none
+     * of them should cost a tradesperson the bio they just rewrote.
+     */
+    public function photo(): Response
+    {
+        if ($denied = $this->guard()) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was uploaded.');
+            return Response::redirect('/my/listing');
+        }
+
+        $profile = $this->profile();
+        if ($profile === null) {
+            return Response::redirect('/my');
+        }
+
+        $proId  = (int) $profile['id'];
+        $isLogo = $this->request->input('kind') === 'logo';
+        $photos = new PhotoRepository($this->db, $this->scope);
+
+        if (!$isLogo && $photos->countFor($proId) >= PhotoRepository::MAX_PER_PRO) {
+            Session::flash('bad', 'That is the most photos we show — '
+                . PhotoRepository::MAX_PER_PRO . '. Remove one to add another.');
+            return Response::redirect('/my/listing');
+        }
+
+        $file = $_FILES['image'] ?? [];
+        $out  = ImageUpload::store(
+            is_array($file) ? $file : [],
+            ImageController::dir($proId),
+            $isLogo ? 'logo' : 'work',
+            $isLogo,
+        );
+
+        if (!$out['ok']) {
+            Session::flash('bad', $out['error']);
+            return Response::redirect('/my/listing');
+        }
+
+        if ($isLogo) {
+            // The old file goes, or a business that changes its logo four
+            // times leaves four files nobody will ever look at again.
+            $old = (string) ($profile['logo_path'] ?? '');
+            $this->db->affected(
+                'UPDATE pro_profiles SET logo_path = :p WHERE id = :id AND market_id = :market',
+                ['p' => $out['path'], 'id' => $proId, 'market' => $this->scope->marketId],
+            );
+            if ($old !== '') {
+                @unlink(ImageController::dir($proId) . '/' . basename($old));
+            }
+
+            Session::flash('ok', 'Your logo is up. It shows on your profile and your card.');
+            return Response::redirect('/my/listing');
+        }
+
+        $photos->add($proId, $out['path'], $out['width'], $out['height'], $out['bytes']);
+
+        TeamAlert::send(
+            $this->db,
+            $this->view,
+            (int) $this->market['id'],
+            'listings.moderate',
+            'Photo to check: ' . ($profile['business_name'] ?: 'a tradesperson'),
+            ($profile['business_name'] ?: 'A tradesperson') . ' has uploaded a work photo. '
+                . 'It is not visible to anybody until it is approved.',
+            ['Business' => (string) $profile['business_name']],
+            abs_url('/admin/photos'),
+            'Check it',
+        );
+
+        Session::flash('ok', 'Uploaded. We look at photos before they go on your profile — '
+            . 'usually the same day.');
+
+        return Response::redirect('/my/listing');
+    }
+
+    /** Removes one of the pro's own photos, and the file with it. */
+    public function removePhoto(string $id): Response
+    {
+        if ($denied = $this->guard()) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            return Response::redirect('/my/listing');
+        }
+
+        $profile = $this->profile();
+        if ($profile === null) {
+            return Response::redirect('/my');
+        }
+
+        $proId = (int) $profile['id'];
+        $path  = (new PhotoRepository($this->db, $this->scope))->removeOwned((int) $id, $proId);
+
+        if ($path !== null) {
+            @unlink(ImageController::dir($proId) . '/' . basename($path));
+            Session::flash('ok', 'Photo removed.');
+        }
+
+        return Response::redirect('/my/listing');
     }
 
     public function update(): Response

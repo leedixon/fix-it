@@ -37,6 +37,7 @@ $counts = static function (Database $db): array {
         'users', 'pro_profiles', 'jobs', 'reviews',
         'payments', 'subscriptions', 'quotes',
         'ad_placements', 'ad_creatives', 'ad_stats_daily', 'moderation_items',
+        'pro_photos',
     ] as $table) {
         $out[$table] = [
             'demo' => (int) $db->value("SELECT COUNT(*) FROM {$table} WHERE is_demo = 1"),
@@ -134,6 +135,7 @@ if (trim((string) fgets(STDIN)) !== 'purge') {
  * points at the one after it.
  */
 $db->transaction(static function (Database $db): void {
+    $db->affected('DELETE FROM pro_photos WHERE is_demo = 1');
     $db->affected('DELETE FROM ad_stats_daily WHERE is_demo = 1');
     $db->affected('DELETE FROM ad_placements WHERE is_demo = 1');
     $db->affected('DELETE FROM ad_creatives WHERE is_demo = 1');

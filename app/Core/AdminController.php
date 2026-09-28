@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FixListed\Core;
 
 use FixListed\Repositories\AdminRepository;
+use FixListed\Repositories\PhotoRepository;
 
 /**
  * Base for everything behind /admin.
@@ -100,6 +101,7 @@ abstract class AdminController
              */
             'pending'  => $this->queue()['applications'],
             'pendingReviews' => $this->queue()['reviews'],
+            'pendingPhotos'  => (new PhotoRepository($this->db, $this->scope))->pendingCount(),
         ];
 
         return Response::html(

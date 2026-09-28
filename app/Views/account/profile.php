@@ -116,3 +116,104 @@ $rate = $profile['hourly_rate_cents'] !== null
     <button class="btn btn-primary btn-lg" type="submit">Save my listing</button>
   </div>
 </form>
+
+<?php
+/*
+ * Pictures.
+ *
+ * Their own forms, outside the one above, so a failed upload cannot take
+ * somebody's rewritten bio down with it — a 9MB photo on a van's signal
+ * fails in a dozen ways and none of them should cost you your text.
+ *
+ * Work photos are held for moderation and the logo is not. A logo is a
+ * business's own mark on its own listing; a work photo is a picture of
+ * somebody else's house, and the person whose kitchen it is never agreed to
+ * anything.
+ */
+?>
+<div class="panel" style="margin-top:26px">
+  <div class="panel-h"><h3>Your logo</h3></div>
+  <div style="padding:18px 20px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+    <?php if (!empty($profile['logo_path'])): ?>
+      <img src="<?= e(url('/img/logo/' . (int) $profile['id'])) ?>" alt=""
+           width="76" height="76"
+           style="width:76px;height:76px;object-fit:contain;border:1px solid var(--line);
+                  border-radius:4px;background:var(--paper-2);padding:6px">
+    <?php else: ?>
+      <div style="width:76px;height:76px;border:1px dashed var(--line-2);border-radius:4px;
+                  display:flex;align-items:center;justify-content:center;color:var(--text-3)">
+        <?= icon('tools', 22) ?>
+      </div>
+    <?php endif; ?>
+
+    <form method="post" enctype="multipart/form-data" style="flex:1;min-width:230px"
+          action="<?= e(url('/my/listing/photo')) ?>">
+      <?= \FixListed\Core\Csrf::field() ?>
+      <input type="hidden" name="kind" value="logo">
+      <label class="field" for="logo-file">
+        <span><?= !empty($profile['logo_path']) ? 'Replace your logo' : 'Add your logo' ?></span>
+        <input id="logo-file" type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+      </label>
+      <button class="btn btn-ghost btn-sm" type="submit">Upload</button>
+      <p class="tiny muted" style="margin-top:8px">
+        PNG keeps a transparent background. It goes up straight away — no waiting.
+      </p>
+    </form>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:26px">
+  <div class="panel-h">
+    <h3>Photos of your work</h3>
+    <span class="tiny muted" style="margin-left:auto">
+      <?= count($photos) ?> of <?= (int) $maxPhotos ?>
+    </span>
+  </div>
+
+  <div style="padding:18px 20px">
+    <?php if ($photos !== []): ?>
+      <div class="grid g3" style="gap:12px;margin-bottom:18px">
+        <?php foreach ($photos as $ph): ?>
+          <figure style="margin:0">
+            <img src="<?= e(url('/img/' . (int) $ph['id'])) ?>" alt=""
+                 loading="lazy" width="<?= (int) $ph['width'] ?>" height="<?= (int) $ph['height'] ?>"
+                 style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:3px;
+                        border:1px solid var(--line);display:block">
+            <figcaption style="display:flex;align-items:center;gap:8px;margin-top:6px">
+              <?php if ($ph['status'] === 'approved'): ?>
+                <span class="badge b-live">On your profile</span>
+              <?php else: ?>
+                <span class="badge b-pending">Being checked</span>
+              <?php endif; ?>
+              <form method="post" style="margin-left:auto"
+                    action="<?= e(url('/my/listing/photo/' . (int) $ph['id'] . '/remove')) ?>">
+                <?= \FixListed\Core\Csrf::field() ?>
+                <button class="btn btn-ghost btn-sm" type="submit">Remove</button>
+              </form>
+            </figcaption>
+          </figure>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if (count($photos) < (int) $maxPhotos): ?>
+      <form id="work-upload" method="post" enctype="multipart/form-data"
+            action="<?= e(url('/my/listing/photo')) ?>">
+        <?= \FixListed\Core\Csrf::field() ?>
+        <label class="field" for="work-file">
+          <span>Add a photo</span>
+          <input id="work-file" type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+        </label>
+        <button class="btn btn-primary btn-sm" type="submit">Upload</button>
+        <p class="tiny muted" style="margin-top:8px">
+          Finished work, not work in progress — a homeowner is deciding whether to let you in the
+          house. We check each one before it appears, usually the same day.
+          <b>Location data is stripped</b> from every photo, so a picture of a job cannot give away
+          where that job was.
+        </p>
+      </form>
+    <?php else: ?>
+      <p class="tiny muted">That is the most we show. Remove one to add another.</p>
+    <?php endif; ?>
+  </div>
+</div>

@@ -45,6 +45,39 @@ final class Response
     }
 
     /**
+     * The bytes of a file on disk.
+     *
+     * Read into the body rather than streamed, which is the right trade at
+     * this size: an uploaded image here is capped at well under a megabyte
+     * after re-encoding, and holding one in memory for the length of a
+     * request costs less than the complexity of a streaming response that
+     * has to bypass everything else in this class.
+     *
+     * The ETag is the file's own fingerprint, so a browser that already has
+     * the image gets a 304 and no body at all. It is quoted and weak-free
+     * because a strong ETag is what makes a conditional request cheap.
+     */
+    public static function file(string $path, string $contentType, string $cache = 'private, max-age=86400'): self
+    {
+        $bytes = (string) @file_get_contents($path);
+        $etag  = '"' . substr(sha1($bytes), 0, 20) . '"';
+
+        if (($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) {
+            return new self('', 304, ['ETag' => $etag, 'Cache-Control' => $cache]);
+        }
+
+        return new self($bytes, 200, [
+            'Content-Type'   => $contentType,
+            'Content-Length' => (string) strlen($bytes),
+            'Cache-Control'  => $cache,
+            'ETag'           => $etag,
+            // These are files strangers uploaded. Even re-encoded, telling
+            // the browser never to guess at the type is free.
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    /**
      * 301. The URL moved and is not coming back.
      *
      * Used when a page's address changes for good. 301 is what transfers the

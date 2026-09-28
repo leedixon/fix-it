@@ -15,6 +15,7 @@ use FixListed\Controllers\AdController;
 use FixListed\Controllers\CityController;
 use FixListed\Controllers\DirectoryController;
 use FixListed\Controllers\HomeController;
+use FixListed\Controllers\ImageController;
 use FixListed\Controllers\JobAlertController;
 use FixListed\Controllers\JobsController;
 use FixListed\Controllers\PageController;
@@ -150,6 +151,15 @@ try {
     // and resolves the destination itself — see AdController.
     $router->get('/go/{id}', static fn (array $p) => $make(AdController::class)->go($p['id']));
 
+    /*
+     * Uploaded images, read out of storage/ by PHP rather than served from
+     * the document root — see ImageController for why that cost is worth
+     * paying for something a moderator can withdraw.
+     */
+    // Registered before /img/{id}, or that pattern takes "logo" for an id.
+    $router->get('/img/logo/{id}', static fn (array $p) => $make(ImageController::class)->logo($p['id']));
+    $router->get('/img/{id}',      static fn (array $p) => $make(ImageController::class)->show($p['id']));
+
     $router->get('/pricing',        static fn () => $make(PageController::class)->pricing());
     $router->get('/for-pros',       static fn () => $make(PageController::class)->forPros());
     $router->get('/terms',          static fn () => $make(PageController::class)->legal('terms'));
@@ -193,6 +203,8 @@ try {
     $router->post('/my/billing',   static fn () => $make(PromoteController::class)->billing());
     $router->get('/my/listing',    static fn () => $make(ProfileController::class)->edit());
     $router->post('/my/listing',   static fn () => $make(ProfileController::class)->update());
+    $router->post('/my/listing/photo', static fn () => $make(ProfileController::class)->photo());
+    $router->post('/my/listing/photo/{id}/remove', static fn (array $p) => $make(ProfileController::class)->removePhoto($p['id']));
     $router->get('/my/quote/{reference}',  static fn (array $p) => $make(QuoteController::class)->form($p['reference']));
     $router->post('/my/quote/{reference}', static fn (array $p) => $make(QuoteController::class)->submit($p['reference']));
 
@@ -214,6 +226,8 @@ try {
     $router->get('/admin/pros',                static fn () => $admin(ManageController::class)->pros());
     $router->post('/admin/pros/{id}/status',   static fn (array $p) => $admin(ManageController::class)->setProStatus($p['id']));
     $router->post('/admin/pros/{id}/resend',   static fn (array $p) => $admin(ManageController::class)->resendProLink($p['id']));
+    $router->get('/admin/photos',              static fn () => $admin(ManageController::class)->photos());
+    $router->post('/admin/photos/{id}',        static fn (array $p) => $admin(ManageController::class)->moderatePhoto($p['id']));
     $router->get('/admin/alerts',              static fn () => $admin(ManageController::class)->alerts());
     $router->get('/admin/reviews',             static fn () => $admin(ManageController::class)->reviews());
     $router->post('/admin/reviews/{id}',       static fn (array $p) => $admin(ManageController::class)->moderateReview($p['id']));

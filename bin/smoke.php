@@ -1028,6 +1028,58 @@ if ($probeJob === null) {
     }
 }
 
+// --- uploaded images --------------------------------------------------------
+//
+// pro_photos was designed in the first build and never written to. Building
+// the gallery made the seed's seven rows live, and they point at files that
+// have never existed — three broken images appeared on a sample profile that
+// had never had a photo. Found by uploading one and looking.
+check('pro_photos can tell a seeded row from a real one',
+    (int) $db->value("SELECT COUNT(*) FROM information_schema.columns
+                       WHERE table_schema = DATABASE() AND table_name = 'pro_photos'
+                         AND column_name = 'is_demo'") === 1);
+
+$photoSrc = (string) file_get_contents(BASE_PATH . '/app/Repositories/PhotoRepository.php');
+check('and no gallery query draws one', substr_count($photoSrc, 'is_demo = 0') >= 4);
+
+// The limits are this application's, not the host's. Production allows 1GB
+// uploads, which GD would turn into gigabytes of memory.
+check('uploads are capped well below what the host would allow',
+    FixListed\Core\ImageUpload::MAX_BYTES <= 16 * 1024 * 1024);
+
+// The check that actually protects the server: a 3MB file can describe a
+// 30000x30000 image, and GD allocates four bytes a pixel the moment it opens
+// one. getimagesize reads the header, so this is known before anything is
+// allocated.
+$uploadSrc = (string) file_get_contents(BASE_PATH . '/app/Core/ImageUpload.php');
+check('dimensions are checked before the image is decoded',
+    strpos($uploadSrc, 'getimagesize') < strpos($uploadSrc, 'imagecreatefromjpeg'));
+
+// Type from the file's own header, never its name. A file called photo.jpg
+// is not a JPEG because it is called photo.jpg.
+check('the file type comes from its header, not its name',
+    str_contains($uploadSrc, 'match ($type)') && !str_contains($uploadSrc, 'pathinfo'));
+
+// The single most important line here. A tradesperson photographs a job on
+// a phone and the file carries GPS coordinates of a customer's house.
+check('every image is re-encoded, which is what strips EXIF',
+    str_contains($uploadSrc, 'imagejpeg($out') && str_contains($uploadSrc, 'imagepng($out'));
+
+check('a phone photo is turned the right way up before the tag is lost',
+    str_contains($uploadSrc, 'applyOrientation') && str_contains($uploadSrc, 'imagerotate'));
+
+check('an upload has to have come through an upload',
+    str_contains($uploadSrc, 'is_uploaded_file'));
+
+// Files live outside the document root and are served by a route that
+// re-checks status, so a rejected photo stops being reachable immediately
+// rather than whenever somebody remembers to delete it.
+$imgSrc = (string) file_get_contents(BASE_PATH . '/app/Controllers/ImageController.php');
+check('images are served through PHP so moderation can withdraw them',
+    str_contains($imgSrc, 'storage/uploads') && str_contains($imgSrc, 'nosniff') === false);
+check('and the bytes carry nosniff',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Core/Response.php'), 'nosniff'));
+
 // --- a tradesperson can see and answer their own reviews --------------------
 //
 // The rating was on the public profile and nowhere in the account they sign

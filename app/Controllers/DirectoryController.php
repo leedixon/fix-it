@@ -6,6 +6,7 @@ namespace FixListed\Controllers;
 use FixListed\Core\Controller;
 use FixListed\Core\NotFound;
 use FixListed\Core\Response;
+use FixListed\Repositories\PhotoRepository;
 use FixListed\Repositories\ProRepository;
 use FixListed\Repositories\ReviewRepository;
 use FixListed\Repositories\TradeRepository;
@@ -61,6 +62,11 @@ final class DirectoryController extends Controller
         $counties = $repo->counties($id);
 
         return $this->page('site/pro', [
+            // Approved photos on a live listing only — PhotoRepository::forPublic
+            // re-checks both, so a rejected picture or a suspended listing stops
+            // showing without anybody deleting anything.
+            'photos'      => (new PhotoRepository($this->db, $this->scope))->forPublic((int) $pro['id']),
+
             'title'       => $pro['display_name'] . ' — ' . ($pro['headline'] ?: 'Fix Listed'),
             'description' => excerpt((string) $pro['bio'], 155),
             'pro'         => $pro,

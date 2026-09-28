@@ -84,6 +84,31 @@ $verified = !empty($pro['license_verified_at']) && !empty($pro['insurance_verifi
         </div>
       <?php endif; ?>
 
+      <?php
+      /*
+       * Their work.
+       *
+       * Above the reviews on purpose. A homeowner deciding whether to let
+       * somebody into the house looks at the work before they read about it,
+       * and a photograph of a finished job says more in a second than a
+       * paragraph does in thirty.
+       */
+      ?>
+      <?php if (!empty($photos)): ?>
+        <h2 style="font-size:22px;margin-top:40px">Their work</h2>
+        <div class="grid g3" style="gap:12px;margin-top:16px">
+          <?php foreach ($photos as $ph): ?>
+            <img src="<?= e(url('/img/' . (int) $ph['id'])) ?>"
+                 alt="<?= e(trim((string) $ph['caption']) !== ''
+                     ? $ph['caption']
+                     : 'Work by ' . $pro['business_name']) ?>"
+                 loading="lazy" width="<?= (int) $ph['width'] ?>" height="<?= (int) $ph['height'] ?>"
+                 style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:3px;
+                        border:1px solid var(--line);display:block">
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
       <?php if ($reviews !== []): ?>
         <h2 style="font-size:22px;margin-top:40px">Reviews</h2>
         <div class="grid" style="gap:14px;margin-top:16px">

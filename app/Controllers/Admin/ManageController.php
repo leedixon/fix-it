@@ -11,6 +11,7 @@ use FixListed\Core\Response;
 use FixListed\Core\Session;
 use FixListed\Repositories\AdminRepository;
 use FixListed\Repositories\JobAlertRepository;
+use FixListed\Repositories\PhotoRepository;
 use FixListed\Repositories\ReviewRepository;
 use FixListed\Repositories\LicenceRepository;
 use FixListed\Repositories\MarketRepository;
@@ -34,6 +35,49 @@ final class ManageController extends AdminController
             'status'  => $status,
             'pending' => $admin->counts()['applications'],
         ]);
+    }
+
+    /**
+     * Work photos waiting to go on a profile.
+     *
+     * These are pictures of other people's houses, uploaded by a stranger
+     * and published under a business name. The homeowner whose kitchen it is
+     * never agreed to anything, which is the reason this queue exists and
+     * the reason it is not optional.
+     */
+    public function photos(): Response
+    {
+        if ($denied = $this->guardCan('listings.moderate')) {
+            return $denied;
+        }
+
+        return $this->page('admin/photos', [
+            'title'   => 'Photos — Fix Listed admin',
+            'waiting' => (new PhotoRepository($this->db, $this->scope))->awaitingModeration(),
+        ]);
+    }
+
+    public function moderatePhoto(string $id): Response
+    {
+        if ($denied = $this->guardCan('listings.moderate')) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            return Response::redirect('/admin/photos');
+        }
+
+        $status = (string) $this->request->input('status', '');
+        if (!(new PhotoRepository($this->db, $this->scope))->moderate((int) $id, $status)) {
+            Session::flash('bad', 'That photo could not be updated.');
+            return Response::redirect('/admin/photos');
+        }
+
+        $this->record('photo.' . $status, 'pro_photo', (int) $id);
+        Session::flash('ok', $status === 'approved'
+            ? 'Approved. It is on their profile now.'
+            : 'Rejected. It is not visible to anybody, and the link stops working.');
+
+        return Response::redirect('/admin/photos');
     }
 
     /**

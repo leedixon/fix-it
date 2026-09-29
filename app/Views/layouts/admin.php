@@ -11,6 +11,7 @@
  * @var array  $flashes
  * @var int    $pending
  * @var int    $pendingReviews
+ * @var int    $unreadMessages
  * @var callable $can
  */
 require_once __DIR__ . '/../partials/icons.php';
@@ -81,7 +82,8 @@ $nav = static function (string $href, string $label, string $icon, string $curre
       <?php endif; ?>
       <?php if ($can('people.view')): ?>
         <?= $nav('/admin/users', 'People', 'user', $path) ?>
-        <?= $nav('/admin/alerts', 'Job alerts', 'mail', $path) ?>
+        <?= $nav('/admin/messages', 'Messages', 'mail', $path, $unreadMessages ?? 0) ?>
+      <?= $nav('/admin/alerts', 'Job alerts', 'inbox', $path) ?>
       <?php endif; ?>
       <?php if ($can('placements.view')): ?>
         <?= $nav('/admin/advertising', 'Advertising', 'megaphone', $path) ?>

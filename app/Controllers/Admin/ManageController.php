@@ -10,6 +10,7 @@ use FixListed\Core\PasswordReset;
 use FixListed\Core\Response;
 use FixListed\Core\Session;
 use FixListed\Repositories\AdminRepository;
+use FixListed\Repositories\ContactRepository;
 use FixListed\Repositories\JobAlertRepository;
 use FixListed\Repositories\PhotoRepository;
 use FixListed\Repositories\ReviewRepository;
@@ -90,6 +91,57 @@ final class ManageController extends AdminController
      * because "twelve signed up and four of them listed" is the number worth
      * knowing.
      */
+    /**
+     * The contact-form inbox.
+     *
+     * admin.access rather than people.view: a message is somebody asking for
+     * help, which is the queue every staff member works, not a personnel
+     * record. A moderator who cannot see a pro's sign-in history can still
+     * answer "my listing is wrong".
+     */
+    public function messages(): Response
+    {
+        if ($denied = $this->guardCan('admin.access')) {
+            return $denied;
+        }
+
+        $repo = new ContactRepository($this->db, $this->scope);
+
+        return $this->page('admin/messages', [
+            'title'    => 'Messages — Fix Listed admin',
+            'messages' => $repo->recent(200),
+            'unread'   => $repo->unreadCount(),
+        ]);
+    }
+
+    /** Read and unread are the only states. Nothing here deletes. */
+    public function messageState(string $id): Response
+    {
+        if ($denied = $this->guardCan('admin.access')) {
+            return $denied;
+        }
+        if (!$this->checkCsrf()) {
+            Session::flash('bad', 'That form expired. Nothing was changed.');
+            return Response::redirect('/admin/messages');
+        }
+
+        $repo    = new ContactRepository($this->db, $this->scope);
+        $message = $repo->find((int) $id);
+
+        if ($message === null) {
+            Session::flash('bad', 'No such message.');
+            return Response::redirect('/admin/messages');
+        }
+
+        if ($this->request->input('state') === 'unread') {
+            $repo->markUnread((int) $id);
+        } else {
+            $repo->markRead((int) $id, (int) $this->auth->id());
+        }
+
+        return Response::redirect('/admin/messages');
+    }
+
     public function alerts(): Response
     {
         if ($denied = $this->guardCan('people.view')) {

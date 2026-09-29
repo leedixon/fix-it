@@ -2476,5 +2476,82 @@ check('and small enough that Facebook will take it',
     is_file($og) && filesize($og) < 8 * 1024 * 1024,
     is_file($og) ? round(filesize($og) / 1024) . ' KB' : '');
 
+// --- the contact form -------------------------------------------------------
+//
+// /contact was two mailto: links. Those fail quietly in the ways that matter:
+// a phone with no mail app opens nothing, and a message that does get sent
+// lives in one inbox, where a bounce loses it with no record anywhere.
+$contactCtl  = (string) file_get_contents(BASE_PATH . '/app/Controllers/ContactController.php');
+$contactRepo = (string) file_get_contents(BASE_PATH . '/app/Repositories/ContactRepository.php');
+$contactView = (string) file_get_contents(BASE_PATH . '/app/Views/site/contact.php');
+
+check('the message is stored before the email is attempted',
+    strpos($contactCtl, '$repo->add(') < strpos($contactCtl, '$this->notify('));
+
+// A mail outage must cost a notification, never the message.
+check('and a failed notification cannot fail the request',
+    str_contains($contactCtl, 'catch (\\Throwable $e)')
+    && str_contains($contactCtl, 'markNotified'));
+
+check('the form is CSRF checked', str_contains($contactCtl, "Csrf::check"));
+
+// Both traps answer as if it worked. A bot told it failed learns to retry.
+check('a filled honeypot is answered as success, not rejected',
+    str_contains($contactCtl, "input('website'")
+    && str_contains($contactCtl, "return Response::redirect('/contact/thanks');"));
+check('and so is a form submitted faster than a person could type it',
+    str_contains($contactCtl, 'time() - $opened < 3'));
+
+// Nothing about the inbox deletes. Somebody asking for help is a thing that
+// happened, and the admin screen does not get to decide it did not.
+check('nothing in the inbox deletes a message',
+    !preg_match('~\bDELETE\s+FROM\s+contact_messages~i', $contactRepo));
+
+// --- the tabs work without JavaScript ---------------------------------------
+check('the tabs are radio buttons, not script',
+    str_contains($contactView, "type=\"radio\" name=\"audience\"")
+    && !str_contains($contactView, '<script'));
+
+check('and the chosen tab survives a validation failure',
+    str_contains($contactView, 'in_array($v(\'audience\')'));
+
+// A pane sits inside the form body and its radio sits in the tab strip, so ~
+// cannot reach it. :has() can, and this stylesheet already relies on it.
+check('the panes are matched with :has(), which is what can cross that nesting',
+    str_contains($css, '.contact-form:has(#aud-homeowner:checked)')
+    && str_contains($css, '.contact-form:has(#aud-pro:checked)'));
+
+// --- the Facebook link ------------------------------------------------------
+$footer = (string) file_get_contents(BASE_PATH . '/app/Views/partials/footer.php');
+check('the footer links the Facebook page',
+    str_contains($footer, 'facebook.com/fixlisted'));
+
+// rel="me" is how a page says this account and this site are the same entity,
+// which is what a lookalike cannot claim.
+check('and claims it with rel="me"', str_contains($footer, 'rel="noopener me"'));
+
+check('the Facebook icon is stroked like the rest of the set',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Views/partials/icons.php'),
+        "'facebook' =>"));
+
+// --- the admin inbox --------------------------------------------------------
+check('the admin sidebar carries Messages with its unread count',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Views/layouts/admin.php'),
+        "\$nav('/admin/messages', 'Messages', 'mail', \$path, \$unreadMessages ?? 0)"));
+
+// Counted with the other badges rather than per screen, so a controller that
+// forgets to fetch it cannot show a stale number.
+check('and the count is gathered with the other badges',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Core/AdminController.php'),
+        "'unreadMessages' =>"));
+
+check('every staff member can work the inbox',
+    str_contains((string) file_get_contents(BASE_PATH . '/app/Controllers/Admin/ManageController.php'),
+        "guardCan('admin.access')"));
+
+check('the messages table is there',
+    $db->value("SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE() AND table_name = 'contact_messages'") > 0);
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail === 0 ? 0 : 1);

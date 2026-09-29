@@ -14,6 +14,7 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 use FixListed\Controllers\AcademyController;
 use FixListed\Controllers\AdController;
 use FixListed\Controllers\CityController;
+use FixListed\Controllers\ContactController;
 use FixListed\Controllers\DirectoryController;
 use FixListed\Controllers\HomeController;
 use FixListed\Controllers\ImageController;
@@ -170,7 +171,9 @@ try {
     $router->get('/for-pros',       static fn () => $make(PageController::class)->forPros());
     $router->get('/terms',          static fn () => $make(PageController::class)->legal('terms'));
     $router->get('/privacy',        static fn () => $make(PageController::class)->legal('privacy'));
-    $router->get('/contact',        static fn () => $make(PageController::class)->contact());
+    $router->get('/contact',        static fn () => $make(ContactController::class)->show());
+    $router->post('/contact',       static fn () => $make(ContactController::class)->send());
+    $router->get('/contact/thanks', static fn () => $make(ContactController::class)->thanks());
     // Cached by the service worker at install. See public/sw.js.
     $router->get('/offline',        static fn () => $make(PageController::class)->offline());
 
@@ -241,6 +244,8 @@ try {
 
     $router->get('/admin/photos',              static fn () => $admin(ManageController::class)->photos());
     $router->post('/admin/photos/{id}',        static fn (array $p) => $admin(ManageController::class)->moderatePhoto($p['id']));
+    $router->get('/admin/messages',            static fn () => $admin(ManageController::class)->messages());
+    $router->post('/admin/messages/{id}/read', static fn (array $p) => $admin(ManageController::class)->messageState($p['id']));
     $router->get('/admin/alerts',              static fn () => $admin(ManageController::class)->alerts());
     $router->get('/admin/reviews',             static fn () => $admin(ManageController::class)->reviews());
     $router->post('/admin/reviews/{id}',       static fn (array $p) => $admin(ManageController::class)->moderateReview($p['id']));

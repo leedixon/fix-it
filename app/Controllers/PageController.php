@@ -123,13 +123,4 @@ final class PageController extends Controller
             'noindex' => true,
         ]);
     }
-
-    public function contact(): Response
-    {
-        return $this->page('site/contact', [
-            'crumbs'      => [['label' => 'Home', 'href' => '/'], ['label' => 'Contact']],
-            'title'       => 'Contact — Fix Listed',
-            'description' => 'How to reach Fix Listed.',
-        ]);
-    }
 }

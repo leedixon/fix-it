@@ -28,6 +28,11 @@ function icon(string $name, int $size = 16): string
         'users'   => '<circle cx="9.5" cy="8" r="3.2"/><path d="M3 20c1.2-3.3 3.6-5 6.5-5s5.3 1.7 6.5 5"/>'
                    . '<path d="M16.5 5.2a3.2 3.2 0 010 5.8"/><path d="M18 15.4c1.5.8 2.6 2.3 3 4.6"/>',
         'phone'   => '<path d="M5 4h4l2 5-2.4 1.6a12 12 0 005.4 5.4L15.6 14l5 2v4a1 1 0 01-1.1 1A16.5 16.5 0 014 5.1 1 1 0 015 4z"/>',
+        // Stroked, like the rest of the set. A solid Facebook glyph next to
+        // nine outlines reads as a pasted-in logo rather than an icon.
+        'facebook' => '<rect x="3" y="3" width="18" height="18" rx="4.5"/>'
+                    . '<path d="M15.5 8H14a1.8 1.8 0 00-1.8 1.8V12H10"/>'
+                    . '<path d="M15 12h-2.8v9"/>',
         'mail'    => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.4 6.2L12 13l8.6-6.8"/>',
         // Admin navigation.
         'chart'     => '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M21 20H3"/>',

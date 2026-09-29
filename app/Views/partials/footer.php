@@ -32,6 +32,21 @@ require_once __DIR__ . '/icons.php';
           A flat-fee directory for <?= e($market['name'] ?? 'your area') ?>. Homeowners pay once to
           list a job. Tradespeople quote for free and keep the whole job.
         </p>
+
+        <?php
+        /*
+         * rel="me" as well as noopener: it is the standard way to say this
+         * account and this site are the same entity, which is what stops a
+         * lookalike page claiming to be us.
+         */
+        ?>
+        <div class="social">
+          <a href="https://www.facebook.com/fixlisted" target="_blank" rel="noopener me"
+             title="Fix Listed on Facebook">
+            <span class="vh">Fix Listed on Facebook</span>
+            <?= icon('facebook', 17) ?>
+          </a>
+        </div>
       </div>
 
       <div>

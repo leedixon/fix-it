@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FixListed\Core;
 
 use FixListed\Repositories\AdminRepository;
+use FixListed\Repositories\ContactRepository;
 use FixListed\Repositories\PhotoRepository;
 
 /**
@@ -102,6 +103,9 @@ abstract class AdminController
             'pending'  => $this->queue()['applications'],
             'pendingReviews' => $this->queue()['reviews'],
             'pendingPhotos'  => (new PhotoRepository($this->db, $this->scope))->pendingCount(),
+            // Counted here with the rest, so the sidebar cannot show a stale
+            // number on a screen whose controller forgot to fetch it.
+            'unreadMessages' => (new ContactRepository($this->db, $this->scope))->unreadCount(),
         ];
 
         return Response::html(

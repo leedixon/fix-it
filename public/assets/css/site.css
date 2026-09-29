@@ -555,6 +555,95 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
  * Beyond the prototype — states a clickable mock never has to show.
  * ====================================================================== */
 
+/* =========================================================================
+ * The contact form's tabs.
+ *
+ * Radio buttons, styled. No JavaScript: the page works with scripting off,
+ * the chosen tab survives a validation failure because it round-trips as a
+ * submitted value rather than as the state of a widget, and a screen reader
+ * is told it is a radio group, which is what it is.
+ *
+ * The panes are matched with :has() rather than a sibling selector, because
+ * a pane sits inside the form's body and a radio sits in the tab strip —
+ * ~ cannot cross that, and nesting the radios beside each pane would put
+ * three separate groups on the page instead of one.
+ * ====================================================================== */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 10px;flex-wrap:wrap}
+
+/* Clipped, not display:none, so the radio keeps its place in the tab order
+   and arrow keys still move between the tabs. */
+.tab-state{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.tab{display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+  padding:13px 14px;font-size:14.5px;color:var(--text-2);
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab svg{opacity:.6}
+.tab-state:checked + .tab{color:var(--text);font-weight:600;border-bottom-color:var(--brass-2)}
+.tab-state:checked + .tab svg{opacity:1;color:var(--brass)}
+.tab-state:focus-visible + .tab{outline:2px solid var(--brass);outline-offset:-2px}
+
+/* A field for an audience you are not is not a field you skipped past, so it
+   leaves the tab order entirely rather than being clipped. */
+.tab-pane{display:none}
+.contact-form:has(#aud-homeowner:checked) .tab-pane[data-for="homeowner"],
+.contact-form:has(#aud-pro:checked) .tab-pane[data-for="pro"]{display:block}
+
+.contact-form .field{margin-top:14px}
+.contact-form .field i{font-style:normal;font-size:12px;margin-left:5px}
+.contact-form .hint{display:block;font-style:normal;font-size:12.5px;
+  color:var(--text-3);margin-top:6px;line-height:1.5}
+.contact-form .bad{display:block;font-style:normal;font-size:12.5px;
+  color:var(--clay);margin-top:6px}
+
+@media (max-width:560px){
+  .tabs{padding:0 4px}
+  .tab{padding:12px 9px;font-size:13.5px;gap:6px}
+  .contact-form .g2{grid-template-columns:1fr!important}
+}
+
+/* ---- the admin inbox ----
+   Expanded in place with the site's checkbox disclosure, so it works with
+   scripting off. Unread messages start open: the point of opening the screen
+   is to read the ones nobody has. */
+.msg{border-top:1px solid var(--line)}
+.msg-state{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.msg-head{display:grid;grid-template-columns:minmax(150px,auto) 1fr auto;gap:14px;
+  align-items:center;padding:13px 20px;cursor:pointer}
+.msg-head:hover{background:var(--paper-2)}
+.msg-state:focus-visible + .msg-head{outline:2px solid var(--brass);outline-offset:-2px}
+.msg-who{display:flex;align-items:center;gap:8px;font-size:14px;min-width:0}
+.msg-who b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-dot{width:7px;height:7px;border-radius:99px;background:var(--brass-2);flex:none}
+.msg-sub{font-size:13.5px;color:var(--text-2);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.msg-unread .msg-sub{color:var(--text)}
+.msg-when{white-space:nowrap}
+.msg-body{display:none;padding:4px 20px 20px}
+.msg-state:checked ~ .msg-body{display:block}
+.msg-facts{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0 0 14px;
+  font-size:13px}
+.msg-facts dt{color:var(--text-3);font-family:var(--mono);font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;padding-top:2px}
+.msg-facts dd{margin:0}
+.msg-text{background:var(--paper-2);border:1px solid var(--line);border-radius:4px;
+  padding:14px 16px;font-size:14.5px;line-height:1.65;white-space:pre-line}
+.msg-actions{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.msg-actions form{margin:0}
+
+@media (max-width:700px){
+  .msg-head{grid-template-columns:1fr auto;gap:6px 12px}
+  .msg-sub{grid-column:1 / -1;white-space:normal}
+}
+
+/* ---- the Facebook link in the footer ---- */
+.social{display:flex;gap:10px;margin-top:16px}
+.social a{display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border:1px solid var(--on-ink-line);border-radius:4px;
+  color:var(--on-ink-2)}
+.social a:hover{color:var(--on-ink);border-color:var(--on-ink-2)}
+
 /* ---- a link to the lesson about this screen ----
    Quiet by default: it is an offer, not an instruction, and it sits beside
    the thing it explains rather than competing with it. */

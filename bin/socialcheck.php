@@ -357,6 +357,13 @@ if ($problems === 0) {
     echo "Facebook caches hard, so it will still show the old result until you\n";
     echo "force a refresh. Open the URL in the sharing debugger and press\n";
     echo "Scrape Again:\n";
+    echo "\n";
+    echo "  If you have just changed robots.txt, give it a day first.\n";
+    echo "  Facebook caches robots.txt separately, for about 24 hours, and\n";
+    echo "  keeps refusing on the old copy while still fetching the page —\n";
+    echo "  so the access log fills with 200s while the debugger reports\n";
+    echo "  403. That 403 is Facebook's own, not the server's, and no\n";
+    echo "  amount of Scrape Again shortens the wait.\n";
     echo "  https://developers.facebook.com/tools/debug/?q=" . urlencode($url) . "\n\n";
     exit(0);
 }
